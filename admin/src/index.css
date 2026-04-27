@@ -1,0 +1,258 @@
+@import "tailwindcss";
+
+/* =============================================================
+ * GHIR LAFFAIRE — Design Tokens
+ * Inspired by Shibuya punk culture • Built for Algeria
+ * Fast. Reliable. Yours.
+ *
+ * NOTE: every token here is overridable at runtime via the Theme
+ * Studio (admin/src/pages/ThemeStudio.tsx). See admin/src/lib/theme.ts
+ * for the source-of-truth registry. The values below are canonical
+ * fallbacks used when no preset / no override is set.
+ * ============================================================= */
+@theme {
+  --font-sans:    "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter", sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+
+  /* ── Brand palette (canonical) ───────────────────────────── */
+  --color-bold-blue:     #1E466B;   /* primary, anchored */
+  --color-electric-blue: #3DA9FC;   /* highlight, link */
+  --color-neon-yellow:   #FFD400;   /* mystery, win, CTA */
+  --color-hot-pink:      #FF2E7A;   /* punk, urgency, crown */
+  --color-jet-black:     #0D0D0D;   /* surface base */
+  --color-soft-white:    #F7F7F7;   /* lightest text */
+
+  /* ── Surface ramp (dark theme) ───────────────────────────── */
+  --color-surface-0: #0a0a0d;   /* page bg */
+  --color-surface-1: #0f0f15;   /* sidebar */
+  --color-surface-2: #15151d;   /* card base */
+  --color-surface-3: #1c1c28;   /* card hover / input */
+  --color-surface-4: #2a2a3d;   /* borders */
+
+  /* ── Text ramp ───────────────────────────────────────────── */
+  --color-text-1: #f7f7f7;
+  --color-text-2: #b6b6c6;
+  --color-text-3: #6b6b85;
+
+  /* ── Brand semantic aliases ──────────────────────────────── */
+  --color-brand:       #3DA9FC;                  /* primary action */
+  --color-brand-deep:  #1E466B;
+  --color-brand-glow:  rgba(61,169,252,0.22);
+  --color-accent:      #FFD400;                  /* yellow win */
+  --color-accent-glow: rgba(255,212,0,0.30);
+  --color-punk:        #FF2E7A;                  /* punk pink */
+  --color-punk-glow:   rgba(255,46,122,0.30);
+
+  /* ── Status (kept compatible) ────────────────────────────── */
+  --color-success: #22c55e;
+  --color-warning: #FFD400;
+  --color-danger:  #FF2E7A;
+  --color-info:    #3DA9FC;
+
+  /* ── Radii (Theme Studio controllable) ──────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ── Glass material ─────────────────────────────────────── */
+  --glass-blur:     18px;
+  --glass-saturate: 140%;
+  --glass-opacity:  0.78;
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 480ms;
+
+  /* ── Background gradient anchors ────────────────────────── */
+  --bg-glow-1: rgba(61,169,252,0.06);
+  --bg-glow-2: rgba(255,46,122,0.04);
+  --bg-glow-3: rgba(255,212,0,0.0);
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-family: var(--font-sans); color-scheme: dark; }
+
+body {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, var(--bg-glow-1), transparent 60%),
+    radial-gradient(ellipse 60% 30% at 100% 100%, var(--bg-glow-2), transparent 70%),
+    radial-gradient(ellipse 50% 25% at 50% 50%, var(--bg-glow-3), transparent 70%),
+    var(--color-surface-0);
+  color: var(--color-text-1);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display font — punky condensed weight */
+.font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+/* Italic stretched display (logo-like) */
+.headline-italic {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-electric-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-4);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-electric-blue); }
+
+/* ── Glass cards (theme-controlled with color-mix fallback) ──
+ * Older Chromium / Safari < 16.2 / Firefox < 113 don't support color-mix().
+ * The fallback solid background renders cards visibly (no transparency
+ * blend with surface ramp, but readable). The @supports block then
+ * upgrades to the dynamic color-mix variant where supported. */
+.glass {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
+    rgba(21, 21, 29, 0.78);
+  backdrop-filter: blur(var(--glass-blur, 18px)) saturate(var(--glass-saturate, 140%));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 18px)) saturate(var(--glass-saturate, 140%));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-xl, 18px);
+}
+.glass-sm {
+  background: rgba(21, 21, 29, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--radius-lg, 14px);
+}
+
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .glass {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
+      color-mix(in srgb, var(--color-surface-2) calc(var(--glass-opacity) * 100%), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-text-1) 6%, transparent);
+  }
+  .glass-sm {
+    background: color-mix(in srgb, var(--color-surface-2) calc(var(--glass-opacity) * 80%), transparent);
+    backdrop-filter: blur(calc(var(--glass-blur) * 0.55));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.55));
+    border: 1px solid color-mix(in srgb, var(--color-text-1) 5%, transparent);
+  }
+}
+
+/* ── Brand glows ───────────────────────────────────────────── */
+.glow-brand  { box-shadow: 0 0 28px var(--color-brand-glow), 0 1px 3px rgba(0,0,0,0.5); }
+.glow-yellow { box-shadow: 0 0 24px var(--color-accent-glow), 0 1px 2px rgba(0,0,0,0.4); }
+.glow-pink   { box-shadow: 0 0 24px var(--color-punk-glow), 0 1px 2px rgba(0,0,0,0.4); }
+
+/* ── Punk stripe accent (logo-like ribbon) ────────────────── */
+.punk-stripe {
+  position: relative;
+  display: inline-block;
+}
+.punk-stripe::after {
+  content: '';
+  position: absolute;
+  left: -4px; right: -4px; bottom: -3px;
+  height: 5px;
+  background: var(--color-neon-yellow);
+  transform: skewX(-18deg);
+  z-index: -1;
+  border-radius: 2px;
+}
+
+/* ── Speed-line accent (slashed angles like cart trails) ──── */
+.speed-lines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(105deg, transparent 60%, rgba(255,212,0,0.08) 60% 62%, transparent 62% 70%, rgba(61,169,252,0.06) 70% 71%, transparent 71%);
+  pointer-events: none;
+}
+
+/* ── Stat shimmer ──────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    var(--color-surface-3) 25%,
+    var(--color-surface-4) 50%,
+    var(--color-surface-3) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+
+/* ── Sparkle pulse (mystery box energy) ───────────────────── */
+@keyframes sparkle-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg);   opacity: 0.85; }
+  50%      { transform: scale(1.18) rotate(8deg); opacity: 1; }
+}
+.sparkle-pulse { animation: sparkle-pulse 2.4s ease-in-out infinite; }
+
+/* ── Crown bounce ──────────────────────────────────────────── */
+@keyframes crown-bounce {
+  0%, 100% { transform: translateY(0)    rotate(-6deg); }
+  50%      { transform: translateY(-2px) rotate(2deg); }
+}
+.crown-bounce { animation: crown-bounce 1.8s ease-in-out infinite; }
+
+/* ── Table rows ────────────────────────────────────────────── */
+.tr-hover { transition: background 120ms ease; }
+.tr-hover:hover { background: var(--color-surface-3); }
+
+/* ── Status badge base ─────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+/* ── Mono numbers ──────────────────────────────────────────── */
+.num { font-family: var(--font-mono); font-feature-settings: "tnum"; }
+
+/* ── AOS fade-up-sm (legacy) ───────────────────────────────── */
+[data-aos="fade-up-sm"] {
+  transform: translateY(12px);
+  opacity: 0;
+  transition-property: transform, opacity;
+}
+[data-aos="fade-up-sm"].aos-animate {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ── Page transition ───────────────────────────────────────── */
+.page-enter { animation: pageEnter 240ms cubic-bezier(0.33, 1, 0.68, 1) forwards; }
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Selection highlight ──────────────────────────────────── */
+::selection { background: var(--color-neon-yellow); color: var(--color-jet-black); }

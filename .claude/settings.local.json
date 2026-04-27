@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(curl -sS http://localhost:8000/healthz)",
+      "Bash(curl -sS http://localhost:8000/readyz)"
+    ]
+  }
+}

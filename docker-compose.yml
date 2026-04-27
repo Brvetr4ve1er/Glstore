@@ -1,0 +1,143 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-glstore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-glstore}
+      POSTGRES_DB: ${POSTGRES_DB:-glstore}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/00-schema.sql:ro
+      - ./db/seed_admin.sql:/docker-entrypoint-initdb.d/01-seed_admin.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-glstore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    restart: unless-stopped
+    env_file: .env
+    # Live source mounts — code changes apply on container restart (no rebuild).
+    # In production, drop these volumes so the image is the source of truth.
+    # NOTE: db/ is mounted because the migration runner (Phase 9 Push 5) reads
+    # *.sql files from /app/db/migrations on startup.
+    volumes:
+      - ./api:/app/api:ro
+      - ./scripts:/app/scripts:ro
+      - ./db:/app/db:ro
+    # --reload watches the mounted source and hot-reloads on file changes.
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/api"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    # Healthcheck (Phase 9 Push 6) — uses the new /healthz liveness endpoint
+    # so other services and `docker compose ps` know when the API is ready
+    # to serve. Lifespan migrations need to complete before this returns OK.
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz', timeout=2).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  event_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./api:/app/api:ro
+      - ./workers:/app/workers:ro
+    command: ["python", "-m", "workers.event_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      # Wait for api so migrations have finished before we touch tables
+      # that may have been added in this release.
+      api:
+        condition: service_healthy
+
+  reservation_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./api:/app/api:ro
+      - ./workers:/app/workers:ro
+    command: ["python", "-m", "workers.reservation_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  # Self-hosted multi-engine search aggregator (Phase 5).
+  # Runs in ~50MB RAM. Lets the scraper search Google/Bing/DDG without
+  # API keys or rate limits.
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    environment:
+      - BASE_URL=http://localhost:8088/
+      - INSTANCE_NAME=ghirlaffaire-searxng
+    # Host-port 8088 (was 8080) to avoid conflict with other local SearXNG
+    # instances. The intra-network address used by api/workers is unchanged
+    # (`http://searxng:8080`) — only host browser access uses 8088.
+    ports:
+      - "127.0.0.1:8088:8080"
+
+  # Scraper worker — separate image because Playwright + Chromium is heavy.
+  # Scale horizontally with: docker compose up -d --scale scraper_worker=3
+  scraper_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.scraper
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./api:/app/api:ro
+      - ./workers:/app/workers:ro
+    command: ["python", "-m", "workers.scraper_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      searxng:
+        condition: service_started
+
+  # Intel worker — runs the unified scrape + LLM + merge pipeline.
+  # Same heavy image as scraper_worker (it uses the scraper internally).
+  # Scale via: docker compose up -d --scale intel_worker=3
+  intel_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.scraper
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./api:/app/api:ro
+      - ./workers:/app/workers:ro
+    command: ["python", "-m", "workers.intel_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      searxng:
+        condition: service_started
+
+volumes:
+  pgdata:
