@@ -1,195 +1,262 @@
+/**
+ * Floema-style home: a paper hero with floating product cutouts that
+ * drift gently in place, a row of collection "catalogues", an editorial
+ * featured-product grid, a forest-tone sustainability band, and a
+ * recent-addings marquee just before the footer.
+ */
+
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowRight, Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react'
-import { fetchCategories, fetchFeatured } from '@/lib/api'
-import { categoryIcon } from '@/lib/format'
+import { ArrowRight, ArrowDown } from 'lucide-react'
+import { fetchFeatured, fetchProducts } from '@/lib/api'
 import { ProductCard } from '@/components/ProductCard'
 import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/ScrollReveal'
-import { Button } from '@/components/ui'
-import { SearchBox } from '@/components/SearchBox'
-import { BrandLogo } from '@/components/BrandLogo'
 import { SEO } from '@/components/SEO'
+import { COLLECTIONS, MOCK_LIST } from '@/lib/mock-products'
+
+/** Eight hand-positioned drifting product cutouts for the hero.
+ *  Positions in % of the hero box; pick from MOCK_LIST so visuals match
+ *  the catalogue. */
+const FLOAT_POSITIONS = [
+  { top: '6%',  left: '6%',  w: '180px', drift: 'fl-drift-a', delay: '0s' },
+  { top: '12%', left: '74%', w: '210px', drift: 'fl-drift-b', delay: '0.6s' },
+  { top: '40%', left: '2%',  w: '160px', drift: 'fl-drift-c', delay: '1.2s' },
+  { top: '60%', left: '20%', w: '190px', drift: 'fl-drift-a', delay: '0.4s' },
+  { top: '70%', left: '78%', w: '220px', drift: 'fl-drift-b', delay: '1.6s' },
+  { top: '36%', left: '82%', w: '170px', drift: 'fl-drift-c', delay: '0.8s' },
+  { top: '5%',  left: '40%', w: '150px', drift: 'fl-drift-a', delay: '1.4s' },
+  { top: '68%', left: '46%', w: '170px', drift: 'fl-drift-c', delay: '0.2s' },
+]
 
 export default function Home() {
   const featured = useQuery({ queryKey: ['featured'], queryFn: () => fetchFeatured(12), staleTime: 60_000 })
-  const cats = useQuery({ queryKey: ['categories'], queryFn: fetchCategories, staleTime: 5 * 60_000 })
+  const recent = useQuery({
+    queryKey: ['recent', 'desc'],
+    queryFn: () => fetchProducts({ page: 1, page_size: 12, sort: 'name_asc' }),
+    staleTime: 60_000,
+  })
+
+  const floats = useMemo(
+    () => FLOAT_POSITIONS.map((pos, i) => ({ pos, product: MOCK_LIST[i % MOCK_LIST.length] })),
+    [],
+  )
 
   return (
     <div className="page-enter">
       <SEO
-        title="Ghir Laffaire — Fast. Reliable. Yours."
-        description="Électroménager et électronique en Algérie. Livraison 48h dans les 58 wilayas. Paiement à la livraison."
+        title="Ghir Laffaire — Tools for a calmer day"
+        description="A craft-first storefront for laptops, audio, gaming, smart home and accessories. Built to last, designed to endure."
       />
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden">
-        {/* Ambient lights */}
-        <div aria-hidden className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-10 left-1/4 w-[420px] h-[260px] bg-[var(--color-electric-blue)] opacity-[0.07] blur-[120px] rounded-full" />
-          <div className="absolute bottom-10 right-1/4 w-[420px] h-[260px] bg-[var(--color-hot-pink)] opacity-[0.06] blur-[120px] rounded-full" />
-        </div>
 
-        <div className="max-w-[1400px] mx-auto px-6 pt-16 pb-12 md:pt-24 md:pb-16">
-          <ScrollReveal variant="fade-up-sm" className="flex flex-col items-center text-center gap-6">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-sm text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)]">
-              <Sparkles size={11} /> Inspiré par Shibuya · construit pour l'Algérie
+      {/* ── Hero ── */}
+      <section className="fl-band-paper relative overflow-hidden">
+        <div className="relative max-w-[1600px] mx-auto px-6 md:px-10 pt-12 pb-24 md:pt-20 md:pb-40 min-h-[88vh]">
+          {/* Floating product cutouts (decorative on md+) */}
+          <div aria-hidden className="absolute inset-0 hidden md:block pointer-events-none">
+            {floats.map(({ pos, product }, i) => (
+              <div
+                key={i}
+                className={`absolute ${pos.drift}`}
+                style={{ top: pos.top, left: pos.left, width: pos.w, animationDelay: pos.delay }}
+              >
+                <img
+                  src={product.primary_image ?? ''}
+                  alt=""
+                  className="w-full h-auto object-cover rounded-sm"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Centred title */}
+          <ScrollReveal variant="fade-up-sm" className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8 pt-10 md:pt-20">
+            <div className="text-[11px] uppercase tracking-[0.28em] font-semibold text-[var(--color-text-2)]">
+              Est. 2007 · Made for life
             </div>
 
-            <h1 className="font-display text-5xl md:text-7xl font-black leading-[0.95] max-w-4xl tracking-tight">
-              <span className="text-[var(--color-electric-blue)]">Fast.</span>{' '}
-              <span className="text-[var(--color-text-1)]">Reliable.</span>{' '}
-              <span className="punk-stripe text-[var(--color-text-1)]">Yours.</span>
+            <h1 className="font-display text-[clamp(48px,8vw,128px)] leading-[0.96] tracking-[-0.04em] text-[var(--color-jet-black)]">
+              Tools for a <em className="not-italic">calmer</em> day.
             </h1>
 
-            <p className="text-base md:text-lg text-[var(--color-text-2)] max-w-2xl leading-relaxed">
-              Électroménager et électronique. Livraison <span className="text-[var(--color-text-1)] font-bold">48h</span> à travers les 58 wilayas. Paiement <span className="text-[var(--color-text-1)] font-bold">à la livraison</span>.
+            <p className="text-[16px] md:text-[18px] text-[var(--color-text-2)] max-w-xl leading-relaxed">
+              Laptops, audio, gaming, smart home and accessories — chosen the way you'd choose a hand tool. Honest stock, fast delivery, and a return policy that doesn't read like a trap.
             </p>
 
-            <div className="w-full max-w-2xl mt-2">
-              <SearchBox variant="page" />
-            </div>
-
             <div className="flex flex-wrap gap-3 justify-center mt-2">
-              <Link to="/c/all">
-                <Button variant="accent" size="lg">
-                  Explorer le catalogue <ArrowRight size={16} />
-                </Button>
+              <Link to="/c/all" className="fl-cta">
+                <span className="icon-circle"><ArrowRight size={14} strokeWidth={2.2} /></span>
+                See all products
               </Link>
-              <Link to="/c/TV">
-                <Button variant="outline" size="lg">
-                  📺 TV à partir de 30 000 DZD
-                </Button>
+              <Link to="/c/laptops" className="fl-cta" data-variant="ghost">
+                <span className="icon-circle"><ArrowRight size={14} strokeWidth={2.2} /></span>
+                Shop laptops
               </Link>
             </div>
           </ScrollReveal>
+
+          {/* Scroll-to-explore */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[var(--color-text-3)] fl-bob">
+            <span className="text-[10px] uppercase tracking-[0.24em] font-semibold">Scroll to explore</span>
+            <ArrowDown size={14} strokeWidth={1.6} />
+          </div>
         </div>
       </section>
 
-      {/* ── Trust strip ── */}
-      <ScrollReveal variant="fade-up">
-        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-4 -mt-4 mb-12">
-          {[
-            { icon: Truck, title: 'Livraison 48h', desc: '58 wilayas couvertes' },
-            { icon: ShieldCheck, title: 'COD partout', desc: 'Payez à la livraison' },
-            { icon: Zap, title: 'Stock vérifié', desc: 'Disponibilité en temps réel' },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="glass-sm flex items-center gap-3 px-5 py-4">
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-neon-yellow)]/15 flex items-center justify-center shrink-0">
-                <Icon size={18} className="text-[var(--color-neon-yellow)]" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-[var(--color-text-1)]">{title}</div>
-                <div className="text-xs text-[var(--color-text-3)]">{desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </ScrollReveal>
-
-      {/* ── Categories grid ── */}
-      <section className="max-w-[1400px] mx-auto px-6 mb-16">
-        <ScrollReveal variant="fade-up-sm">
-          <div className="flex items-end justify-between mb-6 gap-4">
+      {/* ── Collections ── */}
+      <section className="fl-band-paper-alt">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-28">
+          <ScrollReveal variant="fade-up-sm" className="flex items-end justify-between mb-10 gap-6 flex-wrap">
             <div>
-              <h2 className="text-2xl md:text-3xl font-black text-[var(--color-text-1)]">
-                <span className="punk-stripe">Catégories</span>
+              <div className="text-[11px] uppercase tracking-[0.28em] font-semibold text-[var(--color-text-3)] mb-3">
+                Catalogues
+              </div>
+              <h2 className="font-display text-[clamp(36px,5vw,72px)] leading-[1.02] tracking-[-0.04em] max-w-3xl">
+                Five collections, <em className="not-italic">one</em> shelf.
               </h2>
-              <p className="text-sm text-[var(--color-text-3)] mt-2">Naviguez par univers</p>
             </div>
-            <Link to="/c/all" className="text-xs font-bold text-[var(--color-electric-blue)] hover:underline whitespace-nowrap">
-              Tout voir →
+            <Link to="/c/all" className="fl-cta" data-variant="ghost">
+              <span className="icon-circle"><ArrowRight size={14} strokeWidth={2.2} /></span>
+              See all
             </Link>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
 
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"
-          variants={STAGGER_CONTAINER}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.15 }}
-        >
-          {(cats.data?.items ?? []).slice(0, 12).map(c => (
-            <motion.div key={c.name} variants={STAGGER_ITEM}>
-              <Link
-                to={`/c/${encodeURIComponent(c.name)}`}
-                className="group relative flex flex-col items-center justify-center gap-2 aspect-square glass overflow-hidden hover:border-[var(--color-electric-blue)]/40 transition-colors"
-              >
-                <span className="text-3xl group-hover:scale-110 transition-transform" aria-hidden>
-                  {categoryIcon(c.name)}
-                </span>
-                <span className="text-xs font-bold text-[var(--color-text-1)] text-center px-2 line-clamp-2">{c.name}</span>
-                <span className="text-[10px] num text-[var(--color-text-3)]">{c.count}</span>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ── Featured products ── */}
-      <section className="max-w-[1400px] mx-auto px-6 mb-20">
-        <ScrollReveal variant="fade-up-sm">
-          <div className="flex items-end justify-between mb-6 gap-4">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-black text-[var(--color-text-1)]">
-                <span className="punk-stripe">Sélection</span>
-              </h2>
-              <p className="text-sm text-[var(--color-text-3)] mt-2">Mieux notés · vérifiés · en stock</p>
-            </div>
-            <Link to="/c/all" className="text-xs font-bold text-[var(--color-electric-blue)] hover:underline whitespace-nowrap">
-              Voir tout →
-            </Link>
-          </div>
-        </ScrollReveal>
-
-        {featured.isPending ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] shimmer rounded-2xl" />
-            ))}
-          </div>
-        ) : (
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
             variants={STAGGER_CONTAINER}
             initial="hidden"
             whileInView="show"
-            viewport={{ once: true, amount: 0.05 }}
+            viewport={{ once: true, amount: 0.1 }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
           >
-            {(featured.data?.items ?? []).map(p => (
-              <motion.div key={p.id} variants={STAGGER_ITEM}>
-                <ProductCard product={p} />
-              </motion.div>
-            ))}
+            {COLLECTIONS.map(col => {
+              const sample = MOCK_LIST.find(
+                p => (p.category ?? '').toLowerCase().includes(col.slug.split('-')[0])
+                  || (col.slug === 'smart-home' && (p.category ?? '').toLowerCase().includes('smart')),
+              )
+              return (
+                <motion.div key={col.slug} variants={STAGGER_ITEM}>
+                  <Link
+                    to={`/c/${col.slug}`}
+                    className="group flex flex-col gap-4 fl-card p-5"
+                    style={{ background: `color-mix(in srgb, var(${col.cssVar}) 22%, var(--color-surface-1))` }}
+                  >
+                    <div className="aspect-[3/4] overflow-hidden bg-white/40">
+                      {sample?.primary_image && (
+                        <img
+                          src={sample.primary_image}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-end justify-between gap-2">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.22em] font-semibold opacity-70">
+                          Catalogue
+                        </div>
+                        <div className="font-display text-[22px] leading-tight tracking-[-0.02em]">
+                          {col.label}
+                        </div>
+                      </div>
+                      <span className="fl-pill" data-tone={col.tone}>{col.slug}</span>
+                    </div>
+                  </Link>
+                </motion.div>
+              )
+            })}
           </motion.div>
-        )}
+        </div>
       </section>
 
-      {/* ── Brand callout ── */}
-      <section className="max-w-[1400px] mx-auto px-6 mb-24">
-        <ScrollReveal variant="zoom-in">
-          <div className="glass-strong p-8 md:p-12 relative overflow-hidden">
-            <div aria-hidden className="absolute top-0 left-0 right-0 h-1 brand-stripe" />
-            <div className="flex flex-col md:flex-row items-center gap-8 justify-between">
-              <div className="flex items-center gap-5 max-w-xl">
-                <div className="rocket-float shrink-0"><BrandLogo size={64} showWordmark={false} /></div>
-                <div>
-                  <h3 className="font-display text-2xl md:text-3xl font-black text-[var(--color-text-1)] leading-tight">
-                    Punk mode <span className="text-[var(--color-neon-yellow)]">on.</span>
-                  </h3>
-                  <p className="text-sm text-[var(--color-text-2)] mt-2 leading-relaxed">
-                    Move fast. Stay reliable. Une plateforme construite pour l'Algérie, des prix clairs, du stock honnête, des fiches vérifiées.
-                  </p>
-                </div>
+      {/* ── Featured ── */}
+      <section className="fl-band-paper">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-28">
+          <ScrollReveal variant="fade-up-sm" className="flex items-end justify-between mb-10 gap-6 flex-wrap">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.28em] font-semibold text-[var(--color-text-3)] mb-3">
+                Sélection
               </div>
-              <Link to="/c/all">
-                <Button variant="accent" size="lg">
-                  Découvrir <ArrowRight size={16} />
-                </Button>
+              <h2 className="font-display text-[clamp(36px,5vw,72px)] leading-[1.02] tracking-[-0.04em] max-w-3xl">
+                The most-loved <em className="not-italic">of the season.</em>
+              </h2>
+            </div>
+            <Link to="/c/all" className="fl-cta" data-variant="ghost">
+              <span className="icon-circle"><ArrowRight size={14} strokeWidth={2.2} /></span>
+              See more
+            </Link>
+          </ScrollReveal>
+
+          {featured.isPending ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="aspect-[3/4] shimmer" />
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              variants={STAGGER_CONTAINER}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.05 }}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            >
+              {(featured.data?.items ?? []).slice(0, 8).map(p => (
+                <motion.div key={p.id} variants={STAGGER_ITEM}>
+                  <ProductCard product={p} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Sustainability / quote band ── */}
+      <section className="fl-band-forest">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-24 md:py-36 grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+          <div className="md:col-span-3">
+            <div className="text-[11px] uppercase tracking-[0.28em] font-semibold opacity-80">
+              Sustainability
+            </div>
+          </div>
+          <div className="md:col-span-9">
+            <p className="font-display text-[clamp(32px,4.4vw,64px)] leading-[1.05] tracking-[-0.04em]">
+              We do not subscribe to <em className="not-italic">disposable</em> electronics. Every device we sell is rated for repair, ships in recyclable fibre, and arrives without a bag of plastic theatre.
+            </p>
+            <div className="mt-12 flex flex-wrap gap-3">
+              <Link to="/sustainability" className="fl-cta">
+                <span className="icon-circle"><ArrowRight size={14} strokeWidth={2.2} /></span>
+                Our approach
               </Link>
             </div>
           </div>
-        </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── Recent addings marquee ── */}
+      <section className="fl-band-paper">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-20">
+          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+            <h2 className="font-display text-[clamp(28px,3.6vw,56px)] leading-[1.05] tracking-[-0.04em]">
+              Recent additions
+            </h2>
+            <Link to="/c/all" className="text-[12px] uppercase tracking-[0.22em] font-semibold link-underline text-[var(--color-jet-black)]">
+              View all →
+            </Link>
+          </div>
+
+          <div className="overflow-hidden -mx-6 md:-mx-10">
+            <div className="fl-marquee flex gap-4 px-6 md:px-10 w-max">
+              {[...(recent.data?.items ?? []), ...(recent.data?.items ?? [])].map((p, i) => (
+                <div key={`${p.id}-${i}`} className="w-[260px] shrink-0">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   )

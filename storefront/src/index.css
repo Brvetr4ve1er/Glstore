@@ -1,180 +1,164 @@
 @import "tailwindcss";
 
 /* =============================================================
- * GHIR LAFFAIRE — Storefront Design Tokens
- * Liquid-glass · punk · calm
+ * GHIR LAFFAIRE — Storefront Design Tokens (Floema-flavoured)
  *
- * Theme-controlled at runtime via storefront/src/lib/theme.ts —
- * the storefront fetches the admin-controlled theme from
- * GET /api/v1/storefront/theme on bootstrap and overrides these
- * fallbacks. Keep this list in sync with admin/src/lib/theme.ts.
+ * Warm paper background, near-black ink, citron + collection
+ * accents. Token names are kept stable so existing components
+ * (Catalog / ProductDetail / Cart) automatically pick up the
+ * new palette.
  * ============================================================= */
 @theme {
-  --font-sans:    "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "Inter", sans-serif;
-  --font-mono:    "JetBrains Mono", monospace;
+  --font-sans:    "Inter", "Inter Tight", system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Space Grotesk", "Inter", serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
 
-  /* Brand palette */
-  --color-bold-blue:     #1E466B;
-  --color-electric-blue: #3DA9FC;
-  --color-neon-yellow:   #FFD400;
-  --color-hot-pink:      #FF2E7A;
-  --color-jet-black:     #0D0D0D;
-  --color-soft-white:    #F7F7F7;
+  /* Floema palette → re-mapped onto legacy token names */
+  --color-bold-blue:     #313B40;   /* deep teal */
+  --color-electric-blue: #85A1C5;   /* replastic blue (primary accent) */
+  --color-neon-yellow:   #E9E777;   /* citron */
+  --color-hot-pink:      #F76C46;   /* urban orange */
+  --color-jet-black:     #241F21;   /* ink */
+  --color-soft-white:    #FFFFFF;
 
-  /* Surface ramp (dark) */
-  --color-surface-0: #0a0a0d;
-  --color-surface-1: #0f0f15;
-  --color-surface-2: #15151d;
-  --color-surface-3: #1c1c28;
-  --color-surface-4: #2a2a3d;
+  /* Surface ramp (warm paper) */
+  --color-surface-0: #F2EFEA;       /* paper */
+  --color-surface-1: #EBE7DF;       /* paper-alt */
+  --color-surface-2: #EBE7DF;
+  --color-surface-3: #E0DAD0;
+  --color-surface-4: rgba(36, 31, 33, 0.12);
 
   /* Text ramp */
-  --color-text-1: #f7f7f7;
-  --color-text-2: #b6b6c6;
-  --color-text-3: #6b6b85;
+  --color-text-1: #241F21;
+  --color-text-2: rgba(36, 31, 33, 0.72);
+  --color-text-3: rgba(36, 31, 33, 0.50);
 
   /* Aliases */
-  --color-brand:       #3DA9FC;
-  --color-brand-deep:  #1E466B;
-  --color-brand-glow:  rgba(61,169,252,0.22);
-  --color-accent:      #FFD400;
-  --color-accent-glow: rgba(255,212,0,0.30);
-  --color-punk:        #FF2E7A;
-  --color-punk-glow:   rgba(255,46,122,0.30);
+  --color-brand:       #85A1C5;
+  --color-brand-deep:  #313B40;
+  --color-brand-glow:  rgba(133,161,197,0.30);
+  --color-accent:      #E9E777;
+  --color-accent-glow: rgba(233,231,119,0.55);
+  --color-punk:        #F76C46;
+  --color-punk-glow:   rgba(247,108,70,0.32);
 
-  --color-success: #22c55e;
-  --color-warning: #FFD400;
-  --color-danger:  #FF2E7A;
-  --color-info:    #3DA9FC;
+  --color-success: #6F8B4F;
+  --color-warning: #FCB131;
+  --color-danger:  #F76C46;
+  --color-info:    #85A1C5;
 
-  /* Radii — theme-controlled */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   18px;
-  --radius-2xl:  24px;
+  /* Collection accents (Floema) */
+  --color-urban:     #F76C46;
+  --color-nature:    #BACFA3;
+  --color-golf:      #C6AF88;
+  --color-replastic: #85A1C5;
+  --color-details:   #D2CDC4;
+  --color-forest:    #042D2B;
+  --color-citron:    #E9E777;
+  --color-marker:    #FCB131;
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   12px;
+  --radius-2xl:  16px;
   --radius-full: 9999px;
 
-  /* Glass material — theme-controlled */
-  --glass-blur:     24px;
-  --glass-saturate: 150%;
-  --glass-opacity:  0.62;
+  /* "Glass" → re-purposed as solid warm card */
+  --glass-blur:     0px;
+  --glass-saturate: 100%;
+  --glass-opacity:  1;
 
-  /* Motion — theme-controlled */
+  /* Motion */
   --duration-fast: 150ms;
-  --duration-base: 280ms;
-  --duration-slow: 600ms;
+  --duration-base: 320ms;
+  --duration-slow: 900ms;
+  --ease-floema:   cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-slow:     cubic-bezier(1, 0, 0, 1);
 
-  /* Background gradient anchors */
-  --bg-glow-1: rgba(61,169,252,0.07);
-  --bg-glow-2: rgba(255,46,122,0.05);
-  --bg-glow-3: rgba(255,212,0,0.03);
+  --bg-glow-1: rgba(133,161,197,0.06);
+  --bg-glow-2: rgba(247,108,70,0.04);
+  --bg-glow-3: rgba(233,231,119,0.08);
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { font-family: var(--font-sans); color-scheme: dark; }
+html { font-family: var(--font-sans); color-scheme: light; }
 
 body {
-  background:
-    radial-gradient(ellipse 80% 40% at 10% 0%, var(--bg-glow-1), transparent 60%),
-    radial-gradient(ellipse 60% 30% at 100% 100%, var(--bg-glow-2), transparent 70%),
-    radial-gradient(ellipse 50% 25% at 50% 50%, var(--bg-glow-3), transparent 70%),
-    var(--color-surface-0);
+  background: var(--color-surface-0);
   color: var(--color-text-1);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  font-feature-settings: "ss01", "ss02", "cv11";
 }
 
-.font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+  font-weight: 400;
+}
 .headline-italic {
   font-family: var(--font-display);
-  font-weight: 800;
   font-style: italic;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  text-transform: none;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-electric-blue);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-jet-black);
+  outline-offset: 3px;
   border-radius: 4px;
 }
 
-::selection { background: var(--color-neon-yellow); color: var(--color-jet-black); }
+::selection { background: var(--color-citron); color: var(--color-jet-black); }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--color-surface-4);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--color-electric-blue); }
+::-webkit-scrollbar-thumb { background: rgba(36,31,33,0.18); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(36,31,33,0.32); }
 
-/* ── Liquid glass surfaces (theme-controlled, color-mix fallback) ──
- * See admin/src/index.css for the rationale on the @supports gate.
- * The fallback uses a fixed surface tint so older browsers still
- * render visible cards rather than fully transparent overlays. */
+/* =============================================================
+ * Floema-style surfaces
+ * The `.glass*` classes are re-defined as solid editorial cards
+ * so existing components keep working without edits.
+ * ============================================================= */
 .glass {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 50%),
-    rgba(21, 21, 29, 0.62);
-  backdrop-filter: blur(var(--glass-blur, 24px)) saturate(var(--glass-saturate, 150%));
-  -webkit-backdrop-filter: blur(var(--glass-blur, 24px)) saturate(var(--glass-saturate, 150%));
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius-xl, 18px);
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-surface-4);
+  border-radius: 12px;
 }
 .glass-strong {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 50%),
-    rgba(21, 21, 29, 0.85);
-  backdrop-filter: blur(28px) saturate(170%);
-  -webkit-backdrop-filter: blur(28px) saturate(170%);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius-xl, 18px);
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-surface-4);
+  border-radius: 12px;
 }
 .glass-sm {
-  background: rgba(21, 21, 29, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: var(--radius-lg, 14px);
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-surface-4);
+  border-radius: 999px;
 }
 
-@supports (background: color-mix(in srgb, red 50%, blue)) {
-  .glass {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.03), transparent 50%),
-      color-mix(in srgb, var(--color-surface-2) calc(var(--glass-opacity) * 100%), transparent);
-    border: 1px solid color-mix(in srgb, var(--color-text-1) 6%, transparent);
-  }
-  .glass-strong {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.04), transparent 50%),
-      color-mix(in srgb, var(--color-surface-2) calc(min(1, var(--glass-opacity) + 0.20) * 100%), transparent);
-    backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(170%);
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(170%);
-    border: 1px solid color-mix(in srgb, var(--color-text-1) 8%, transparent);
-  }
-  .glass-sm {
-    background: color-mix(in srgb, var(--color-surface-2) calc(var(--glass-opacity) * 90%), transparent);
-    backdrop-filter: blur(calc(var(--glass-blur) * 0.6));
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6));
-    border: 1px solid color-mix(in srgb, var(--color-text-1) 5%, transparent);
-  }
+/* Editorial card — explicit class */
+.fl-card {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-surface-4);
+  border-radius: 0;
+  transition: background var(--duration-base) var(--ease-floema);
 }
+.fl-card:hover { background: var(--color-surface-3); }
 
-/* ── Glows ─────────────────────────────────────────────────── */
-.glow-brand  { box-shadow: 0 0 32px var(--color-brand-glow), 0 1px 3px rgba(0,0,0,0.5); }
-.glow-yellow { box-shadow: 0 0 28px var(--color-accent-glow), 0 1px 2px rgba(0,0,0,0.4); }
-.glow-pink   { box-shadow: 0 0 28px var(--color-punk-glow), 0 1px 2px rgba(0,0,0,0.4); }
+/* ── Glows / shadows ───────────────────────────────────────── */
+.glow-brand  { box-shadow: 0 12px 28px -16px var(--color-brand-glow); }
+.glow-yellow { box-shadow: 0 12px 28px -16px var(--color-accent-glow); }
+.glow-pink   { box-shadow: 0 12px 28px -16px var(--color-punk-glow); }
 
-/* ── Punk underline ────────────────────────────────────────── */
+/* ── Citron underline (replaces punk stripe) ───────────────── */
 .punk-stripe {
   position: relative;
   display: inline-block;
@@ -182,75 +166,145 @@ body {
 .punk-stripe::after {
   content: '';
   position: absolute;
-  left: -4px; right: -4px; bottom: -4px;
-  height: 6px;
-  background: var(--color-neon-yellow);
-  transform: skewX(-18deg);
+  left: -2px; right: -2px; bottom: 0.05em;
+  height: 0.35em;
+  background: var(--color-citron);
   z-index: -1;
   border-radius: 2px;
 }
 
-/* ── Brand stripe (top of cards / modals) ─────────────────── */
 .brand-stripe {
-  background: linear-gradient(90deg,
-    var(--color-electric-blue) 0%,
-    var(--color-neon-yellow) 50%,
-    var(--color-hot-pink) 100%);
+  background: var(--color-jet-black);
+  color: var(--color-soft-white);
 }
 
 /* ── Mono numbers ──────────────────────────────────────────── */
-.num { font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.num { font-family: var(--font-mono); font-feature-settings: "tnum"; letter-spacing: -0.01em; }
 
-/* ── Badge ─────────────────────────────────────────────────── */
+/* ── Pills (Floema collection tags) ────────────────────────── */
+.fl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 5px 11px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  background: var(--color-jet-black);
+  color: var(--color-soft-white);
+  white-space: nowrap;
+}
+.fl-pill[data-tone="urban"]     { background: var(--color-urban); color: var(--color-jet-black); }
+.fl-pill[data-tone="nature"]    { background: var(--color-nature); color: var(--color-jet-black); }
+.fl-pill[data-tone="golf"]      { background: var(--color-golf); color: var(--color-jet-black); }
+.fl-pill[data-tone="replastic"] { background: var(--color-replastic); color: var(--color-jet-black); }
+.fl-pill[data-tone="details"]   { background: var(--color-details); color: var(--color-jet-black); }
+.fl-pill[data-tone="citron"]    { background: var(--color-citron); color: var(--color-jet-black); }
+.fl-pill[data-tone="ghost"]     { background: transparent; color: var(--color-jet-black); border: 1px solid var(--color-surface-4); }
+
+/* ── Nav pill (matches Floema nav lozenge) ─────────────────── */
+.fl-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-jet-black);
+  background: transparent;
+  transition: background 280ms var(--ease-floema), color 280ms var(--ease-floema);
+}
+.fl-nav-pill:hover { background: var(--color-soft-white); }
+.fl-nav-pill[aria-current="page"] { background: var(--color-jet-black); color: var(--color-soft-white); }
+
+/* ── Floema-style CTA ──────────────────────────────────────── */
+.fl-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 8px;
+  border: 1px solid var(--color-jet-black);
+  background: var(--color-jet-black);
+  color: var(--color-soft-white);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  transition: background 280ms var(--ease-floema), color 280ms var(--ease-floema);
+}
+.fl-cta:hover { background: transparent; color: var(--color-jet-black); }
+.fl-cta .icon-circle {
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  background: var(--color-citron);
+  color: var(--color-jet-black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Variant: light-on-dark for dark sections */
+.fl-cta[data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-jet-black);
+}
+.fl-cta[data-variant="ghost"]:hover { background: var(--color-jet-black); color: var(--color-soft-white); }
+
+/* ── Badges ────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
   text-transform: uppercase;
+  background: var(--color-surface-3);
+  color: var(--color-jet-black);
 }
 
 /* ── Image zoom card ─────────────────────────────────────── */
 .zoom-card {
   position: relative;
   overflow: hidden;
-  cursor: zoom-in;
+  background: var(--color-surface-1);
 }
 .zoom-card img {
-  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 900ms var(--ease-floema);
 }
 .zoom-card:hover img {
-  transform: scale(1.08);
+  transform: scale(1.04);
 }
 
-/* ── Shimmer ─────────────────────────────────────────────── */
+/* ── Shimmer (image loading) ─────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position:  400px 0; }
 }
 .shimmer {
   background: linear-gradient(90deg,
-    var(--color-surface-3) 25%,
-    var(--color-surface-4) 50%,
-    var(--color-surface-3) 75%);
+    var(--color-surface-1) 25%,
+    var(--color-surface-3) 50%,
+    var(--color-surface-1) 75%);
   background-size: 800px 100%;
-  animation: shimmer 1.4s infinite;
-  border-radius: 8px;
+  animation: shimmer 1.6s infinite;
 }
 
 /* ── Page transition ─────────────────────────────────────── */
-.page-enter { animation: pageEnter 280ms cubic-bezier(0.33, 1, 0.68, 1) forwards; }
+.page-enter { animation: pageEnter 420ms var(--ease-floema) forwards; }
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Reduced motion ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -260,26 +314,41 @@ body {
   }
 }
 
-/* ── Cart-rocket motion (hero) ─────────────────────────────── */
-@keyframes rocket-float {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50%      { transform: translateY(-8px) rotate(2deg); }
+/* ── Drift (hero floating cutouts) ───────────────────────── */
+@keyframes fl-drift-a {
+  0%, 100% { transform: translate3d(0,0,0) rotate(-2deg); }
+  50%      { transform: translate3d(-1.2%, -1.6%, 0) rotate(1.5deg); }
 }
-.rocket-float { animation: rocket-float 3.2s ease-in-out infinite; }
+@keyframes fl-drift-b {
+  0%, 100% { transform: translate3d(0,0,0) rotate(2deg); }
+  50%      { transform: translate3d(1.6%, -2%, 0) rotate(-1.5deg); }
+}
+@keyframes fl-drift-c {
+  0%, 100% { transform: translate3d(0,0,0) rotate(0deg); }
+  50%      { transform: translate3d(-2%, 1.2%, 0) rotate(2deg); }
+}
+.fl-drift-a { animation: fl-drift-a 9s ease-in-out infinite; }
+.fl-drift-b { animation: fl-drift-b 11s ease-in-out infinite; }
+.fl-drift-c { animation: fl-drift-c 13s ease-in-out infinite; }
 
-/* ── Sparkle pulse ─────────────────────────────────────── */
-@keyframes sparkle-pulse {
-  0%, 100% { transform: scale(1) rotate(0deg);   opacity: 0.85; }
-  50%      { transform: scale(1.18) rotate(8deg); opacity: 1; }
+/* ── Scroll-label bob (hero "scroll to explore") ─────────── */
+@keyframes fl-bob {
+  0%, 100% { transform: translateY(-3px); opacity: 0.8; }
+  50%      { transform: translateY(3px);  opacity: 1; }
 }
-.sparkle-pulse { animation: sparkle-pulse 2.4s ease-in-out infinite; }
+.fl-bob { animation: fl-bob 2.4s ease-in-out infinite; }
 
-/* ── Crown bounce ─────────────────────────────────────── */
-@keyframes crown-bounce {
-  0%, 100% { transform: translateY(0)    rotate(-6deg); }
-  50%      { transform: translateY(-2px) rotate(2deg); }
+/* ── Marquee (recent addings) ───────────────────────────── */
+@keyframes fl-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
-.crown-bounce { animation: crown-bounce 1.8s ease-in-out infinite; }
+.fl-marquee { animation: fl-marquee 40s linear infinite; }
+
+/* ── Legacy aliases (kept so existing code compiles) ─────── */
+.rocket-float { animation: fl-drift-a 4.5s ease-in-out infinite; }
+.sparkle-pulse { animation: fl-bob 2.4s ease-in-out infinite; }
+.crown-bounce  { animation: fl-bob 1.8s ease-in-out infinite; }
 
 /* ── Underline link ─────────────────────────────────────── */
 .link-underline {
@@ -290,16 +359,32 @@ body {
   content: '';
   position: absolute;
   left: 0; right: 100%; bottom: -2px;
-  height: 2px;
-  background: var(--color-electric-blue);
-  transition: right 200ms ease;
+  height: 1px;
+  background: var(--color-jet-black);
+  transition: right 280ms var(--ease-floema);
 }
 .link-underline:hover::after { right: 0; }
 
 /* ── No-image placeholder ─────────────────────────────────────── */
 .no-img-placeholder {
   background:
-    radial-gradient(circle at 30% 30%, rgba(61,169,252,0.10), transparent 60%),
-    radial-gradient(circle at 70% 70%, rgba(255,212,0,0.08), transparent 60%),
-    var(--color-surface-3);
+    radial-gradient(circle at 30% 30%, rgba(133,161,197,0.15), transparent 60%),
+    radial-gradient(circle at 70% 70%, rgba(233,231,119,0.18), transparent 60%),
+    var(--color-surface-1);
 }
+
+/* ── Section bands ─────────────────────────────────────────── */
+.fl-band-dark   { background: var(--color-jet-black); color: var(--color-soft-white); }
+.fl-band-teal   { background: var(--color-bold-blue); color: var(--color-soft-white); }
+.fl-band-forest { background: var(--color-forest);    color: var(--color-citron); }
+.fl-band-citron { background: var(--color-citron);    color: var(--color-jet-black); }
+.fl-band-paper  { background: var(--color-surface-0); color: var(--color-jet-black); }
+.fl-band-paper-alt { background: var(--color-surface-1); color: var(--color-jet-black); }
+
+/* When a section uses dark band, invert nav-pill / card hovers */
+.fl-band-dark .fl-nav-pill,
+.fl-band-forest .fl-nav-pill,
+.fl-band-teal .fl-nav-pill { color: var(--color-soft-white); }
+.fl-band-dark .fl-nav-pill:hover,
+.fl-band-forest .fl-nav-pill:hover,
+.fl-band-teal .fl-nav-pill:hover { background: rgba(255,255,255,0.12); }

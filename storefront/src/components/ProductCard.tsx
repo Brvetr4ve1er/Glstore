@@ -1,92 +1,95 @@
+/**
+ * Floema-style product card — editorial: a paper-alt tile with a large
+ * product photo on top, a small collection pill, and an ink-coloured
+ * title + price stacked below. No box-shadow; hover swaps the tile to
+ * a darker paper tone and slowly nudges the image.
+ */
+
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Image as ImageIcon, ArrowUpRight } from 'lucide-react'
-import { fmtMoney, categoryIcon } from '@/lib/format'
-import { deriveTags } from '@/lib/tags'
+import { Image as ImageIcon } from 'lucide-react'
+import { fmtMoney } from '@/lib/format'
 import type { ProductListItem } from '@/lib/api'
-import { Tag } from './ui'
 
 interface ProductCardProps {
   product: ProductListItem
-  /** layout density */
   size?: 'md' | 'lg'
 }
 
+/** Map our product category onto the Floema collection accent tones. */
+function toneFor(p: ProductListItem): string {
+  const c = (p.category ?? '').toLowerCase()
+  if (c.includes('laptop') || c.includes('desktop'))   return 'replastic'
+  if (c.includes('headphone') || c.includes('earbud') || c.includes('speaker') || c.includes('audio')) return 'nature'
+  if (c.includes('keyboard') || c.includes('mouse') || c.includes('monitor') || c.includes('console')) return 'urban'
+  if (c.includes('smart') || c.includes('network'))     return 'golf'
+  if (c.includes('wearable'))                           return 'citron'
+  return 'details'
+}
+
 export function ProductCard({ product: p, size = 'md' }: ProductCardProps) {
-  const tags = deriveTags(p).slice(0, 3)
   const oos = p.available <= 0
+  const tone = toneFor(p)
+  const collectionLabel = p.category ?? 'Product'
 
   return (
     <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-      className="group relative h-full"
+      whileHover={{ y: -2 }}
+      transition={{ type: 'tween', duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
+      className="group h-full"
     >
       <Link
         to={`/p/${p.slug}`}
-        className="flex flex-col h-full glass overflow-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-electric-blue)] outline-none"
+        className="flex flex-col h-full fl-card focus-visible:outline outline-2 outline-[var(--color-jet-black)]"
       >
         {/* Image */}
-        <div className={`zoom-card ${size === 'lg' ? 'aspect-[4/3]' : 'aspect-square'} no-img-placeholder relative`}>
+        <div className={`zoom-card ${size === 'lg' ? 'aspect-[4/3]' : 'aspect-square'} relative overflow-hidden`}>
           {p.primary_image ? (
             <img
               src={p.primary_image}
               alt={p.name}
               loading="lazy"
-              className="w-full h-full object-contain p-4"
+              className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-[var(--color-text-3)] gap-2">
+            <div className="w-full h-full no-img-placeholder flex flex-col items-center justify-center text-[var(--color-text-3)] gap-2">
               <ImageIcon size={28} className="opacity-30" />
-              <span className="text-[10px] uppercase tracking-widest font-bold">{categoryIcon(p.category)} {p.category ?? 'Produit'}</span>
+              <span className="text-[10px] uppercase tracking-widest font-semibold">{collectionLabel}</span>
             </div>
           )}
 
-          {/* Top-right hint */}
-          <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[var(--color-jet-black)]/70 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <ArrowUpRight size={14} className="text-[var(--color-neon-yellow)]" />
+          <div className="absolute top-3 left-3">
+            <span className="fl-pill" data-tone={tone}>{collectionLabel}</span>
           </div>
 
           {oos && (
-            <div className="absolute top-3 left-3">
-              <Tag label="Rupture" tone="muted" />
+            <div className="absolute top-3 right-3">
+              <span className="fl-pill" data-tone="ghost">Sold out</span>
             </div>
           )}
         </div>
 
         {/* Body */}
-        <div className="flex flex-col gap-2 p-4 flex-1">
-          {/* Tag chips */}
-          {tags.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              {tags.map((t, i) => <Tag key={i} label={t.label} tone={t.tone} />)}
+        <div className="flex flex-col gap-2 p-5 flex-1">
+          {p.brand && (
+            <div className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[var(--color-text-3)]">
+              {p.brand}
             </div>
           )}
 
-          <h3 className="font-bold text-[var(--color-text-1)] text-sm leading-snug line-clamp-2 min-h-[2.5em]">
+          <h3 className="font-display text-[20px] leading-[1.1] text-[var(--color-jet-black)] line-clamp-2 min-h-[2.2em]">
             {p.name}
           </h3>
 
-          <div className="text-[10px] text-[var(--color-text-3)] flex items-center gap-2 mt-auto">
-            {p.brand && <span className="font-semibold uppercase tracking-wider">{p.brand}</span>}
-            {p.category && <span className="opacity-60">· {p.category}</span>}
-          </div>
-
-          {/* Price */}
-          <div className="flex items-end justify-between gap-2 mt-1">
-            <div>
-              <div className="num text-lg font-black text-[var(--color-text-1)] leading-none">
-                {p.min_price != null ? fmtMoney(p.min_price) : '—'}
+          <div className="flex items-end justify-between gap-2 mt-auto pt-3">
+            <div className="num text-[16px] font-semibold text-[var(--color-jet-black)]">
+              {p.min_price != null ? fmtMoney(p.min_price) : '—'}
+            </div>
+            {!oos && p.available <= 5 && p.available > 0 && (
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-hot-pink)]">
+                Only {p.available} left
               </div>
-              {!oos && p.available <= 5 && p.available > 0 && (
-                <div className="text-[10px] text-[var(--color-hot-pink)] font-bold mt-1">
-                  Plus que {p.available}
-                </div>
-              )}
-            </div>
-            <div className="text-[10px] text-[var(--color-electric-blue)] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              Voir →
-            </div>
+            )}
           </div>
         </div>
       </Link>
