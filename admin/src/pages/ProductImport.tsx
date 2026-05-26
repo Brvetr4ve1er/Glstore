@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, FileSpreadsheet, AlertTriangle, CheckCircle2,
-  X as XIcon, ChevronRight, Sparkles,
+  X as XIcon, ChevronRight, Sparkles, Link2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
@@ -13,13 +13,16 @@ import {
 } from '@/lib/api'
 import { Button, Card, EmptyState, PageHeader, Spinner } from '@/components/ui'
 import { fmtMoney } from '@/lib/utils'
+import { UrlImportPanel } from './ProductImportUrl'
 
 type Stage = 'idle' | 'previewing' | 'preview-ready' | 'committing' | 'done'
+type Mode = 'csv' | 'url'
 
 export default function ProductImport() {
   const qc = useQueryClient()
   const navigate = useNavigate()
 
+  const [mode, setMode]       = useState<Mode>('url')
   const [file, setFile]       = useState<File | null>(null)
   const [drag, setDrag]       = useState(false)
   const [stage, setStage]     = useState<Stage>('idle')
@@ -72,17 +75,44 @@ export default function ProductImport() {
       </Link>
 
       <PageHeader
-        title="Bulk import"
-        sub="Drop a CSV from any supplier — the parser auto-detects delimiters, languages, and number formats."
+        title="Import products"
+        sub="Paste a product link to scrape one item, or drop a supplier CSV for bulk import."
       />
 
-      {/* ── Step 1: Drop zone ── */}
-      {stage === 'idle' && (
+      {/* ── Mode toggle ── */}
+      <div className="flex gap-2 p-1 rounded-xl bg-[var(--color-surface-3)] w-fit">
+        <button
+          onClick={() => setMode('url')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            mode === 'url'
+              ? 'bg-[var(--color-surface-1)] text-[var(--color-text-1)]'
+              : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+          }`}
+        >
+          <Link2 size={15} /> From URL
+        </button>
+        <button
+          onClick={() => setMode('csv')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            mode === 'csv'
+              ? 'bg-[var(--color-surface-1)] text-[var(--color-text-1)]'
+              : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+          }`}
+        >
+          <FileSpreadsheet size={15} /> CSV file
+        </button>
+      </div>
+
+      {/* ── URL import ── */}
+      {mode === 'url' && <UrlImportPanel />}
+
+      {/* ── CSV: Step 1: Drop zone ── */}
+      {mode === 'csv' && stage === 'idle' && (
         <DropZone drag={drag} setDrag={setDrag} onFile={onPickFile} />
       )}
 
-      {/* ── Step 2: Previewing spinner ── */}
-      {stage === 'previewing' && (
+      {/* ── CSV: Step 2: Previewing spinner ── */}
+      {mode === 'csv' && stage === 'previewing' && (
         <Card>
           <div className="flex items-center gap-3 py-6">
             <Spinner size={20} className="text-[var(--color-electric-blue)]" />
@@ -94,8 +124,8 @@ export default function ProductImport() {
         </Card>
       )}
 
-      {/* ── Step 3: Preview ready ── */}
-      {(stage === 'preview-ready' || stage === 'committing') && preview && file && (
+      {/* ── CSV: Step 3: Preview ready ── */}
+      {mode === 'csv' && (stage === 'preview-ready' || stage === 'committing') && preview && file && (
         <PreviewBlock
           file={file}
           preview={preview}
@@ -105,8 +135,8 @@ export default function ProductImport() {
         />
       )}
 
-      {/* ── Step 4: Done ── */}
-      {stage === 'done' && commit && (
+      {/* ── CSV: Step 4: Done ── */}
+      {mode === 'csv' && stage === 'done' && commit && (
         <DoneBlock commit={commit} onReset={reset} onGoToProducts={() => navigate('/products')} />
       )}
     </div>

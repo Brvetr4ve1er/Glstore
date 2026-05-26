@@ -11,11 +11,12 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
-from api.services import csv_import, csv_parser, enrichment_runner
+from api.services import csv_import, csv_parser, enrichment_runner, url_import
 
 router = APIRouter(prefix="/products/import", tags=["products-import"])
 
@@ -95,3 +96,64 @@ async def commit(
         "report": report.to_dict(),
         "enrichment": enrichment_payload,
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# URL import — paste a product link, scrape its data, add it to the store.
+# ════════════════════════════════════════════════════════════════════════════
+
+class UrlPreviewIn(BaseModel):
+    url: str = Field(min_length=8, max_length=2048)
+
+
+class UrlCommitIn(BaseModel):
+    """The (possibly edited) draft the admin reviewed, plus publish options."""
+    source_url: str = Field(min_length=8, max_length=2048)
+    name: str | None = None
+    brand: str | None = None
+    sku: str | None = None
+    category: str | None = None
+    description: str | None = None
+    specs: dict[str, Any] = Field(default_factory=dict)
+    images: list[str] = Field(default_factory=list)
+    price: float | None = Field(default=None, ge=0)
+    currency: str = "DZD"
+    availability: str = "unknown"
+    publish: bool = True
+    default_stock: int = Field(default=0, ge=0, le=1_000_000)
+
+
+@router.post("/url/preview", dependencies=[Depends(require_role(*WRITE_ROLES))])
+async def url_preview(
+    body: UrlPreviewIn,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    try:
+        draft = await url_import.scrape_url(db, body.url.strip())
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    return {"draft": draft.to_dict()}
+
+
+@router.post("/url/commit", dependencies=[Depends(require_role(*WRITE_ROLES))])
+async def url_commit(
+    body: UrlCommitIn,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    draft = url_import.ProductDraft(
+        source_url=body.source_url.strip(),
+        name=body.name,
+        brand=body.brand,
+        sku=(body.sku or "").strip(),
+        category=body.category,
+        description=body.description,
+        specs=body.specs,
+        images=body.images,
+        price=body.price,
+        currency=body.currency,
+        availability=body.availability,
+    )
+    result = await url_import.commit_draft(
+        db, draft, publish=body.publish, default_stock=body.default_stock,
+    )
+    return result

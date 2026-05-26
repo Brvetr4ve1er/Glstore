@@ -236,6 +236,59 @@ export const commitImport = (file: File, autoEnrich = true) => {
   return reqMultipart<ImportCommitResponse>('/products/import/commit', fd)
 }
 
+// ── URL import (paste a product link → scrape → add to store) ─────────
+export interface UrlImportDraft {
+  source_url: string
+  name: string | null
+  brand: string | null
+  sku: string
+  category: string | null
+  description: string | null
+  specs: Record<string, unknown>
+  images: string[]
+  price: number | null
+  currency: string
+  availability: 'in_stock' | 'out_of_stock' | 'unknown'
+  method: string
+  confidence: number
+  notes: string[]
+  fetch_engine: string
+  http_status: number
+}
+export interface UrlImportCommitResult {
+  product_id: string
+  slug: string
+  sku: string
+  name: string
+  status: string
+  published: boolean
+  offer_created: boolean
+  images_added: number
+}
+
+export const previewUrlImport = (url: string) =>
+  req<{ draft: UrlImportDraft }>('POST', '/products/import/url/preview', { url })
+
+export const commitUrlImport = (
+  draft: UrlImportDraft,
+  opts: { publish: boolean; default_stock: number },
+) =>
+  req<UrlImportCommitResult>('POST', '/products/import/url/commit', {
+    source_url: draft.source_url,
+    name: draft.name,
+    brand: draft.brand,
+    sku: draft.sku,
+    category: draft.category,
+    description: draft.description,
+    specs: draft.specs,
+    images: draft.images,
+    price: draft.price,
+    currency: draft.currency,
+    availability: draft.availability,
+    publish: opts.publish,
+    default_stock: opts.default_stock,
+  })
+
 // ── Enrichment ────────────────────────────────────────────────
 export interface EnrichmentResult {
   product_id: string
