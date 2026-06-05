@@ -65,6 +65,25 @@
     };
   })();
 
+  const Compare = (() => {
+    const s = makeListStore('glaive.compare', () => { renderCompareTray(); if (document.getElementById('compareRoot')) renderCompare(); });
+    return {
+      ...s,
+      has(id) { return s.read().includes(id); },
+      toggle(id) {
+        const c = s.read();
+        const i = c.indexOf(id);
+        if (i >= 0) { c.splice(i, 1); }
+        else { if (c.length >= 4) { toast('Compare up to 4 items'); return; } c.push(id); }
+        s.write(c);
+        refreshCompareUI(id);
+      },
+      remove(id) { s.write(s.read().filter((x) => x !== id)); refreshCompareUI(id); },
+      clear() { s.write([]); document.querySelectorAll('[data-compare]').forEach((b) => setCompareBtn(b, false)); },
+      count() { return s.read().length; },
+    };
+  })();
+
   const Recent = {
     key: 'glaive.recent',
     read() { try { return JSON.parse(localStorage.getItem(this.key)) || []; } catch { return []; } },
@@ -173,6 +192,7 @@
         <div class="search-results" id="searchResults" role="listbox"></div>
       </div>
     </div>
+    <div class="compare-tray" id="compareTray" aria-live="polite"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>`;
   }
 
@@ -191,6 +211,7 @@
         <span class="card-cat">${p.cat}</span>
         <a href="product.html?id=${p.id}"><h3 class="card-title">${p.name}</h3></a>
         <span class="card-rating"><span class="stars">${'★'.repeat(Math.round(p.rating))}</span> ${p.rating} (${p.reviews})</span>
+        <button class="compare-toggle ${Compare.has(p.id) ? 'active' : ''}" data-compare="${p.id}" aria-pressed="${Compare.has(p.id)}">${Compare.has(p.id) ? '✓ Comparing' : '⇄ Compare'}</button>
         <div class="card-foot">
           ${priceHTML(p)}
           <button class="btn btn--primary" data-add="${p.id}">Add</button>
@@ -207,6 +228,7 @@
     wireChrome();
     renderCart();
     renderWishCount();
+    renderCompareTray();
   }
 
   function wireChrome() {
@@ -240,6 +262,8 @@
       if (wish) { e.preventDefault(); Wish.toggle(wish.dataset.wish); refreshWishUI(wish.dataset.wish); return; }
       const quick = e.target.closest('[data-quick]');
       if (quick) { e.preventDefault(); openQuick(quick.dataset.quick); return; }
+      const cmp = e.target.closest('[data-compare]');
+      if (cmp) { e.preventDefault(); Compare.toggle(cmp.dataset.compare); return; }
     });
   }
 
@@ -318,6 +342,29 @@
   function refreshWishUI(id) {
     const saved = Wish.has(id);
     $$(`[data-wish="${id}"]`).forEach((b) => { b.classList.toggle('active', saved); b.setAttribute('aria-pressed', saved); b.innerHTML = saved ? ICON.heartFill : ICON.heart; });
+  }
+
+  /* ---------- compare UI sync ---------- */
+  function setCompareBtn(b, on) { b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); b.textContent = on ? '✓ Comparing' : '⇄ Compare'; }
+  function refreshCompareUI(id) { $$(`[data-compare="${id}"]`).forEach((b) => setCompareBtn(b, Compare.has(id))); }
+  function renderCompareTray() {
+    const tray = $('#compareTray'); if (!tray) return;
+    const ids = Compare.read();
+    if (!ids.length) { tray.classList.remove('show'); tray.innerHTML = ''; return; }
+    const slots = [0, 1, 2, 3].map((i) => {
+      const id = ids[i];
+      if (!id) return `<div class="slot empty-slot"></div>`;
+      const p = byId(id);
+      return `<div class="slot" title="${p.name}">${ART[p.type]}<button data-uncompare="${id}" aria-label="Remove ${p.name}">×</button></div>`;
+    }).join('');
+    tray.innerHTML = `
+      <span class="ct-label">Compare</span>
+      <div class="slots">${slots}</div>
+      <a class="btn btn--primary" href="compare.html" ${ids.length < 2 ? 'aria-disabled="true" style="pointer-events:none;opacity:.5"' : ''}>Compare (${ids.length})</a>
+      <button class="clear" data-clear-compare>Clear</button>`;
+    tray.classList.add('show');
+    $$('[data-uncompare]', tray).forEach((b) => b.onclick = () => Compare.remove(b.dataset.uncompare));
+    $('[data-clear-compare]', tray).onclick = () => Compare.clear();
   }
 
   /* ---------- cart drawer ---------- */
@@ -594,6 +641,52 @@
     });
   }
 
+  /* ---------- COMPARE PAGE ---------- */
+  function renderCompare() {
+    const root = $('#compareRoot'); if (!root) return;
+    const items = Compare.read().map(byId).filter(Boolean);
+    if (items.length < 2) {
+      root.innerHTML = `
+        <div class="breadcrumbs"><a href="index.html">Home</a> / Compare</div>
+        <div class="compare-empty">
+          <h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:var(--fs-600)">Compare gear</h1>
+          <p class="muted" style="margin:1rem auto;max-width:44ch">Pick at least two products to compare side by side. Tap “⇄ Compare” on any product card to add it.</p>
+          <a class="btn btn--primary" href="shop.html">Browse the catalog</a>
+        </div>`;
+      return;
+    }
+    // union of all spec keys, preserving first-seen order
+    const keys = [];
+    items.forEach((p) => Object.keys(p.specs).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
+    const head = items.map((p) => `
+      <th class="compare-col">
+        <a href="product.html?id=${p.id}"><div class="compare-media">${ART[p.type]}</div></a>
+        <span class="card-cat">${p.cat}</span>
+        <a href="product.html?id=${p.id}"><h3>${p.name}</h3></a>
+        <div class="card-rating"><span class="stars">${'★'.repeat(Math.round(p.rating))}</span> ${p.rating}</div>
+        <div style="margin-top:8px">${priceHTML(p)}</div>
+        <button class="btn btn--primary" data-add="${p.id}" style="margin-top:10px;width:100%">Add to Cart</button>
+        <button class="compare-remove" data-uncompare="${p.id}">Remove</button>
+      </th>`).join('');
+    const specRows = keys.map((k) => `
+      <tr><td class="rowlabel">${k}</td>${items.map((p) => `<td>${p.specs[k] || '—'}</td>`).join('')}</tr>`).join('');
+    root.innerHTML = `
+      <div class="breadcrumbs"><a href="index.html">Home</a> / Compare</div>
+      <div class="section-head"><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:var(--fs-600)">Compare (${items.length})</h1><button class="btn btn--ghost" data-clear-compare2>Clear all</button></div>
+      <div class="compare-scroll">
+        <table class="compare-table">
+          <thead><tr><td class="rowlabel"></td>${head}</tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">Price</td>${items.map((p) => `<td><strong>${money(eff(p))}</strong></td>`).join('')}</tr>
+            <tr><td class="rowlabel">Best for</td>${items.map((p) => `<td>${p.tag.join(', ')}</td>`).join('')}</tr>
+            ${specRows}
+          </tbody>
+        </table>
+      </div>`;
+    $$('[data-uncompare]', root).forEach((b) => b.onclick = () => { Compare.remove(b.dataset.uncompare); renderCompare(); });
+    $('[data-clear-compare2]', root).onclick = () => { Compare.clear(); renderCompare(); };
+  }
+
   /* ---------- boot ---------- */
   document.addEventListener('DOMContentLoaded', () => {
     mountChrome();
@@ -601,6 +694,7 @@
     renderShop();
     renderProduct();
     renderCheckout();
+    renderCompare();
     initReveal();
   });
 })();

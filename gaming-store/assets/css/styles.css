@@ -528,6 +528,35 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; line-height: va
 @media (max-width: 700px) { .review-summary { grid-template-columns: 1fr; gap: var(--s-5); } .review-list { grid-template-columns: 1fr; } }
 
 /* ----------------------------------------------------------------
+   20b. COMPARE — toggle, floating tray, compare table
+   ---------------------------------------------------------------- */
+.compare-toggle { align-self: flex-start; font-size: var(--fs-100); color: var(--c-text-faint); display: inline-flex; align-items: center; gap: 4px; padding: 2px 0; letter-spacing: .03em; }
+.compare-toggle:hover { color: var(--c-brand); }
+.compare-toggle.active { color: var(--c-brand); font-weight: 700; }
+
+.compare-tray { position: fixed; left: 50%; bottom: var(--s-5); z-index: 95; transform: translateX(-50%) translateY(160%); display: flex; align-items: center; gap: var(--s-4); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-5); box-shadow: var(--sh-3); transition: transform var(--t-med) var(--ease-out); max-width: calc(100% - 2rem); }
+.compare-tray.show { transform: translateX(-50%) translateY(0); }
+.compare-tray .ct-label { font-size: var(--fs-100); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--c-text-faint); white-space: nowrap; }
+.compare-tray .slots { display: flex; gap: var(--s-2); }
+.compare-tray .slot { width: 46px; height: 46px; border-radius: var(--r-sm); background: var(--c-surface-1); border: 1px solid var(--c-border); display: grid; place-items: center; padding: 6px; position: relative; }
+.compare-tray .slot > button { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--c-surface-3); border: 1px solid var(--c-border); font-size: 12px; line-height: 1; display: grid; place-items: center; color: var(--c-text); }
+.compare-tray .slot.empty-slot { border-style: dashed; opacity: .35; }
+.compare-tray .clear { font-size: var(--fs-100); color: var(--c-text-faint); }
+.compare-tray .clear:hover { color: var(--c-danger); }
+@media (max-width: 600px) { .compare-tray { width: calc(100% - 1.5rem); border-radius: var(--r-lg); flex-wrap: wrap; justify-content: center; } .compare-tray .ct-label { width: 100%; text-align: center; } }
+
+.compare-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.compare-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.compare-table th, .compare-table td { border-bottom: 1px solid var(--c-border-soft); padding: var(--s-4); text-align: left; vertical-align: top; font-size: var(--fs-200); }
+.compare-table .rowlabel { color: var(--c-text-faint); text-transform: uppercase; font-size: var(--fs-100); letter-spacing: .06em; white-space: nowrap; width: 180px; }
+.compare-col { min-width: 200px; }
+.compare-media { width: 120px; height: 120px; background: radial-gradient(120% 120% at 50% 0%, var(--c-surface-2), var(--c-surface-1)); border: 1px solid var(--c-border-soft); border-radius: var(--r-md); display: grid; place-items: center; padding: 14px; margin-bottom: var(--s-3); }
+.compare-col h3 { font-family: var(--font-body); font-size: var(--fs-300); font-weight: 700; }
+.compare-remove { font-size: var(--fs-100); color: var(--c-text-faint); margin-top: 6px; }
+.compare-remove:hover { color: var(--c-danger); }
+.compare-empty { text-align: center; padding: var(--s-9) 0; color: var(--c-text-dim); }
+
+/* ----------------------------------------------------------------
    20. STICKY MOBILE BUY BAR (PDP)
    ---------------------------------------------------------------- */
 .buybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; display: none; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); background: var(--c-overlay); backdrop-filter: blur(12px); border-top: 1px solid var(--c-border); }
