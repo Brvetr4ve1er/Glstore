@@ -1,23 +1,28 @@
 # 02 — Website Audit & Sitemap
 
-> Tags: `[VERIFIED]` — confirmed via public sources · `[INFERRED]` —
-> derived from platform/category convention · `[CONVENTION]` — standard
-> Shopify-store anatomy.
+> **Updated** against the verified extraction in
+> [00-extracted-design-system.md](./00-extracted-design-system.md).
+> The earlier Shopify inference was wrong — the live stack is a custom
+> React SPA on TailwindCSS v4 with a custom headless commerce backend.
+> Tag legend: `[VERIFIED]`, `[INFERRED]`, `[CONVENTION]`.
 
 ## 1. Platform & stack signals
 
 | Item | Finding | Source |
 |---|---|---|
-| **Platform** | **Shopify** | `[INFERRED]` — sister OKAMI domains live on Shopify; brand size/style matches Shopify SMB segment |
-| **Theme** | Custom or paid streetwear-focused theme (e.g. Impulse / Be Yours / Symmetry family) | `[INFERRED]` |
-| **CDN / images** | `cdn.shopify.com` | `[CONVENTION]` |
-| **Checkout** | Shopify-hosted checkout (`checkout.shopify.com`) | `[CONVENTION]` |
-| **Search** | Shopify default search (sometimes Searchanise / Boost) | `[INFERRED]` |
-| **Front-end framework** | Liquid templates + jQuery + theme JS | `[CONVENTION]` |
-| **Analytics** | Shopify Analytics + Meta Pixel + likely TikTok Pixel | `[INFERRED]` (consistent with drops + Instagram/TikTok promotion) |
-| **Email** | Shopify Email and/or Klaviyo | `[INFERRED]` |
-| **Geography** | Algeria primary; sells in DZD | `[VERIFIED]` brand title "from Algiers" |
-| **Currency display** | DZD; possibly EUR/USD via Shopify Markets | `[INFERRED]` |
+| **Platform** | **Custom React SPA** mounted on `#root` | `[VERIFIED]` |
+| **Styling** | **TailwindCSS v4** with custom extensions | `[VERIFIED]` |
+| **Routing** | Client-side SPA (`/shop`, `/about`, `/contact`, `/cart`) | `[VERIFIED]` |
+| **Commerce** | Custom headless API; not Shopify, not WooCommerce | `[VERIFIED]` |
+| **Currency** | Switcher `US` / `DA` (Algerian Dinar) | `[VERIFIED]` |
+| **Fonts** | 3 self-hosted: `OKAMI.otf`, `streetwear.ttf`, `inter.ttf` | `[VERIFIED]` |
+| **Hero image pipeline** | `<picture>` + `object-cover`, lazy-loaded | `[VERIFIED]` |
+| **Animations** | Pure CSS keyframes + Tailwind animation utilities | `[VERIFIED]` |
+| **Hosting / CDN** | Not extracted | `[INFERRED]` — assume static host + CDN |
+| **Analytics** | Not extracted | `[INFERRED]` — likely Meta Pixel + TikTok Pixel based on social channel use |
+| **Email** | Not extracted | `[INFERRED]` |
+| **Search** | Custom, presumed simple (the SPA does not show third-party search markup) | `[INFERRED]` |
+| **Geography** | Algeria primary; `DA` currency live | `[VERIFIED]` brand title "from Algiers" + currency switch |
 
 ## 2. Verified brand surface
 
@@ -29,47 +34,45 @@
 - Social: `@okami.streetwear` on Instagram (~13 K) and TikTok.
 - No custom orders policy stated socially.
 
-## 3. Sitemap — as-is (Shopify convention)
+## 3. Sitemap — as-is (verified SPA routes)
 
 ```
-/
-├── /collections                       — “All collections” index
-│   ├── /collections/all               — every product
-│   ├── /collections/hoodies           [INFERRED]
-│   ├── /collections/t-shirts          [INFERRED]
-│   ├── /collections/new-arrivals      [INFERRED]
-│   ├── /collections/best-sellers      [INFERRED]
-│   ├── /collections/drop-{slug}       — past drops [INFERRED]
-│   └── /collections/sale              [INFERRED]
-├── /products/{handle}                 — every product detail page
-├── /pages/about                       — brand story        [CONVENTION]
-├── /pages/contact                     — contact form       [CONVENTION]
-├── /pages/lookbook                    [INFERRED — common in streetwear]
-├── /pages/size-guide                  [CONVENTION]
-├── /pages/shipping                    [CONVENTION]
-├── /pages/returns                     [CONVENTION]
-├── /pages/faq                         [CONVENTION]
-├── /blogs/journal                     [CONVENTION — Shopify blog]
-│   └── /blogs/journal/{post}          [CONVENTION]
-├── /cart                              [CONVENTION]
-├── /account                           [CONVENTION]
-│   ├── /account/login
-│   ├── /account/register
-│   ├── /account/orders
-│   └── /account/addresses
-├── /search                            [CONVENTION]
-├── /policies/privacy-policy           [CONVENTION]
-├── /policies/terms-of-service         [CONVENTION]
-├── /policies/refund-policy            [CONVENTION]
-├── /policies/shipping-policy          [CONVENTION]
-└── /sitemap.xml + /robots.txt         [CONVENTION]
+/                              [VERIFIED] home
+├── /shop                      [VERIFIED] shop / catalog
+├── /about                     [VERIFIED] about us
+├── /contact                   [VERIFIED] contact
+└── /cart                      [VERIFIED] cart
+```
+
+These four routes plus the home make up the verified surface of the
+SPA. Everything below is either a *missing* route the rebuild should
+add or a convention not surfaced in the extraction:
+
+```
+/product/{slug}                [INFERRED — required for a PDP]
+/shop?category=…&size=…        [INFERRED — query-string filters]
+/wishlist                      [MISSING — to add]
+/account                       [MISSING — to add]
+/order/track                   [MISSING — to add]
+/drops                         [MISSING — to add (first-class drops)]
+/drops/{slug}                  [MISSING — to add]
+/lookbook                      [MISSING — to add]
+/journal                       [MISSING — to add]
+/help/size-guide               [MISSING — to add]
+/help/shipping                 [MISSING — to add]
+/help/returns                  [MISSING — to add]
+/help/faq                      [MISSING — to add]
+/legal/privacy                 [MISSING — to add]
+/legal/terms                   [MISSING — to add]
+/legal/refunds                 [MISSING — to add]
 ```
 
 Out-of-band but linked:
 
-- Instagram, TikTok, possibly Facebook
+- Instagram, TikTok
 - `mailto:` brand email in footer
-- Phone / WhatsApp link (very common in Algerian e-commerce)
+- Phone / WhatsApp link (very common in Algerian e-commerce; presence
+  not confirmed in extraction)
 
 ## 4. Product hierarchy — as-is
 

@@ -2,113 +2,143 @@
 
 > Tokens first, components next. No design decision lives outside this
 > file or its generated artefacts.
+>
+> **This file inherits the verified OKAMI brand expression** from
+> [00-extracted-design-system.md](./00-extracted-design-system.md):
+> the deep `#1E1623` background with a halftone overlay, the three
+> self-hosted fonts (OKAMI / Streetwear / Inter), the white pill
+> CTA, the white marquee, the logo-pulse animation. The rebuild
+> *evolves* these — it does not replace them.
 
 ## A. Design principles
 
-1. **Atmosphere over ornament.** Photography does the work; UI gets out
-   of the way.
-2. **Quiet ink, loud accents.** A small palette so the photography and
-   the drop colour can lead.
-3. **One scale, one rhythm.** 4 px base; everything is a multiple.
-4. **No motion for its own sake.** Movement only when it explains
-   state or guides attention.
-5. **Type carries voice.** A single, opinionated display face; system
-   sans for everything else.
+1. **Dark, gritty, confident.** OKAMI's brand is anime streetwear
+   brutalism; the system stays loyal to that mood.
+2. **Type carries voice.** OKAMI for display, Streetwear for action,
+   Inter for UI micro-copy — the trio already extracted from the live
+   site.
+3. **Halftone is the texture.** A subtle radial-dot overlay reads as
+   manga-print and never as decoration.
+4. **One scale, one rhythm.** 4 px base, Tailwind v4 spacing tokens,
+   everything is a multiple.
+5. **Motion explains, never decorates.** Marquee, logo-pulse, hover
+   shimmer — purposeful, reduced-motion respected.
 
 ## B. Tokens
 
 ### B.1 Colour
 
-A neutral ink-on-paper base with a citron / signal accent. Drop pages
-override the accent per drop (see §F).
+A dark purple-black base with white type. The lime green pop is the
+*only* accent. Drop pages may introduce a per-drop accent override
+(see §F).
 
 ```css
 /* tokens/colour.css */
 :root {
   /* ── Surfaces ─────────────────────────── */
-  --c-paper:        #F6F4EF;   /* primary background, off-white */
-  --c-paper-2:      #ECE9E1;   /* alt surfaces, panels */
-  --c-paper-3:      #DAD5C9;   /* dividers, hairlines */
+  --c-bg:           #1E1623;                  /* primary background */
+  --c-bg-rgb:       30 22 35;
+  --c-surface:      #241A2A;                  /* card / panel (one step up) */
+  --c-dark:         rgb(20, 20, 19);          /* footer / overlays */
+  --c-cream:        rgb(250, 249, 245);       /* rare light-section background */
 
-  /* ── Ink ─────────────────────────────── */
-  --c-ink:          #14110F;   /* primary text */
-  --c-ink-2:        rgba(20, 17, 15, 0.72);
-  --c-ink-3:        rgba(20, 17, 15, 0.50);
-  --c-ink-4:        rgba(20, 17, 15, 0.18);
-  --c-ink-5:        rgba(20, 17, 15, 0.08);
+  /* ── Type ─────────────────────────────── */
   --c-white:        #FFFFFF;
+  --c-white-60:     rgba(255, 255, 255, 0.60);  /* secondary text */
+  --c-white-10:     rgba(255, 255, 255, 0.10);  /* hover surfaces */
+  --c-white-05:     rgba(255, 255, 255, 0.05);  /* card borders, dividers */
+  --c-black:        #000000;                    /* white-button label, marquee text */
 
-  /* ── Brand / accents ──────────────────── */
-  --c-okami:        #E8FF52;   /* signal citron — "drop live" */
-  --c-okami-soft:   rgba(232, 255, 82, 0.30);
-  --c-warn:         #F2A341;   /* low stock badge */
-  --c-error:        #E54B3C;   /* sold out / invalid */
-  --c-ok:           #4F8F4A;   /* in stock / success */
-  --c-info:         #3D7BCB;   /* informational */
+  /* ── Accents ──────────────────────────── */
+  --c-lime:         #B6FF3D;                  /* sale / drop-live signal */
+  --c-lime-glow:    rgba(182, 255, 61, 0.30);
+  --c-violet:       #9B5CF6;                  /* "new drop" badges (added — see upgrade list) */
+  --c-warn:         #F2A341;
+  --c-error:        #E54B3C;
+  --c-ok:           #4F8F4A;
+  --c-info:         #3D7BCB;
+}
+```
 
-  /* ── Inverse (dark hero/drop pages) ───── */
-  --c-night:        #0C0A09;
-  --c-night-2:      #1A1814;
+Halftone background overlay (applied at the `<body>` level):
+
+```css
+body {
+  background-color: var(--c-bg);
+  background-image: radial-gradient(
+    circle, rgba(255,255,255,0.04) 1px, transparent 1px
+  );
+  background-size: 20px 20px;
 }
 ```
 
 Contrast invariants (must hold automatically in CI):
 
-- `--c-ink` on `--c-paper`         : ≥ 4.5 : 1
-- `--c-ink-2` on `--c-paper`       : ≥ 4.5 : 1
-- `--c-okami` on `--c-night`       : ≥ 4.5 : 1
-- `--c-paper` on `--c-night`       : ≥ 7 : 1
-- `--c-error` on `--c-paper`       : ≥ 4.5 : 1
+- `--c-white` on `--c-bg`          : ≥ 7 : 1
+- `--c-white-60` on `--c-bg`       : ≥ 4.5 : 1
+- `--c-black` on `--c-white`       : ≥ 7 : 1  (marquee, primary CTA)
+- `--c-lime` on `--c-bg`           : ≥ 4.5 : 1
+- `--c-violet` on `--c-bg`         : ≥ 4.5 : 1
 
-Per-drop accent (set on `<html data-drop="X">`):
+Per-drop accent override (set on `<html data-drop="…">`):
 
 ```css
-:root[data-drop="toji"]    { --c-okami: #B41A24; --c-night: #0F0606; }
-:root[data-drop="winter"]  { --c-okami: #6EC1E4; --c-night: #0A1014; }
+:root[data-drop="toji"]    { --c-lime: #FF3D45; --c-violet: #FF8A8E; }
+:root[data-drop="winter"]  { --c-lime: #6EC1E4; --c-violet: #C5E9F7; }
 ```
 
 ### B.2 Typography
 
-Two families:
-
-- **Display:** a strong neo-grotesque or condensed display face — e.g.
-  *Migra* (commercial) or **Bricolage Grotesque** (free, variable).
-  The display face is the only place the brand "shouts".
-- **Body:** *Inter Tight* — free, variable, predictable rendering, good
-  Arabic counterpart pairing with **IBM Plex Arabic** (free) for AR.
+The verified trio carries forward verbatim. Each font has a strict role
+and is not used outside it.
 
 ```css
+@font-face { font-family: "OKAMI";      src: url("/fonts/OKAMI.otf")      format("opentype"); font-display: swap; }
+@font-face { font-family: "Streetwear"; src: url("/fonts/streetwear.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Inter";      src: url("/fonts/inter.ttf")      format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Arabic"; src: local("IBM Plex Arabic"); font-display: swap; } /* v1.1 (AR) */
+
 :root {
-  --f-display: "Bricolage Grotesque", "Inter Tight", system-ui, sans-serif;
-  --f-body:    "Inter Tight", system-ui, sans-serif;
-  --f-arabic:  "IBM Plex Arabic", "Inter Tight", system-ui, sans-serif;
+  --f-display: "OKAMI", "Bricolage Grotesque", serif;            /* hero, section titles, category labels */
+  --f-action:  "Streetwear", "Inter", system-ui, sans-serif;     /* nav, CTA, marquee */
+  --f-ui:      "Inter", system-ui, sans-serif;                   /* micro-labels, captions */
+  --f-arabic:  "IBM Plex Arabic", "Inter", system-ui, sans-serif;
   --f-mono:    "JetBrains Mono", ui-monospace, monospace;
 }
 ```
 
-Scale — `clamp()` driven, 1.250 minor-third on mobile, 1.333 perfect-fourth on desktop:
+**Role discipline.** OKAMI never appears below 24 px. Streetwear is
+always uppercase. Inter carries `tracking-widest` whenever used as a
+micro-label.
 
-| Token | Mobile → Desktop | Weight | Line-height | Use |
+Scale — derived from the verified `text-5xl → text-7xl` and
+`text-3xl md:text-5xl lg:text-7xl` cascades on the live site:
+
+| Token | Mobile → Desktop | Font | Line-height | Use |
 |---|---|---|---|---|
-| `--t-hero`     | `clamp(44px, 6vw + 1rem, 96px)` | 600 | 0.95 | Hero |
-| `--t-display`  | `clamp(36px, 4vw + 1rem, 72px)` | 600 | 1.00 | Drop / section |
-| `--t-h1`       | `clamp(28px, 2vw + 1rem, 44px)` | 600 | 1.05 | Page title |
-| `--t-h2`       | `clamp(22px, 1.2vw + 0.5rem, 32px)` | 600 | 1.15 | Section title |
-| `--t-h3`       | `18 → 22px` | 600 | 1.25 | Sub-section |
-| `--t-h4`       | `16 → 18px` | 600 | 1.30 | Card title |
-| `--t-body-lg`  | `16 → 18px` | 400 | 1.55 | Lead paragraph |
-| `--t-body`     | `15 → 16px` | 400 | 1.55 | Body |
-| `--t-body-sm`  | `13 → 14px` | 400 | 1.50 | Helper text |
-| `--t-mono`     | `12px`      | 500 | 1.4  | Codes, SKUs |
-| `--t-caption`  | `11px`      | 600 | 1.3  | Eyebrow / overline |
+| `--t-hero`     | `clamp(48px, 6vw + 1rem, 96px)`  | OKAMI       | 0.95 | Hero "LATEST DROP" |
+| `--t-display`  | `clamp(36px, 4vw + 1rem, 72px)`  | OKAMI       | 1.00 | Category cards, section titles |
+| `--t-h1`       | `clamp(28px, 2vw + 1rem, 40px)`  | OKAMI       | 1.05 | Page title |
+| `--t-nav`      | `clamp(14px, 1vw + 0.5rem, 30px)`| Streetwear  | 1.10 | Nav links, marquee text |
+| `--t-cta`      | `clamp(14px, 1vw + 0.5rem, 40px)`| Streetwear  | 1.00 | Hero ORDER NOW pill |
+| `--t-h2`       | `clamp(22px, 1.2vw + 0.5rem, 32px)` | OKAMI    | 1.15 | Sub-section |
+| `--t-h3`       | `18 → 22px` | OKAMI / Streetwear | 1.25 | Sub-section |
+| `--t-body`     | `15 → 16px` | Inter | 1.55 | Body |
+| `--t-body-sm`  | `13 → 14px` | Inter | 1.50 | Helper text |
+| `--t-micro`    | `10px`      | Inter | 1.30 | "MENU", "CART", footer status |
+| `--t-mono`     | `12px`      | JetBrains Mono | 1.40 | SKUs, codes |
 
-Letter-spacing: tighter for display, neutral for body.
+Letter-spacing on display tokens: `0.05em` (`tracking-wider`) and
+`0.10em` (`tracking-widest`) to honour the live treatment.
 
-| Token | Value |
-|---|---|
-| `--ls-display` | `-0.03em` |
-| `--ls-body`    | `-0.005em` |
-| `--ls-cta`     | `0.06em` (uppercase labels) |
+Letter-spacing tokens:
+
+| Token | Value | Use |
+|---|---|---|
+| `--ls-display`  | `0.05em`  | Hero / category labels (`tracking-wider`) |
+| `--ls-widest`   | `0.10em`  | Section labels, "CATEGORIES: ALL" (`tracking-widest`) |
+| `--ls-body`     | `0`       | Inter body |
+| `--ls-cta`      | `0.06em`  | Streetwear uppercase CTAs and nav |
 
 ### B.3 Spacing — 4 px system
 
@@ -136,19 +166,22 @@ Section rhythm: `--s-12` between major sections on desktop,
 
 ### B.4 Radius
 
+The verified site is mixed: pills for CTAs, sharp/`rounded-sm` for
+cards, `rounded-xl` for icon-button surfaces in the mobile bottom nav.
+
 ```css
 :root {
   --r-0: 0;
-  --r-1: 4px;
-  --r-2: 8px;
-  --r-3: 12px;     /* cards */
-  --r-4: 18px;     /* drawer / modal */
-  --r-pill: 9999px;
+  --r-1: 2px;       /* category cards: `rounded-sm` */
+  --r-2: 4px;       /* secondary buttons */
+  --r-3: 12px;      /* small white pill buttons (Place Order / Select Options) */
+  --r-4: 16px;      /* mobile bottom-nav buttons (`rounded-xl`) */
+  --r-pill: 9999px; /* primary CTAs */
 }
 ```
 
-Brand default: **hard-edge cards** (`--r-0` / `--r-1`); pills for
-chips and CTAs. Streetwear feel.
+Brand default: **hard-edge cards** (`--r-1`); pills for the primary
+CTA. Streetwear feel preserved.
 
 ### B.5 Shadows / elevation
 
@@ -167,10 +200,12 @@ Used sparingly. Lifts come from contrast, not blur.
 ```css
 :root {
   --d-fast:  120ms;
-  --d-base:  240ms;
-  --d-slow:  520ms;
+  --d-base:  240ms;          /* matches Tailwind `transition-colors` defaults */
+  --d-slow:  500ms;          /* card-shimmer */
+  --d-card:  700ms;          /* category-card image zoom */
+  --d-marquee: 30s;          /* ticker loop */
 
-  --e-out:   cubic-bezier(0.19, 1, 0.22, 1);     /* page reveals */
+  --e-out:   cubic-bezier(0.19, 1, 0.22, 1);
   --e-in:    cubic-bezier(0.6, 0, 0.8, 0);
   --e-inout: cubic-bezier(0.65, 0, 0.35, 1);
 }
@@ -180,11 +215,26 @@ Used sparingly. Lifts come from contrast, not blur.
 }
 ```
 
+Verified keyframes carried forward:
+
+```css
+@keyframes logoPulse {
+  0%   { opacity: 0.5; transform: scale(0.85); }
+  50%  { opacity: 1;   transform: scale(1.10); }
+  100% { opacity: 0.5; transform: scale(0.85); }
+}
+@keyframes marquee         { from { transform: translateX(0); }   to { transform: translateX(-50%); } }
+@keyframes marquee-reverse { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+```
+
 Allowed motions:
 
-- Fade + 8 px translate-up on enter (lists, hero copy).
-- Cross-fade for image swaps in PDP.
-- Slide for drawer (cart, mobile menu).
+- `logoPulse` on the wordmark (existing).
+- `marquee` / `marquee-reverse` on the ticker (existing).
+- Category-card image `scale-110` at `--d-card` on hover (existing).
+- Card shimmer (`opacity 0 → 1` on `bg-white/10` gradient) on hover.
+- Hero parallax: 4–8 % vertical `translate3d` driven by scroll.
+- Cart-drawer slide and modal fade — added by the rebuild.
 - Countdown ticks as opacity micro-pulse, never bounce.
 
 ### B.7 Z-index scale
@@ -239,49 +289,65 @@ full-bleed for hero + lookbook chapters.
 
 A drop overrides:
 
-- `--c-okami`, `--c-night`, `--c-paper`
-- `--f-display` (optionally; e.g. a hand-drawn face for a special
-  drop)
+- `--c-lime`, `--c-violet`, optionally `--c-bg`.
+- `--f-display` (rarely; e.g. a hand-drawn face for a special
+  collaboration drop).
 
 Set on `<html data-drop="…">` server-side from the drop record.
 Components read from tokens; no per-drop overrides in components.
 
-## G. Tailwind config (re-implementation)
+## G. Tailwind v4 config (re-implementation)
 
 ```js
-// tailwind.config.ts (excerpt)
+// tailwind.config.ts (excerpt) — TailwindCSS v4
 import type { Config } from 'tailwindcss'
 
 export default {
   content: ['./src/**/*.{ts,tsx,mdx}'],
   theme: {
-    screens: { xs: '410px', sm: '744px', md: '1024px', lg: '1280px', xl: '1440px', '2xl': '1700px' },
+    screens: { sm: '640px', md: '768px', lg: '1024px', xl: '1280px', '2xl': '1536px' },
     colors: {
-      paper: 'var(--c-paper)',
-      'paper-2': 'var(--c-paper-2)',
-      'paper-3': 'var(--c-paper-3)',
-      ink: 'var(--c-ink)',
-      'ink-2': 'var(--c-ink-2)',
-      'ink-3': 'var(--c-ink-3)',
-      okami: 'var(--c-okami)',
-      night: 'var(--c-night)',
-      warn: 'var(--c-warn)',
-      error: 'var(--c-error)',
-      ok: 'var(--c-ok)',
-      white: 'var(--c-white)',
+      bg:        'var(--c-bg)',
+      surface:   'var(--c-surface)',
+      dark:      'var(--c-dark)',
+      cream:     'var(--c-cream)',
+      white:     'var(--c-white)',
+      'white-60':'var(--c-white-60)',
+      'white-10':'var(--c-white-10)',
+      'white-05':'var(--c-white-05)',
+      black:     'var(--c-black)',
+      lime:      'var(--c-lime)',
+      violet:    'var(--c-violet)',
+      warn:      'var(--c-warn)',
+      error:     'var(--c-error)',
+      ok:        'var(--c-ok)',
     },
     fontFamily: {
-      display: ['var(--f-display)'],
-      sans: ['var(--f-body)'],
-      arabic: ['var(--f-arabic)'],
-      mono: ['var(--f-mono)'],
+      okami:      ['var(--f-display)'],
+      streetwear: ['var(--f-action)'],
+      inter:      ['var(--f-ui)'],
+      arabic:     ['var(--f-arabic)'],
+      mono:       ['var(--f-mono)'],
     },
     extend: {
       spacing: Object.fromEntries(
         Array.from({ length: 14 }, (_, i) => [String(i), `var(--s-${i})`]),
       ),
-      borderRadius: { card: 'var(--r-1)', drawer: 'var(--r-4)', pill: 'var(--r-pill)' },
-      boxShadow: { '1': 'var(--e-1)', '2': 'var(--e-2)', '3': 'var(--e-3)' },
+      borderRadius: { card: 'var(--r-1)', pill: 'var(--r-pill)' },
+      backgroundImage: {
+        halftone: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
+      },
+      backgroundSize: { halftone: '20px 20px' },
+      keyframes: {
+        logoPulse:       { '0%,100%': { opacity: '0.5', transform: 'scale(0.85)' }, '50%': { opacity: '1', transform: 'scale(1.10)' } },
+        marquee:         { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        'marquee-reverse': { from: { transform: 'translateX(-50%)' }, to: { transform: 'translateX(0)' } },
+      },
+      animation: {
+        'logo-pulse':      'logoPulse 3s ease-in-out infinite',
+        marquee:           'marquee 30s linear infinite',
+        'marquee-reverse': 'marquee-reverse 30s linear infinite',
+      },
       transitionTimingFunction: { 'out-x': 'var(--e-out)', 'in-x': 'var(--e-in)', 'inout-x': 'var(--e-inout)' },
     },
   },

@@ -10,6 +10,7 @@
 
 | # | File | Maps to master-prompt output |
 |---|---|---|
+| **00** | [**00-extracted-design-system.md**](./00-extracted-design-system.md) | **Verified as-is — source of truth** |
 | 01 | [01-executive-summary.md](./01-executive-summary.md) | Executive Summary |
 | 02 | [02-audit-and-sitemap.md](./02-audit-and-sitemap.md) | Website Audit · Sitemap |
 | 03 | [03-user-flows-and-ux.md](./03-user-flows-and-ux.md) | User Flows · UX Problems |
@@ -22,28 +23,30 @@
 | 10 | [10-data-and-cms-schemas.md](./10-data-and-cms-schemas.md) | Database & CMS Schema |
 | 11 | [11-roadmap.md](./11-roadmap.md) | Implementation Roadmap · Final Recommendations |
 | 12 | [12-launch-checklist.md](./12-launch-checklist.md) | Launch Checklist |
+| **13** | [**13-platform-reconciliation.md**](./13-platform-reconciliation.md) | **Reconciles the strategy with the verified stack** |
 
 ## Source-access note
 
-Direct HTTP fetches of `okami-streetwear.com` from this build environment
-are blocked at the egress proxy (`x-deny-reason: host_not_allowed`).
-The audit therefore combines:
+Direct HTTP fetches of `okami-streetwear.com` from the original build
+environment were blocked at the egress proxy
+(`x-deny-reason: host_not_allowed`). The first pass relied on
+inference; the project owner subsequently supplied a verbatim
+ground-truth extraction (now `00-extracted-design-system.md`), and
+this document set has been reconciled against it.
 
-1. **Verified** signals from public sources: brand title, product
-   category, geography, social presence, sister-domain platform stack.
-2. **Strongly-inferred** structure based on the verified platform
-   (Shopify) and the small-brand drops streetwear playbook.
-3. **Conventional** Shopify-store anatomy (templated routes, JSON-LD,
-   policies pages) that holds for >95 % of stores in this category.
+Tags used in the docs:
 
-Each section flags items with `[VERIFIED]`, `[INFERRED]`, or
-`[CONVENTION]` so the reader can re-validate against the live site at
-implementation time. Anything marked `[ASSUMPTION]` should be confirmed
-with stakeholders before code is written.
+- **[VERIFIED]** — present in `00-extracted-design-system.md` or in
+  other supplied source.
+- **[INFERRED]** — retained only where the as-is doc is silent.
+- **[CONVENTION]** — standard web-store anatomy unrelated to OKAMI.
 
 The recommendations themselves do not depend on the inferences — they
-describe what a superior system *should be*, regardless of what the
-current site happens to be.
+describe what a superior system *should be*. The reconciliation in
+`13-platform-reconciliation.md` records the few strategy changes
+triggered by the verified stack (notably: the live site is a custom
+React SPA + TailwindCSS v4 + custom headless commerce — **not**
+Shopify, as earlier inferred).
 
 ## Brand reality (verified)
 
@@ -55,9 +58,11 @@ current site happens to be.
 - **Distribution model:** drops / limited releases. No custom orders.
 - **Voice:** founder-led, personal — *"just a guy who puts his passion
   on shirts"*. Small but loyal community (~13 K Instagram followers).
-- **Platform signal:** sister OKAMI shops on Shopify;
-  `okami-streetwear.com` follows the same SEO title pattern. Treat
-  Shopify as the working assumption.
+- **Stack (verified from owner's extraction):** React SPA · TailwindCSS
+  v4 · 3 self-hosted custom fonts (OKAMI, Streetwear, Inter) · custom
+  headless commerce backend · client-side routing
+  (`/shop`, `/about`, `/contact`, `/cart`) · `US` / `DA` currency
+  switcher. **Not Shopify.**
 
 ## Sources
 
