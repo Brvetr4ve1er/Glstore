@@ -32,21 +32,16 @@ export function pluralize(n: number, singular: string, plural?: string): string 
   return n === 1 ? singular : (plural ?? singular + 's')
 }
 
-/** Human-readable category icon emoji (subset of admin's mapping). */
+/** Human-readable category icon emoji — gaming map. */
 const CATEGORY_ICONS: Record<string, string> = {
-  TV: '📺', Smartphone: '📱', Laptop: '💻', Tablet: '📟',
-  Refrigerator: '🧊', Freezer: '🧊',
-  'Washing Machine': '🫧', Dishwasher: '🫗',
-  Microwave: '📡', Oven: '🔥', Cooktop: '🍳',
-  Cooker: '🍳', AC: '❄️', Fan: '🌀',
-  Mixer: '⚙️', Blender: '🫙', Kettle: '☕',
-  Iron: '👔', 'Coffee Machine': '☕', Toaster: '🍞',
-  Vacuum: '🌀', Fryer: '🍟', 'Hair Dryer': '💨',
-  Beauty: '💅', Audio: '🎧', Gaming: '🎮',
-  Accessory: '🔌',
+  // Gaming categories (GLAIVE)
+  Headsets: '🎧', Keyboards: '⌨️', Mice: '🖱️',
+  Mousepads: '🟧', Controllers: '🎮', Accessories: '🎚️',
+  Streaming: '📹', Chairs: '🪑', Monitors: '🖥️',
+  Audio: '🎧', Gaming: '🎮', Accessory: '🔌',
 }
 
 export function categoryIcon(cat: string | null | undefined): string {
-  if (!cat) return '📦'
-  return CATEGORY_ICONS[cat] ?? '📦'
+  if (!cat) return '🎮'
+  return CATEGORY_ICONS[cat] ?? '🎮'
 }

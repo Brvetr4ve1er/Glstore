@@ -20,8 +20,8 @@ interface SEOProps {
   noIndex?: boolean
 }
 
-const DEFAULT_DESC = 'Électroménager et électronique en Algérie. Livraison rapide. Paiement à la livraison.'
-const SITE_NAME = 'Ghir Laffaire'
+const DEFAULT_DESC = 'Matériel gaming pro en Algérie — casques, claviers, souris, manettes. Livraison rapide. Paiement à la livraison.'
+const SITE_NAME = 'GLAIVE'
 
 export function SEO({
   title, description, image, url, type = 'website', noIndex,

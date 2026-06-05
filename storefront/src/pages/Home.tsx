@@ -18,8 +18,8 @@ export default function Home() {
   return (
     <div className="page-enter">
       <SEO
-        title="Ghir Laffaire — Fast. Reliable. Yours."
-        description="Électroménager et électronique en Algérie. Livraison 48h dans les 58 wilayas. Paiement à la livraison."
+        title="GLAIVE — Matériel Gaming Pro. For Glory."
+        description="Casques, claviers, souris et manettes gaming de niveau esport. Livraison 48h dans les 58 wilayas. Paiement à la livraison."
       />
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
@@ -32,17 +32,17 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 pt-16 pb-12 md:pt-24 md:pb-16">
           <ScrollReveal variant="fade-up-sm" className="flex flex-col items-center text-center gap-6">
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-sm text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)]">
-              <Sparkles size={11} /> Inspiré par Shibuya · construit pour l'Algérie
+              <Sparkles size={11} /> Matériel de niveau esport · Construit pour la gloire
             </div>
 
-            <h1 className="font-display text-5xl md:text-7xl font-black leading-[0.95] max-w-4xl tracking-tight">
-              <span className="text-[var(--color-electric-blue)]">Fast.</span>{' '}
-              <span className="text-[var(--color-text-1)]">Reliable.</span>{' '}
-              <span className="punk-stripe text-[var(--color-text-1)]">Yours.</span>
+            <h1 className="font-display text-5xl md:text-7xl font-black leading-[0.95] max-w-4xl tracking-tight uppercase">
+              <span className="text-[var(--color-electric-blue)]">Joue</span>{' '}
+              <span className="text-[var(--color-text-1)]">pour</span>{' '}
+              <span className="punk-stripe text-[var(--color-text-1)]">gagner.</span>
             </h1>
 
             <p className="text-base md:text-lg text-[var(--color-text-2)] max-w-2xl leading-relaxed">
-              Électroménager et électronique. Livraison <span className="text-[var(--color-text-1)] font-bold">48h</span> à travers les 58 wilayas. Paiement <span className="text-[var(--color-text-1)] font-bold">à la livraison</span>.
+              Casques, claviers magnétiques et souris ultralégères. Livraison <span className="text-[var(--color-text-1)] font-bold">48h</span> dans les 58 wilayas. Paiement <span className="text-[var(--color-text-1)] font-bold">à la livraison</span>.
             </p>
 
             <div className="w-full max-w-2xl mt-2">
@@ -52,12 +52,12 @@ export default function Home() {
             <div className="flex flex-wrap gap-3 justify-center mt-2">
               <Link to="/c/all">
                 <Button variant="accent" size="lg">
-                  Explorer le catalogue <ArrowRight size={16} />
+                  Explorer le matériel <ArrowRight size={16} />
                 </Button>
               </Link>
-              <Link to="/c/TV">
+              <Link to="/c/Headsets">
                 <Button variant="outline" size="lg">
-                  📺 TV à partir de 30 000 DZD
+                  🎧 Casques Pro
                 </Button>
               </Link>
             </div>
@@ -71,7 +71,7 @@ export default function Home() {
           {[
             { icon: Truck, title: 'Livraison 48h', desc: '58 wilayas couvertes' },
             { icon: ShieldCheck, title: 'COD partout', desc: 'Payez à la livraison' },
-            { icon: Zap, title: 'Stock vérifié', desc: 'Disponibilité en temps réel' },
+            { icon: Zap, title: 'Garantie 2 ans', desc: 'Matériel pro authentique' },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="glass-sm flex items-center gap-3 px-5 py-4">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-neon-yellow)]/15 flex items-center justify-center shrink-0">
@@ -174,11 +174,11 @@ export default function Home() {
               <div className="flex items-center gap-5 max-w-xl">
                 <div className="rocket-float shrink-0"><BrandLogo size={64} showWordmark={false} /></div>
                 <div>
-                  <h3 className="font-display text-2xl md:text-3xl font-black text-[var(--color-text-1)] leading-tight">
-                    Punk mode <span className="text-[var(--color-neon-yellow)]">on.</span>
+                  <h3 className="font-display text-2xl md:text-3xl font-black text-[var(--color-text-1)] leading-tight uppercase">
+                    Game mode <span className="text-[var(--color-neon-yellow)]">on.</span>
                   </h3>
                   <p className="text-sm text-[var(--color-text-2)] mt-2 leading-relaxed">
-                    Move fast. Stay reliable. Une plateforme construite pour l'Algérie, des prix clairs, du stock honnête, des fiches vérifiées.
+                    Conçu avec et pour les pros. Du matériel qui gagne des championnats, des prix clairs, du stock honnête — livré chez toi en 48h.
                   </p>
                 </div>
               </div>

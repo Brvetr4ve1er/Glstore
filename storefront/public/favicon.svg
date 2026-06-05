@@ -1,20 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="14" fill="#0D0D0D"/>
-  <g stroke="#FFD400" stroke-width="2.4" stroke-linecap="round">
-    <line x1="6"  y1="22" x2="14" y2="22"/>
-    <line x1="4"  y1="34" x2="10" y2="34" opacity="0.6"/>
-    <line x1="7"  y1="46" x2="13" y2="46"/>
-  </g>
-  <path d="M16 20 L52 20 L46 44 L22 44 Z"
-    fill="#1E466B" stroke="#0D0D0D" stroke-width="2" stroke-linejoin="round"/>
-  <line x1="16" y1="20" x2="13" y2="13" stroke="#0D0D0D" stroke-width="2.4" stroke-linecap="round"/>
-  <circle cx="26" cy="52" r="3.4" fill="#0D0D0D"/>
-  <circle cx="44" cy="52" r="3.4" fill="#0D0D0D"/>
-  <rect x="26" y="14" width="20" height="20" rx="2.5"
-    fill="#FFD400" stroke="#0D0D0D" stroke-width="2"/>
-  <text x="36" y="30" text-anchor="middle"
-    font-family="Inter, sans-serif" font-weight="900" font-size="16" fill="#0D0D0D">?</text>
-  <path d="M28 12 L31 6 L34 11 L37 5 L40 11 L43 6 L46 12 Z"
-    fill="#FF2E7A" stroke="#0D0D0D" stroke-width="1.5" stroke-linejoin="round"/>
-  <path d="M54 10 L55 13 L58 14 L55 15 L54 18 L53 15 L50 14 L53 13 Z" fill="#3DA9FC"/>
+  <rect width="64" height="64" rx="14" fill="#0A0A0B"/>
+  <path d="M32 7 L54 19 L54 45 L32 57 L10 45 L10 19 Z"
+    fill="#16161a" stroke="#FF5A1F" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 16 L42 42 L32 35 L22 42 Z"
+    fill="#FF5A1F" stroke="#0A0A0B" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="32" cy="44" r="3.4" fill="#FFC400"/>
+  <path d="M48 12 L49 15 L52 16 L49 17 L48 20 L47 17 L44 16 L47 15 Z" fill="#FF2D78"/>
 </svg>

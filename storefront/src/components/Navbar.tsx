@@ -10,11 +10,11 @@ import { BrandLogo } from './BrandLogo'
 import { SearchBox } from './SearchBox'
 
 const TOP_LINKS = [
-  { to: '/c/all',          label: 'Tous les produits' },
-  { to: '/c/TV',           label: 'TV' },
-  { to: '/c/Smartphone',   label: 'Smartphones' },
-  { to: '/c/Laptop',       label: 'Ordinateurs' },
-  { to: '/c/Refrigerator', label: 'Réfrigérateurs' },
+  { to: '/c/all',          label: 'Tout le matériel' },
+  { to: '/c/Headsets',     label: 'Casques' },
+  { to: '/c/Keyboards',    label: 'Claviers' },
+  { to: '/c/Mice',         label: 'Souris' },
+  { to: '/c/Controllers',  label: 'Manettes' },
 ]
 
 export function Navbar() {
@@ -42,9 +42,9 @@ export function Navbar() {
     <header className="sticky top-0 z-40">
       {/* Promo strip */}
       <div className="brand-stripe text-[11px] font-bold text-[var(--color-jet-black)] py-1.5 text-center tracking-wide flex items-center justify-center gap-6 flex-wrap px-4">
-        <span className="flex items-center gap-1.5"><Truck size={12} /> LIVRAISON 48H</span>
+        <span className="flex items-center gap-1.5"><Truck size={12} /> LIVRAISON 48H · 58 WILAYAS</span>
         <span className="flex items-center gap-1.5"><Shield size={12} /> PAIEMENT À LA LIVRAISON</span>
-        <span className="flex items-center gap-1.5 hidden sm:flex"><Phone size={12} /> +213 …</span>
+        <span className="flex items-center gap-1.5 hidden sm:flex"><Phone size={12} /> MATÉRIEL GAMING PRO · FOR GLORY</span>
       </div>
 
       {/* Main bar */}
@@ -62,7 +62,7 @@ export function Navbar() {
             </button>
 
             {/* Logo */}
-            <Link to="/" className="shrink-0" aria-label="Ghir Laffaire — Accueil">
+            <Link to="/" className="shrink-0" aria-label="GLAIVE — Accueil">
               <BrandLogo size={36} />
             </Link>
 

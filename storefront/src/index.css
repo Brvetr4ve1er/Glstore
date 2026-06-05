@@ -1,52 +1,56 @@
 @import "tailwindcss";
 
 /* =============================================================
- * GHIR LAFFAIRE — Storefront Design Tokens
- * Liquid-glass · punk · calm
+ * GLAIVE — Gaming Gear Storefront Design Tokens
+ * Esports dark · signature orange · RGB accents
  *
  * Theme-controlled at runtime via storefront/src/lib/theme.ts —
  * the storefront fetches the admin-controlled theme from
  * GET /api/v1/storefront/theme on bootstrap and overrides these
- * fallbacks. Keep this list in sync with admin/src/lib/theme.ts.
+ * fallbacks. These defaults define the GLAIVE gaming look that
+ * paints when no admin theme override is set.
  * ============================================================= */
 @theme {
   --font-sans:    "Inter", "Segoe UI", system-ui, sans-serif;
   --font-display: "Bricolage Grotesque", "Inter", sans-serif;
   --font-mono:    "JetBrains Mono", monospace;
 
-  /* Brand palette */
-  --color-bold-blue:     #1E466B;
-  --color-electric-blue: #3DA9FC;
-  --color-neon-yellow:   #FFD400;
-  --color-hot-pink:      #FF2E7A;
-  --color-jet-black:     #0D0D0D;
-  --color-soft-white:    #F7F7F7;
+  /* Brand palette — gaming.
+   * Token NAMES are kept (the admin theme system + components reference
+   * them) but the VALUES are re-mapped: electric-blue -> signature orange,
+   * neon-yellow -> amber, hot-pink -> RGB magenta. */
+  --color-bold-blue:     #3A0D00;   /* ember (brand-deep)        */
+  --color-electric-blue: #FF5A1F;   /* SIGNATURE ORANGE (primary) */
+  --color-neon-yellow:   #FFC400;   /* amber highlight            */
+  --color-hot-pink:      #FF2D78;   /* RGB magenta                */
+  --color-jet-black:     #0A0A0B;
+  --color-soft-white:    #F5F5F6;
 
-  /* Surface ramp (dark) */
-  --color-surface-0: #0a0a0d;
-  --color-surface-1: #0f0f15;
-  --color-surface-2: #15151d;
-  --color-surface-3: #1c1c28;
-  --color-surface-4: #2a2a3d;
+  /* Surface ramp (near-black gaming) */
+  --color-surface-0: #08080a;
+  --color-surface-1: #0e0e11;
+  --color-surface-2: #16161a;
+  --color-surface-3: #1f1f25;
+  --color-surface-4: #2c2c34;
 
   /* Text ramp */
-  --color-text-1: #f7f7f7;
-  --color-text-2: #b6b6c6;
-  --color-text-3: #6b6b85;
+  --color-text-1: #f5f5f6;
+  --color-text-2: #b4b4c0;
+  --color-text-3: #6e6e7c;
 
   /* Aliases */
-  --color-brand:       #3DA9FC;
-  --color-brand-deep:  #1E466B;
-  --color-brand-glow:  rgba(61,169,252,0.22);
-  --color-accent:      #FFD400;
-  --color-accent-glow: rgba(255,212,0,0.30);
-  --color-punk:        #FF2E7A;
-  --color-punk-glow:   rgba(255,46,122,0.30);
+  --color-brand:       #FF5A1F;
+  --color-brand-deep:  #3A0D00;
+  --color-brand-glow:  rgba(255,90,31,0.28);
+  --color-accent:      #FFC400;
+  --color-accent-glow: rgba(255,196,0,0.28);
+  --color-punk:        #FF2D78;
+  --color-punk-glow:   rgba(255,45,120,0.30);
 
-  --color-success: #22c55e;
-  --color-warning: #FFD400;
-  --color-danger:  #FF2E7A;
-  --color-info:    #3DA9FC;
+  --color-success: #36d399;
+  --color-warning: #FFC400;
+  --color-danger:  #FF2D78;
+  --color-info:    #FF5A1F;
 
   /* Radii — theme-controlled */
   --radius-sm:   6px;
@@ -67,9 +71,9 @@
   --duration-slow: 600ms;
 
   /* Background gradient anchors */
-  --bg-glow-1: rgba(61,169,252,0.07);
-  --bg-glow-2: rgba(255,46,122,0.05);
-  --bg-glow-3: rgba(255,212,0,0.03);
+  --bg-glow-1: rgba(255,90,31,0.08);
+  --bg-glow-2: rgba(255,45,120,0.05);
+  --bg-glow-3: rgba(255,196,0,0.03);
 }
 
 /* ── Base ──────────────────────────────────────────────────── */

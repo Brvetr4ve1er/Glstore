@@ -6,11 +6,11 @@ const COLS: { title: string; links: { to: string; label: string }[] }[] = [
   {
     title: 'Boutique',
     links: [
-      { to: '/c/all',          label: 'Tous les produits' },
-      { to: '/c/TV',           label: 'Télévisions' },
-      { to: '/c/Smartphone',   label: 'Smartphones' },
-      { to: '/c/Refrigerator', label: 'Réfrigérateurs' },
-      { to: '/c/Washing Machine', label: 'Machines à laver' },
+      { to: '/c/all',         label: 'Tout le matériel' },
+      { to: '/c/Headsets',    label: 'Casques' },
+      { to: '/c/Keyboards',   label: 'Claviers' },
+      { to: '/c/Mice',        label: 'Souris' },
+      { to: '/c/Controllers', label: 'Manettes' },
     ],
   },
   {
@@ -32,9 +32,9 @@ export function Footer() {
       <div className="bg-[var(--color-surface-1)]">
         <div className="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: Truck,       title: 'Livraison rapide',     desc: '48h à travers les 58 wilayas' },
+            { icon: Truck,       title: 'Livraison rapide',       desc: '48h à travers les 58 wilayas' },
             { icon: ShieldCheck, title: 'Paiement à la livraison', desc: 'Pas de surprise, payez sur place' },
-            { icon: Sparkles,    title: 'Produits authentiques', desc: 'Chaîne d’approvisionnement vérifiée' },
+            { icon: Sparkles,    title: 'Matériel pro authentique', desc: 'Garantie 2 ans · qualité esport' },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-electric-blue)]/12 flex items-center justify-center shrink-0">
@@ -54,7 +54,7 @@ export function Footer() {
         <div>
           <BrandLogo size={36} showTagline />
           <p className="text-xs text-[var(--color-text-3)] mt-4 leading-relaxed max-w-xs">
-            Inspiré par la culture punk de Shibuya. Conçu pour l’Algérie. Électroménager et électronique livrés vite, garantis fiables.
+            Matériel gaming de niveau esport, conçu avec et pour les joueurs. Livré vite en Algérie, garanti fiable. For Glory.
           </p>
         </div>
         {COLS.map(col => (
@@ -79,14 +79,14 @@ export function Footer() {
           </h3>
           <ul className="flex flex-col gap-3 text-sm text-[var(--color-text-2)]">
             <li className="flex items-center gap-2"><Phone size={13} /> +213 …</li>
-            <li className="flex items-center gap-2"><Mail size={13} /> contact@ghirlaffaire.dz</li>
+            <li className="flex items-center gap-2"><Mail size={13} /> contact@glaive.dz</li>
             <li className="flex items-start gap-2"><MapPin size={13} className="mt-0.5" /> Alger, Algérie</li>
           </ul>
         </div>
       </div>
 
       <div className="border-t border-[var(--color-surface-4)] py-5 text-center text-[10px] text-[var(--color-text-3)] uppercase tracking-[0.18em]">
-        © Ghir Laffaire · Fast · Reliable · Yours
+        © GLAIVE Gaming · For Glory
       </div>
     </footer>
   )
