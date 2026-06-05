@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GLAIVE GG — One App. Total Control. | GLAIVE</title>
+  <meta name="description" content="GLAIVE GG unifies Engine, Sonar and Moments — RGB and macros, a pro-grade software audio mixer, and automatic highlight capture in one free command center." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <meta property="og:title" content="GLAIVE GG — One App. Total Control." />
+  <meta property="og:description" content="Engine, Sonar and Moments in one free app." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23ff5101'>▲</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <script defer src="assets/js/data.js"></script>
+  <script defer src="assets/js/app.js"></script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"GLAIVE GG","applicationCategory":"GameApplication","operatingSystem":"Windows, macOS","offers":{"@type":"Offer","price":"0"}}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="nav"></div>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" style="min-height:clamp(420px,60vh,640px)">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-content">
+          <span class="eyebrow">GLAIVE GG · Free</span>
+          <h1>One app.<br/><span class="accent">Total control.</span></h1>
+          <p>Tune every device, mix your audio like a producer, and capture your best plays — from a single command center on PC and Mac.</p>
+          <div class="hero-cta">
+            <a class="btn btn--primary btn--lg" href="#download" onclick="document.getElementById('toast').textContent='Demo only — no real download';document.getElementById('toast').classList.add('show');setTimeout(()=>document.getElementById('toast').classList.remove('show'),2400);return false;">Download free</a>
+            <a class="btn btn--ghost btn--lg" href="shop.html">Shop compatible gear</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPS -->
+    <section class="section container" id="download">
+      <div class="section-head"><div><span class="eyebrow">The suite</span><h2>Three apps. Zero friction.</h2></div></div>
+      <div class="app-grid">
+        <article class="app-card reveal">
+          <div class="ic" data-ic="cpu"></div>
+          <h3>Engine</h3>
+          <p>Per-device RGB, macros and key remaps with per-game profiles that auto-switch the instant you launch a title.</p>
+        </article>
+        <article class="app-card reveal">
+          <div class="ic" data-ic="headphones"></div>
+          <h3>Sonar</h3>
+          <p>A complete software audio mixer — parametric EQ, separate game/chat/mic channels and AI noise cancellation.</p>
+        </article>
+        <article class="app-card reveal">
+          <div class="ic" data-ic="bolt"></div>
+          <h3>Moments</h3>
+          <p>Automatically clip your highlights, trim on the fly and share to socials without leaving your game.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- FEATURE BAND -->
+    <section class="section container">
+      <div class="band band--gg reveal">
+        <div class="band-inner">
+          <span class="eyebrow">Why GG</span>
+          <h2>Built to disappear into your game.</h2>
+          <p>Lightweight, low on resources, and designed so you set it once and forget it. Your gear just works — exactly how you want it.</p>
+          <a class="btn btn--primary btn--lg" href="shop.html">Find your gear</a>
+        </div>
+      </div>
+      <div class="feature-cols">
+        <div class="f reveal" data-ic="shield"><h4>Privacy-first</h4><p>Local profiles by default. You choose what syncs to the cloud.</p></div>
+        <div class="f reveal" data-ic="refresh"><h4>Always improving</h4><p>Regular updates add features and support for new hardware.</p></div>
+        <div class="f reveal" data-ic="bolt"><h4>Low overhead</h4><p>Engineered to stay out of your frame budget when it matters most.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+  <script>
+    window.addEventListener('load', () => {
+      const { ICON } = window.GLAIVE;
+      document.querySelectorAll('[data-ic]').forEach(el => el.insertAdjacentHTML('afterbegin', ICON[el.dataset.ic] || ''));
+    });
+  </script>
+</body>
+</html>

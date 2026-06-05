@@ -484,6 +484,34 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; line-height: va
 @media (max-width: 860px) { .recent-rail { grid-template-columns: repeat(2, 1fr); } }
 
 /* ----------------------------------------------------------------
+   17b. GEAR FINDER QUIZ
+   ---------------------------------------------------------------- */
+.quiz { max-width: 720px; margin: 0 auto; }
+.quiz-progress { display: flex; gap: 8px; margin-bottom: var(--s-6); }
+.quiz-progress span { flex: 1; height: 4px; border-radius: 2px; background: var(--c-surface-3); transition: background var(--t-med); }
+.quiz-progress span.on { background: var(--c-brand); }
+.quiz-step { animation: fade-down var(--t-med) var(--ease-out); }
+.quiz-step .eyebrow { margin-bottom: var(--s-2); }
+.quiz-step h2 { font-size: var(--fs-600); text-transform: uppercase; }
+.quiz-opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-3); margin-top: var(--s-5); }
+.quiz-opt { padding: var(--s-5); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-400); transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast); }
+.quiz-opt:hover { border-color: var(--c-brand); background: var(--c-brand-soft); transform: translateY(-2px); }
+.quiz-opt small { display: block; font-family: var(--font-body); font-weight: 400; font-size: var(--fs-200); color: var(--c-text-dim); margin-top: 4px; }
+.quiz-back { margin-top: var(--s-5); color: var(--c-text-dim); font-size: var(--fs-200); }
+.quiz-back:hover { color: var(--c-brand); }
+@media (max-width: 560px) { .quiz-opts { grid-template-columns: 1fr; } }
+
+/* software / GG page */
+.app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); }
+.app-card { background: var(--c-surface-1); border: 1px solid var(--c-border-soft); border-radius: var(--r-lg); padding: var(--s-6); transition: transform var(--t-med) var(--ease), border-color var(--t-med); }
+.app-card:hover { transform: translateY(-4px); border-color: var(--c-brand); }
+.app-card .ic { width: 52px; height: 52px; border-radius: var(--r-md); background: var(--c-brand-soft); color: var(--c-brand); display: grid; place-items: center; margin-bottom: var(--s-4); }
+.app-card .ic svg { width: 26px; height: 26px; }
+.app-card h3 { font-size: 1.4rem; text-transform: uppercase; margin-bottom: var(--s-2); }
+.app-card p { color: var(--c-text-dim); font-size: var(--fs-200); }
+@media (max-width: 860px) { .app-grid { grid-template-columns: 1fr; } }
+
+/* ----------------------------------------------------------------
    18. SEARCH OVERLAY
    ---------------------------------------------------------------- */
 .search-overlay { position: fixed; inset: 0; z-index: 170; background: var(--c-overlay); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity var(--t-med); display: flex; justify-content: center; align-items: flex-start; padding: 10vh var(--s-5) var(--s-5); }

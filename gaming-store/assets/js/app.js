@@ -117,15 +117,15 @@
               <div class="mega-col"><h4>Audio</h4><a href="shop.html?cat=Headsets">Gaming Headsets</a><a href="shop.html?cat=Accessories">GameDAC</a><a href="shop.html?cat=Headsets">Wireless</a></div>
               <div class="mega-col"><h4>Desk</h4><a href="shop.html?cat=Keyboards">Keyboards</a><a href="shop.html?cat=Mice">Mice</a><a href="shop.html?cat=Mousepads">Mousepads</a></div>
               <div class="mega-col"><h4>Console</h4><a href="shop.html?cat=Controllers">Controllers</a><a href="shop.html?cat=Headsets">PlayStation</a><a href="shop.html?cat=Headsets">Xbox</a></div>
-              <div class="mega-col"><h4>Collections</h4><a href="shop.html?sort=new">New Arrivals</a><a href="shop.html?tag=pro">Pro Series</a><a href="shop.html?sort=price-asc">Under $50</a></div>
+              <div class="mega-col"><h4>Collections</h4><a href="shop.html?sort=new">New Arrivals</a><a href="shop.html?tag=pro">Pro Series</a><a href="shop.html?sort=price-asc">Under $50</a><a href="quiz.html">Find your gear →</a></div>
               <div class="mega-feature">
                 <div><span class="eyebrow">Flagship</span><h3>Arctis Nova Elite</h3><p class="muted">Hi-Res wireless, redefined.</p></div>
                 <a class="btn btn--primary" href="product.html?id=arctis-nova-elite">Discover</a>
               </div>
             </div></div>
           </li>
-          <li><a href="index.html#software">Software</a></li>
-          <li><a href="index.html#discover">Discover</a></li>
+          <li><a href="software.html">Software</a></li>
+          <li><a href="quiz.html">Find Your Gear</a></li>
           <li><a href="index.html#support">Support</a></li>
         </ul>
         <div class="nav-actions">
@@ -141,7 +141,8 @@
       <button class="icon-btn" data-close-mobile aria-label="Close" style="margin-left:auto">${ICON.close}</button>
       <a href="index.html">Home</a>${cols}
       <a href="shop.html?wish=1">Saved Items</a>
-      <a href="index.html#software">Software</a><a href="index.html#support">Support</a>
+      <a href="quiz.html">Find Your Gear</a>
+      <a href="software.html">Software</a><a href="index.html#support">Support</a>
     </nav>`;
   }
 
@@ -161,7 +162,7 @@
             </div>
           </div>
           <div><h4>Shop</h4><a href="shop.html?cat=Headsets">Headsets</a><a href="shop.html?cat=Keyboards">Keyboards</a><a href="shop.html?cat=Mice">Mice</a><a href="shop.html?cat=Mousepads">Mousepads</a><a href="shop.html?cat=Controllers">Controllers</a></div>
-          <div><h4>Software</h4><a href="index.html#software">GLAIVE GG</a><a href="index.html#software">Sonar Audio</a><a href="index.html#software">Engine</a><a href="index.html#software">Moments</a></div>
+          <div><h4>Software</h4><a href="software.html">GLAIVE GG</a><a href="software.html">Sonar Audio</a><a href="software.html">Engine</a><a href="software.html">Moments</a></div>
           <div><h4>Support</h4><a href="index.html#support">Help Center</a><a href="index.html#support">Warranty</a><a href="index.html#support">Downloads</a><a href="index.html#support">Register Product</a><a href="index.html#support">Contact</a></div>
           <div><h4>Company</h4><a href="#">About</a><a href="#">Pro Athletes</a><a href="#">Careers</a><a href="#">Press</a><a href="#">Sustainability</a></div>
         </div>
@@ -687,6 +688,86 @@
     $('[data-clear-compare2]', root).onclick = () => { Compare.clear(); renderCompare(); };
   }
 
+  /* ---------- GEAR FINDER QUIZ ---------- */
+  function renderQuiz() {
+    const root = $('#quizRoot'); if (!root) return;
+    const steps = [
+      { key: 'cat', q: 'What are you shopping for?', sub: 'Step 1 of 3 · Category',
+        opts: [
+          { label: 'Headset', desc: 'Immersive audio + comms', val: 'Headsets' },
+          { label: 'Keyboard', desc: 'Speed and precision', val: 'Keyboards' },
+          { label: 'Mouse', desc: 'Aim and control', val: 'Mice' },
+          { label: 'Show me everything', desc: 'No preference', val: '' },
+        ] },
+      { key: 'conn', q: 'Wired or wireless?', sub: 'Step 2 of 3 · Connectivity',
+        opts: [
+          { label: 'Wireless', desc: 'Freedom, no cable', val: 'wireless' },
+          { label: 'Wired', desc: 'Lowest latency, no charging', val: 'wired' },
+          { label: "Doesn't matter", desc: 'Surprise me', val: '' },
+        ] },
+      { key: 'priority', q: "What's your priority?", sub: 'Step 3 of 3 · Priority',
+        opts: [
+          { label: 'Best value', desc: 'Most performance per dinar', val: 'price-asc' },
+          { label: 'Top performance', desc: 'Highest rated, no compromise', val: 'rating' },
+          { label: 'Latest tech', desc: 'Newest releases', val: 'new' },
+          { label: 'Pro-grade', desc: 'What the pros use', val: 'pro' },
+        ] },
+    ];
+    const answers = {};
+    let step = 0;
+
+    function paint() {
+      if (step >= steps.length) return showResults();
+      const s = steps[step];
+      root.innerHTML = `
+        <div class="quiz">
+          <div class="quiz-progress">${steps.map((_, i) => `<span class="${i <= step ? 'on' : ''}"></span>`).join('')}</div>
+          <div class="quiz-step">
+            <span class="eyebrow">${s.sub}</span>
+            <h2>${s.q}</h2>
+            <div class="quiz-opts">
+              ${s.opts.map((o, i) => `<button class="quiz-opt" data-opt="${i}">${o.label}<small>${o.desc}</small></button>`).join('')}
+            </div>
+            ${step > 0 ? `<button class="quiz-back">← Back</button>` : ''}
+          </div>
+        </div>`;
+      $$('.quiz-opt', root).forEach((b) => b.onclick = () => { answers[s.key] = s.opts[b.dataset.opt].val; step++; paint(); });
+      const back = $('.quiz-back', root); if (back) back.onclick = () => { step--; paint(); };
+    }
+
+    function showResults() {
+      let list = PRODUCTS.slice();
+      if (answers.cat) list = list.filter((p) => p.cat === answers.cat);
+      if (answers.conn) list = list.filter((p) => p.tag.includes(answers.conn));
+      const pr = answers.priority;
+      if (pr === 'pro') list = list.filter((p) => p.badge === 'Pro' || p.tag.includes('pro'));
+      const sorters = { 'price-asc': (a, b) => eff(a) - eff(b), rating: (a, b) => b.rating - a.rating, new: (a, b) => (b.badge === 'New' ? 1 : 0) - (a.badge === 'New' ? 1 : 0) };
+      list.sort(sorters[pr] || ((a, b) => b.rating - a.rating));
+      if (!list.length) list = [...PRODUCTS].sort((a, b) => b.rating - a.rating);
+      const top = list.slice(0, 3);
+      const qs = new URLSearchParams();
+      if (answers.cat) qs.set('cat', answers.cat);
+      if (answers.conn) qs.set('tag', answers.conn);
+      if (pr && pr !== 'pro') qs.set('sort', pr); else if (pr === 'pro') qs.set('tag', 'pro');
+      root.innerHTML = `
+        <div class="quiz">
+          <div class="quiz-progress">${steps.map(() => `<span class="on"></span>`).join('')}</div>
+          <span class="eyebrow">Your matches</span>
+          <h2 style="font-family:var(--font-display);text-transform:uppercase;font-size:var(--fs-600);margin-bottom:.5rem">Here's your loadout</h2>
+          <p class="muted" style="margin-bottom:2rem">Based on your answers, these are the top picks for you.</p>
+          <div class="product-grid cols-3" id="quizResults"></div>
+          <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap">
+            <a class="btn btn--primary" href="shop.html?${qs.toString()}">See all matches →</a>
+            <button class="btn btn--ghost" data-restart>Start over</button>
+          </div>
+        </div>`;
+      $('#quizResults').innerHTML = top.map(productCard).join('');
+      $('[data-restart]', root).onclick = () => { step = 0; for (const k in answers) delete answers[k]; paint(); };
+      initReveal();
+    }
+    paint();
+  }
+
   /* ---------- boot ---------- */
   document.addEventListener('DOMContentLoaded', () => {
     mountChrome();
@@ -695,6 +776,7 @@
     renderProduct();
     renderCheckout();
     renderCompare();
+    renderQuiz();
     initReveal();
   });
 })();

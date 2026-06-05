@@ -18,6 +18,8 @@ gaming-store/
 ├── product.html        # Product detail — gallery, swatches, specs, related, add-to-cart
 ├── checkout.html       # Checkout — contact + shipping (wilaya) + payment, order confirmation
 ├── compare.html        # Side-by-side spec comparison (up to 4 products)
+├── quiz.html           # "Find your gear" 3-question guided recommender
+├── software.html       # GLAIVE GG software ecosystem landing (Engine / Sonar / Moments)
 ├── 404.html            # Branded not-found page
 ├── assets/
 │   ├── css/styles.css  # Full design system: tokens → components → layout → responsive
@@ -52,6 +54,9 @@ Or just open `index.html` in a browser (the cart persists via `localStorage`).
 - **Sticky mobile buy-bar** — price + add-to-cart pinned to the bottom of product pages on small screens.
 - **Compare** — add up to 4 products to a persistent floating tray, then view a side-by-side spec table
   (`compare.html`) with price, ratings and per-column add-to-cart. Implements the audit's flagged gap.
+- **Gear finder quiz** — a 3-question guided recommender (`quiz.html`) with progress bar that filters the
+  catalog and returns a personalised top-3 plus a deep link to matching results.
+- **Software landing** — `software.html` rounds out the Shop/Software/Discover/Support IA with the GG suite.
 - **Sale pricing** — struck-through original + "Save X%" badges, sale-aware sorting and totals.
 - **Catalog** — filter by category & price, sort by featured/new/price/rating, deep-linkable via query params
   (`shop.html?cat=Headsets`, `?q=nova`, `?tag=pro`, `?sort=price-asc`).
