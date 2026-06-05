@@ -65,6 +65,10 @@ const ICON = {
   youtube: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23 12s0-3.5-.4-5a3 3 0 0 0-2-2C18.7 4.5 12 4.5 12 4.5s-6.7 0-8.6.5a3 3 0 0 0-2 2C1 8.5 1 12 1 12s0 3.5.4 5a3 3 0 0 0 2 2c1.9.5 8.6.5 8.6.5s6.7 0 8.6-.5a3 3 0 0 0 2-2c.4-1.5.4-5 .4-5ZM10 15.5v-7l6 3.5z"/></svg>`,
   instagram: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>`,
   twitch: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 2 3 6v13h4v3h3l3-3h4l5-5V2zm15 11-3 3h-4l-3 3v-3H6V4h13zM14 7h2v5h-2zm-5 0h2v5H9z"/></svg>`,
+  eye: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  heartFill: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 21s-8-5.3-10-10A5 5 0 0 1 12 6a5 5 0 0 1 10 5c-2 4.7-10 10-10 10Z"/></svg>`,
+  lock: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`,
 };
 
 /* ---- Product catalog ---- */
@@ -78,7 +82,7 @@ const PRODUCTS = [
     blurb:'Multiplatform wireless with 54 hours of battery and simultaneous 2.4GHz + Bluetooth. Plays everywhere — PC, PlayStation, Xbox, Switch.',
     tag:['wireless'], colors:['#0a0a0b','#e8e8ea'],
     specs:{ 'Drivers':'40mm Neodymium', 'Connection':'2.4GHz + Bluetooth', 'Battery':'54 hours', 'Mic':'ClearCast Gen 2', 'Platforms':'PC/PS/Xbox/Switch', 'Weight':'325 g' } },
-  { id:'arctis-nova-pro-wireless', name:'Arctis Nova Pro Wireless', cat:'Headsets', type:'headset', price:349.99, rating:4.7, reviews:1820, badge:'',
+  { id:'arctis-nova-pro-wireless', name:'Arctis Nova Pro Wireless', cat:'Headsets', type:'headset', price:349.99, sale:299.99, rating:4.7, reviews:1820, badge:'',
     blurb:'Infinity power system with two hot-swap batteries — never stop playing. Active noise cancellation and a GameDAC base station.',
     tag:['wireless','anc'], colors:['#0a0a0b'],
     specs:{ 'Drivers':'40mm High Fidelity', 'ANC':'Active + Transparency', 'Battery':'Infinity hot-swap', 'DAC':'GameDAC Gen 2', 'Weight':'338 g' } },
@@ -92,7 +96,7 @@ const PRODUCTS = [
     blurb:'Ultralight 66g honeycomb shell with a blazing 4000Hz polling rate and AquaBarrier water resistance.',
     tag:['wireless','lightweight'], colors:['#0a0a0b','#e8e8ea'],
     specs:{ 'Sensor':'TrueMove Air 18,000 CPI', 'Polling':'4000 Hz', 'Weight':'66 g', 'Switches':'Golden Micro IP54', 'Battery':'200 hours', 'Connection':'2.4GHz + Bluetooth' } },
-  { id:'rival-3-gen5', name:'Rival 3 Gen 5', cat:'Mice', type:'mouse', price:39.99, rating:4.5, reviews:980, badge:'',
+  { id:'rival-3-gen5', name:'Rival 3 Gen 5', cat:'Mice', type:'mouse', price:39.99, sale:29.99, rating:4.5, reviews:980, badge:'',
     blurb:'Best-in-class value. Precision optical sensor, 80M-click switches and Prism RGB — the workhorse that started a rivalry.',
     tag:['wired'], colors:['#0a0a0b','#e8e8ea'],
     specs:{ 'Sensor':'TrueMove Core 8,500 CPI', 'Switches':'80M clicks', 'Weight':'77 g', 'RGB':'3-zone Prism', 'Connection':'Wired USB' } },
@@ -110,7 +114,7 @@ const PRODUCTS = [
     blurb:'60% competitive form factor with adjustable magnetic switches and Protection Mode — pure speed, minimal footprint.',
     tag:['mechanical','60%'], colors:['#0a0a0b'],
     specs:{ 'Switches':'OmniPoint 2.0 Magnetic', 'Actuation':'0.2–3.8 mm', 'Form':'60%', 'Polling':'1000 Hz', 'Keycaps':'Double-shot PBT' } },
-  { id:'apex-3-tkl', name:'Apex 3 TKL', cat:'Keyboards', type:'keyboard', price:49.99, rating:4.5, reviews:1120, badge:'',
+  { id:'apex-3-tkl', name:'Apex 3 TKL', cat:'Keyboards', type:'keyboard', price:49.99, sale:39.99, rating:4.5, reviews:1120, badge:'',
     blurb:'Whisper-quiet gaming switches, 10-zone RGB and IP32 water resistance at an unbeatable entry price.',
     tag:['membrane'], colors:['#0a0a0b'],
     specs:{ 'Switches':'Whisper-Quiet Gaming', 'RGB':'10-zone', 'Resistance':'IP32 water', 'Form':'Tenkeyless', 'Cable':'Detachable' } },
@@ -120,7 +124,7 @@ const PRODUCTS = [
     blurb:'The pro standard. Thick 6mm micro-woven cloth for a stable surface and pixel-precise tracking on any desk.',
     tag:['cloth'], colors:['#0a0a0b'],
     specs:{ 'Surface':'Micro-woven cloth', 'Thickness':'6 mm', 'Base':'Non-slip rubber', 'Sizes':'M / L / XXL' } },
-  { id:'qck-prism-xl', name:'QcK Prism XL', cat:'Mousepads', type:'mousepad', price:59.99, rating:4.8, reviews:920, badge:'',
+  { id:'qck-prism-xl', name:'QcK Prism XL', cat:'Mousepads', type:'mousepad', price:59.99, sale:49.99, rating:4.8, reviews:920, badge:'',
     blurb:'Two-zone reactive RGB illumination synced to your game, with a dual-surface cloth top for control and speed.',
     tag:['rgb'], colors:['#0a0a0b'],
     specs:{ 'Surface':'Dual textured cloth', 'RGB':'2-zone reactive', 'Size':'900×300 mm', 'Sync':'GameSense' } },
@@ -152,4 +156,11 @@ const CATEGORIES = [
   { name:'Accessories', type:'accessory',  tagline:'Level up' },
 ];
 
-if (typeof window !== 'undefined') { window.GLAIVE = { ART, ICON, PRODUCTS, CATEGORIES }; }
+/* ---- Shipping zones (Algeria wilayas — mirrors the Ghir Laffaire order model) ---- */
+const WILAYAS = [
+  'Alger', 'Oran', 'Constantine', 'Annaba', 'Blida', 'Batna', 'Sétif', 'Tizi Ouzou',
+  'Béjaïa', 'Tlemcen', 'Djelfa', 'Sidi Bel Abbès', 'Biskra', 'Tébessa', 'Ouargla',
+  'Skikda', 'Mostaganem', 'Bordj Bou Arréridj', 'Chlef', 'Médéa', 'Ghardaïa', 'Tipaza',
+];
+
+if (typeof window !== 'undefined') { window.GLAIVE = { ART, ICON, PRODUCTS, CATEGORIES, WILAYAS }; }

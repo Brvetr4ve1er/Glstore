@@ -13,14 +13,17 @@ No SteelSeries assets, logos, photography, or copy are used; all product art is 
 
 ```
 gaming-store/
-├── index.html          # Homepage — hero, categories, featured, software, pro band, newsletter
-├── shop.html           # Catalog — sidebar filters (category, price), sort, live grid
+├── index.html          # Homepage — hero, categories, featured, software, pro band, recently-viewed, newsletter
+├── shop.html           # Catalog — sidebar filters (category, price), sort, saved-items view
 ├── product.html        # Product detail — gallery, swatches, specs, related, add-to-cart
+├── checkout.html       # Checkout — contact + shipping (wilaya) + payment, order confirmation
+├── 404.html            # Branded not-found page
 ├── assets/
 │   ├── css/styles.css  # Full design system: tokens → components → layout → responsive
 │   └── js/
-│       ├── data.js     # Catalog data + original SVG art + icon library
-│       └── app.js      # Cart (localStorage), drawer, rendering, filters, search, a11y
+│       ├── data.js     # Catalog data + original SVG art + icon library + shipping zones
+│       └── app.js      # Cart + wishlist (localStorage), drawer, quick-view modal,
+│                       #   recently-viewed, checkout, filters, search, a11y
 ├── README.md           # this file
 └── ANALYSIS.md         # the 13-phase reverse-engineering report (the "master prompt")
 ```
@@ -41,12 +44,18 @@ Or just open `index.html` in a browser (the cart persists via `localStorage`).
 
 - **Responsive** down to 360px (mega-menu collapses to a mobile drawer).
 - **Working cart** — add / increment / remove, persisted, slide-out drawer with free-shipping threshold.
+- **Wishlist** — save/unsave from any card or PDP (♥), persisted, header count, dedicated saved view (`shop.html?wish=1`).
+- **Quick view** — hover any product → modal with price, blurb and add-to-cart without leaving the grid.
+- **Sale pricing** — struck-through original + "Save X%" badges, sale-aware sorting and totals.
 - **Catalog** — filter by category & price, sort by featured/new/price/rating, deep-linkable via query params
   (`shop.html?cat=Headsets`, `?q=nova`, `?tag=pro`, `?sort=price-asc`).
 - **Product pages** — `product.html?id=arctis-nova-elite`, color swatches, spec table, related items.
-- **Accessibility** — skip link, focus-visible rings, `aria-expanded` menus, Escape closes overlays,
-  reduced-motion support, semantic landmarks.
-- **SEO** — per-page titles/descriptions, Open Graph, JSON-LD organization, theme-color.
+- **Checkout** — contact + shipping (Algeria wilaya selector) + payment (COD/Card), client-side validation,
+  order-number confirmation. Demo-only; wired conceptually to `POST /api/v1/orders/create`.
+- **Recently viewed** — last-viewed products surface on the homepage (auto-hides when empty).
+- **Accessibility** — skip link, focus-visible rings, `aria-expanded`/`aria-pressed`, Escape closes overlays,
+  reduced-motion support, semantic landmarks, `aria-live` toasts.
+- **SEO** — per-page titles/descriptions, Open Graph, JSON-LD organization, theme-color, `noindex` on cart/checkout.
 - **Design system** — ~40 CSS custom-property tokens (color, type, spacing, radius, shadow, motion).
 
 ## How it relates to the parent platform
