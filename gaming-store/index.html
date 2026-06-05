@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GLAIVE — Pro Gaming Gear. For Glory.</title>
+  <meta name="description" content="Pro-grade gaming headsets, keyboards, mice and mousepads engineered with and for the world's best players. A first-principles recreation inspired by SteelSeries." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="GLAIVE — Pro Gaming Gear" />
+  <meta property="og:description" content="Engineered with and for the world's best players. For Glory." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23ff5101'>▲</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <script defer src="assets/js/data.js"></script>
+  <script defer src="assets/js/app.js"></script>
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"GLAIVE Gaming","slogan":"For Glory","url":"/"}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="nav"></div>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-content">
+          <span class="eyebrow">25 Years · World's #1 Gaming Brand</span>
+          <h1>Play to <span class="accent">win.</span><br/>Built for glory.</h1>
+          <p>Tournament-proven headsets, magnetic keyboards and ultralight mice — the same gear that wins championships, in your hands.</p>
+          <div class="hero-cta">
+            <a class="btn btn--primary btn--lg" href="shop.html">Shop all gear</a>
+            <a class="btn btn--ghost btn--lg" href="product.html?id=arctis-nova-elite">Meet Nova Elite</a>
+          </div>
+          <div class="hero-stats">
+            <div class="stat"><strong>4000Hz</strong><span>Polling rate</span></div>
+            <div class="stat"><strong>54 hrs</strong><span>Wireless battery</span></div>
+            <div class="stat"><strong>0.1mm</strong><span>Actuation</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-product" id="heroArt" aria-hidden="true"></div>
+    </section>
+
+    <!-- TRUST STRIP -->
+    <div class="container">
+      <div class="trust">
+        <div class="t" data-ic="ship"><strong>Free 2-day shipping</strong></div>
+        <div class="t" data-ic="shield"><strong>2-year warranty</strong></div>
+        <div class="t" data-ic="refresh"><strong>45-day returns</strong></div>
+        <div class="t" data-ic="bolt"><strong>Pro-tuned by athletes</strong></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <section class="section container" id="discover">
+      <div class="section-head">
+        <div><span class="eyebrow">Shop by category</span><h2>Find your weapon</h2></div>
+        <a class="btn btn--ghost" href="shop.html">View all →</a>
+      </div>
+      <div class="cat-grid" id="catRail"></div>
+    </section>
+
+    <!-- FEATURED -->
+    <section class="section container">
+      <div class="section-head">
+        <div><span class="eyebrow">Just dropped</span><h2>New &amp; featured</h2></div>
+        <a class="btn btn--ghost" href="shop.html?sort=new">All new →</a>
+      </div>
+      <div class="product-grid" id="featured"></div>
+    </section>
+
+    <!-- SOFTWARE BAND -->
+    <section class="section container" id="software">
+      <div class="band band--gg reveal">
+        <div class="band-inner">
+          <span class="eyebrow">GLAIVE GG</span>
+          <h2>One app. Total control.</h2>
+          <p>Tune RGB, remap keys, balance game and chat audio with Sonar, and capture your best plays with Moments — all from a single command center.</p>
+          <a class="btn btn--primary btn--lg" href="#software">Download free</a>
+        </div>
+      </div>
+      <div class="feature-cols">
+        <div class="f reveal" data-ic="headphones"><h4>Sonar Audio</h4><p>A pro-grade software mixer with a parametric EQ and AI noise cancellation for crystal-clear comms.</p></div>
+        <div class="f reveal" data-ic="cpu"><h4>Engine Apps</h4><p>Per-game lighting and macro profiles that auto-switch the moment you launch.</p></div>
+        <div class="f reveal" data-ic="bolt"><h4>Moments</h4><p>Auto-clip your highlights and share to socials in a couple of clicks.</p></div>
+      </div>
+    </section>
+
+    <!-- BESTSELLERS -->
+    <section class="section container">
+      <div class="section-head">
+        <div><span class="eyebrow">Crowd favourites</span><h2>Best sellers</h2></div>
+        <a class="btn btn--ghost" href="shop.html?sort=rating">Top rated →</a>
+      </div>
+      <div class="product-grid" id="bestsellers"></div>
+    </section>
+
+    <!-- PRO HERITAGE BAND -->
+    <section class="section container">
+      <div class="band band--pro reveal">
+        <div class="band-inner">
+          <span class="eyebrow" style="color:#fff">Built with pros</span>
+          <h2>More championships than any other brand.</h2>
+          <p>From CS to Valorant, our gear is co-designed with the athletes who play for everything. When the title is on the line, milliseconds matter.</p>
+          <a class="btn" style="background:#0a0a0b;color:#fff" href="shop.html?tag=pro">Shop the Pro Series</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEWSLETTER -->
+    <section class="section container">
+      <div class="newsletter reveal">
+        <span class="eyebrow">Join the squad</span>
+        <h2>Get early access to drops</h2>
+        <p>Be first to new releases, members-only deals and pro setup guides. No spam — just glory.</p>
+        <form class="news-form" onsubmit="event.preventDefault(); this.reset(); document.getElementById('toast').textContent='Subscribed — welcome to the squad!'; document.getElementById('toast').classList.add('show'); setTimeout(()=>document.getElementById('toast').classList.remove('show'),2400);">
+          <input class="input" type="email" required placeholder="your@email.com" aria-label="Email address" />
+          <button class="btn btn--primary" type="submit">Subscribe</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+  <script>
+    // hydrate icon placeholders + hero art once data is ready
+    window.addEventListener('load', () => {
+      const { ICON, ART } = window.GLAIVE;
+      document.querySelectorAll('[data-ic]').forEach(el => el.insertAdjacentHTML('afterbegin', ICON[el.dataset.ic] || ''));
+      const hero = document.getElementById('heroArt'); if (hero) hero.innerHTML = ART.headset;
+    });
+  </script>
+</body>
+</html>

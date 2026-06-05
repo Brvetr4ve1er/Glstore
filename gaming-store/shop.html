@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop All Gear — GLAIVE</title>
+  <meta name="description" content="Browse GLAIVE gaming headsets, keyboards, mice, mousepads and controllers. Filter by category, price and rating." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23ff5101'>▲</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <script defer src="assets/js/data.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="nav"></div>
+
+  <div class="page-head">
+    <div class="container">
+      <div class="breadcrumbs"><a href="index.html">Home</a> / Shop</div>
+      <h1 id="shopTitle">All Gear</h1>
+    </div>
+  </div>
+
+  <main id="main" class="container section" style="padding-top:2rem">
+    <div id="shopRoot">
+      <div class="shop-layout">
+        <aside class="filters" aria-label="Filters">
+          <div class="filter-group">
+            <h4>Category</h4>
+            <div id="filterCats"></div>
+          </div>
+          <div class="filter-group" id="priceFilter">
+            <h4>Max price</h4>
+            <label class="check"><input type="radio" name="price" value="50"> Under $50</label>
+            <label class="check"><input type="radio" name="price" value="100"> Under $100</label>
+            <label class="check"><input type="radio" name="price" value="250"> Under $250</label>
+            <label class="check"><input type="radio" name="price" value="" checked> Any price</label>
+          </div>
+        </aside>
+
+        <section>
+          <div class="shop-toolbar">
+            <span class="count" id="count"></span>
+            <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--c-text-dim)">
+              Sort
+              <select class="select" id="sort">
+                <option value="featured">Featured</option>
+                <option value="new">Newest</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
+              </select>
+            </label>
+          </div>
+          <div class="product-grid" id="grid"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+</body>
+</html>
