@@ -46,6 +46,9 @@ Or just open `index.html` in a browser (the cart persists via `localStorage`).
 - **Working cart** — add / increment / remove, persisted, slide-out drawer with free-shipping threshold.
 - **Wishlist** — save/unsave from any card or PDP (♥), persisted, header count, dedicated saved view (`shop.html?wish=1`).
 - **Quick view** — hover any product → modal with price, blurb and add-to-cart without leaving the grid.
+- **Search overlay** — `/` or `⌘/Ctrl-K` opens a live product search with keyboard navigation (↑/↓/Enter).
+- **Reviews** — PDP rating summary with a star-distribution histogram + verified-buyer review cards.
+- **Sticky mobile buy-bar** — price + add-to-cart pinned to the bottom of product pages on small screens.
 - **Sale pricing** — struck-through original + "Save X%" badges, sale-aware sorting and totals.
 - **Catalog** — filter by category & price, sort by featured/new/price/rating, deep-linkable via query params
   (`shop.html?cat=Headsets`, `?q=nova`, `?tag=pro`, `?sort=price-asc`).

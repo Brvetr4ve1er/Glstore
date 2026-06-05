@@ -156,6 +156,16 @@ const CATEGORIES = [
   { name:'Accessories', type:'accessory',  tagline:'Level up' },
 ];
 
+/* ---- Review snippets (synthesised UGC pool for PDP social proof) ---- */
+const REVIEWS = [
+  { n:'Karim B.', r:5, t:'Best purchase for my setup', b:'Build quality is insane and it just works out of the box. Genuinely competition-grade.' },
+  { n:'Lina M.', r:5, t:'Worth every dinar', b:'Comfortable for 6-hour sessions and the software is actually useful, not bloatware.' },
+  { n:'Yacine D.', r:4, t:'Great, minor nitpick', b:'Performance is elite. Took a star off because I wish the cable was a touch longer.' },
+  { n:'Sara K.', r:5, t:'My aim improved overnight', b:'Lightweight and precise. Teammates noticed the difference in ranked immediately.' },
+  { n:'Omar T.', r:5, t:'Pro-level for half the price', b:'Compared it to gear twice the cost and honestly could not tell the difference.' },
+  { n:'Nadia R.', r:4, t:'Solid daily driver', b:'Looks clean on the desk and the RGB is tasteful. Battery lasts me a full week.' },
+];
+
 /* ---- Shipping zones (Algeria wilayas — mirrors the Ghir Laffaire order model) ---- */
 const WILAYAS = [
   'Alger', 'Oran', 'Constantine', 'Annaba', 'Blida', 'Batna', 'Sétif', 'Tizi Ouzou',
@@ -163,4 +173,4 @@ const WILAYAS = [
   'Skikda', 'Mostaganem', 'Bordj Bou Arréridj', 'Chlef', 'Médéa', 'Ghardaïa', 'Tipaza',
 ];
 
-if (typeof window !== 'undefined') { window.GLAIVE = { ART, ICON, PRODUCTS, CATEGORIES, WILAYAS }; }
+if (typeof window !== 'undefined') { window.GLAIVE = { ART, ICON, PRODUCTS, CATEGORIES, WILAYAS, REVIEWS }; }

@@ -482,3 +482,55 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; line-height: va
 /* recently viewed */
 .recent-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-4); }
 @media (max-width: 860px) { .recent-rail { grid-template-columns: repeat(2, 1fr); } }
+
+/* ----------------------------------------------------------------
+   18. SEARCH OVERLAY
+   ---------------------------------------------------------------- */
+.search-overlay { position: fixed; inset: 0; z-index: 170; background: var(--c-overlay); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity var(--t-med); display: flex; justify-content: center; align-items: flex-start; padding: 10vh var(--s-5) var(--s-5); }
+.search-overlay.open { opacity: 1; visibility: visible; }
+.search-panel { width: 100%; max-width: 680px; }
+.search-input-wrap { display: flex; align-items: center; gap: var(--s-3); background: var(--c-surface-1); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4) var(--s-5); box-shadow: var(--sh-3); }
+.search-input-wrap svg { color: var(--c-text-dim); flex: none; }
+.search-input-wrap input { flex: 1; background: none; border: none; outline: none; color: var(--c-text); font-size: var(--fs-500); }
+.search-input-wrap input::placeholder { color: var(--c-text-faint); }
+.search-input-wrap kbd { font-size: var(--fs-100); color: var(--c-text-faint); border: 1px solid var(--c-border); border-radius: 4px; padding: 2px 6px; }
+.search-results { margin-top: var(--s-3); background: var(--c-surface-1); border: 1px solid var(--c-border); border-radius: var(--r-md); overflow: hidden; max-height: 50vh; overflow-y: auto; box-shadow: var(--sh-3); }
+.search-results:empty { display: none; }
+.search-hit { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--c-border-soft); transition: background var(--t-fast); }
+.search-hit:hover, .search-hit.active { background: var(--c-surface-2); }
+.search-hit .thumb { width: 48px; height: 48px; border-radius: var(--r-sm); background: var(--c-surface-2); display: grid; place-items: center; padding: 6px; flex: none; }
+.search-hit .info strong { display: block; font-size: var(--fs-200); font-weight: 700; }
+.search-hit .info span { font-size: var(--fs-100); color: var(--c-text-faint); }
+.search-hit .price .now { font-size: var(--fs-200); }
+.search-empty { padding: var(--s-5); text-align: center; color: var(--c-text-dim); font-size: var(--fs-200); }
+
+/* ----------------------------------------------------------------
+   19. PDP REVIEWS
+   ---------------------------------------------------------------- */
+.reviews { margin-top: var(--s-8); }
+.reviews h2 { font-size: var(--fs-500); text-transform: uppercase; margin-bottom: var(--s-5); }
+.review-summary { display: grid; grid-template-columns: 200px 1fr; gap: var(--s-7); align-items: center; padding: var(--s-5); background: var(--c-surface-1); border: 1px solid var(--c-border-soft); border-radius: var(--r-lg); margin-bottom: var(--s-6); }
+.review-score { text-align: center; }
+.review-score .big { font-family: var(--font-display); font-size: 3.5rem; font-weight: 900; line-height: 1; }
+.review-score .stars { font-size: 1.1rem; }
+.review-score span { display: block; font-size: var(--fs-100); color: var(--c-text-faint); margin-top: 6px; }
+.review-bars { display: grid; gap: 8px; }
+.review-bar { display: grid; grid-template-columns: 44px 1fr 40px; gap: var(--s-3); align-items: center; font-size: var(--fs-100); color: var(--c-text-dim); }
+.review-bar .track { height: 8px; background: var(--c-surface-3); border-radius: var(--r-pill); overflow: hidden; }
+.review-bar .fill { height: 100%; background: var(--c-brand); border-radius: var(--r-pill); }
+.review-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+.review { background: var(--c-surface-1); border: 1px solid var(--c-border-soft); border-radius: var(--r-md); padding: var(--s-5); }
+.review-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
+.review-head strong { font-size: var(--fs-200); }
+.review .verified { font-size: var(--fs-100); color: var(--c-success); display: inline-flex; align-items: center; gap: 4px; }
+.review h4 { font-family: var(--font-body); font-size: var(--fs-300); margin: var(--s-2) 0; }
+.review p { font-size: var(--fs-200); color: var(--c-text-dim); margin: 0; }
+@media (max-width: 700px) { .review-summary { grid-template-columns: 1fr; gap: var(--s-5); } .review-list { grid-template-columns: 1fr; } }
+
+/* ----------------------------------------------------------------
+   20. STICKY MOBILE BUY BAR (PDP)
+   ---------------------------------------------------------------- */
+.buybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; display: none; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); background: var(--c-overlay); backdrop-filter: blur(12px); border-top: 1px solid var(--c-border); }
+.buybar .bb-price { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; }
+.buybar .btn { flex: 1; }
+@media (max-width: 860px) { .buybar { display: flex; } body.has-buybar { padding-bottom: 76px; } }

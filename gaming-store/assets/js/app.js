@@ -7,7 +7,7 @@
    - filters, sort, search, reveal-on-scroll, toast, a11y
    ================================================================= */
 (function () {
-  const { ART, ICON, PRODUCTS, CATEGORIES, WILAYAS } = window.GLAIVE;
+  const { ART, ICON, PRODUCTS, CATEGORIES, WILAYAS, REVIEWS } = window.GLAIVE;
   const money = (n) => '$' + n.toFixed(2);
   const eff = (p) => (p.sale != null ? p.sale : p.price);              // effective price
   const savePct = (p) => (p.sale != null ? Math.round((1 - p.sale / p.price) * 100) : 0);
@@ -163,6 +163,16 @@
       <div class="drawer-foot" id="cartFoot"></div>
     </aside>
     <div class="modal" id="quickModal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card" id="quickCard"></div></div>
+    <div class="search-overlay" id="searchOverlay" role="dialog" aria-modal="true" aria-label="Search" aria-hidden="true">
+      <div class="search-panel">
+        <div class="search-input-wrap">
+          ${ICON.search}
+          <input id="searchInput" type="search" placeholder="Search headsets, mice, keyboards…" autocomplete="off" aria-label="Search products" aria-controls="searchResults" />
+          <kbd>ESC</kbd>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+      </div>
+    </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>`;
   }
 
@@ -210,13 +220,17 @@
     });
     function closeMegas() { $$('.nav-item.open').forEach((i) => i.classList.remove('open')); }
 
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMegas(); closeDrawer(); closeMobile(); closeModal(); } });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closeMegas(); closeDrawer(); closeMobile(); closeModal(); closeSearch(); }
+      if ((e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
+    });
     on('[data-open-cart]', 'click', openDrawer);
     on('[data-close-cart]', 'click', closeDrawer);
     on('[data-scrim]', 'click', () => { closeDrawer(); closeMobile(); closeModal(); });
     on('[data-open-mobile]', 'click', openMobile);
     on('[data-close-mobile]', 'click', closeMobile);
-    on('[data-search]', 'click', () => { const q = prompt('Search GLAIVE'); if (q) location.href = `shop.html?q=${encodeURIComponent(q)}`; });
+    on('[data-search]', 'click', openSearch);
+    wireSearch();
 
     // delegated actions
     document.addEventListener('click', (e) => {
@@ -240,6 +254,40 @@
   function openMobile() { $('#mobileDrawer').classList.add('open'); syncScrim(); }
   function closeMobile() { $('#mobileDrawer')?.classList.remove('open'); syncScrim(); }
   function closeModal() { const m = $('#quickModal'); if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); } syncScrim(); }
+
+  /* ---------- search overlay ---------- */
+  let searchIdx = -1, searchHits = [];
+  function openSearch() { const o = $('#searchOverlay'); o.classList.add('open'); o.setAttribute('aria-hidden', 'false'); setTimeout(() => $('#searchInput').focus(), 50); }
+  function closeSearch() { const o = $('#searchOverlay'); if (o) { o.classList.remove('open'); o.setAttribute('aria-hidden', 'true'); } }
+  function wireSearch() {
+    const input = $('#searchInput'), out = $('#searchResults');
+    if (!input) return;
+    const run = () => {
+      const q = input.value.trim().toLowerCase();
+      searchIdx = -1;
+      if (!q) { out.innerHTML = ''; searchHits = []; return; }
+      searchHits = PRODUCTS.filter((p) => (p.name + ' ' + p.cat + ' ' + p.blurb + ' ' + p.tag.join(' ')).toLowerCase().includes(q)).slice(0, 6);
+      out.innerHTML = searchHits.length
+        ? searchHits.map((p, i) => `
+          <a class="search-hit" role="option" data-i="${i}" href="product.html?id=${p.id}">
+            <div class="thumb">${ART[p.type]}</div>
+            <div class="info"><strong>${p.name}</strong><span>${p.cat}</span></div>
+            <div class="price"><span class="now">${money(eff(p))}</span></div>
+          </a>`).join('')
+          + `<div class="search-empty"><a href="shop.html?q=${encodeURIComponent(input.value)}">See all results for “${input.value}” →</a></div>`
+        : `<div class="search-empty">No matches for “${input.value}”. Try “headset”, “wireless” or “apex”.</div>`;
+    };
+    input.addEventListener('input', run);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); searchIdx = Math.min(searchIdx + 1, searchHits.length - 1); markHit(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); searchIdx = Math.max(searchIdx - 1, 0); markHit(); }
+      else if (e.key === 'Enter') {
+        if (searchIdx >= 0 && searchHits[searchIdx]) location.href = `product.html?id=${searchHits[searchIdx].id}`;
+        else if (input.value.trim()) location.href = `shop.html?q=${encodeURIComponent(input.value.trim())}`;
+      }
+    });
+    function markHit() { $$('.search-hit', out).forEach((el, i) => el.classList.toggle('active', i === searchIdx)); }
+  }
 
   function openQuick(id) {
     const p = byId(id); if (!p) return;
@@ -410,7 +458,8 @@
           <h2 style="font-size:1.4rem;text-transform:uppercase;margin-top:2rem">Specifications</h2>
           <div class="spec-list">${specRows}</div>
         </div>
-      </div>`;
+      </div>
+      ${buildReviews(p)}`;
     $$('.pdp-thumbs button').forEach((b) => b.onclick = () => { $$('.pdp-thumbs button').forEach((x) => x.setAttribute('aria-current', 'false')); b.setAttribute('aria-current', 'true'); });
     $$('.swatch').forEach((b) => b.onclick = () => { $$('.swatch').forEach((x) => x.setAttribute('aria-current', 'false')); b.setAttribute('aria-current', 'true'); });
     const rel = $('#related');
@@ -418,7 +467,54 @@
       const related = PRODUCTS.filter((x) => x.cat === p.cat && x.id !== p.id);
       rel.innerHTML = (related.length ? related : PRODUCTS.filter((x) => x.id !== p.id)).slice(0, 4).map(productCard).join('');
     }
+    // sticky mobile buy bar
+    document.body.classList.add('has-buybar');
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="buybar">
+        <div><div class="bb-price">${money(eff(p))}</div></div>
+        <button class="btn btn--primary" data-add="${p.id}">Add to Cart</button>
+      </div>`);
     initReveal();
+  }
+
+  /* ---------- reviews block ---------- */
+  function buildReviews(p) {
+    // deterministic distribution skewed by the product's average rating
+    const total = p.reviews;
+    const r = p.rating;
+    const dist = {
+      5: Math.round(total * (r >= 4.8 ? 0.82 : r >= 4.6 ? 0.7 : 0.6)),
+      4: Math.round(total * 0.2),
+      3: Math.round(total * 0.06),
+      2: Math.round(total * 0.02),
+      1: Math.round(total * 0.015),
+    };
+    const max = Math.max(...Object.values(dist), 1);
+    const bars = [5, 4, 3, 2, 1].map((s) => `
+      <div class="review-bar"><span>${s} ★</span><div class="track"><div class="fill" style="width:${(dist[s] / max) * 100}%"></div></div><span>${dist[s]}</span></div>`).join('');
+    // pick 4 snippets seeded by product id length so each PDP differs but is stable
+    const seed = p.id.length;
+    const picks = [0, 1, 2, 3].map((i) => REVIEWS[(seed + i) % REVIEWS.length]);
+    const cards = picks.map((rv) => `
+      <article class="review">
+        <div class="review-head"><strong>${rv.n}</strong><span class="verified">${ICON.check} Verified buyer</span></div>
+        <span class="stars">${'★'.repeat(rv.r)}${'☆'.repeat(5 - rv.r)}</span>
+        <h4>${rv.t}</h4>
+        <p>${rv.b}</p>
+      </article>`).join('');
+    return `
+      <section class="reviews">
+        <h2>Reviews</h2>
+        <div class="review-summary">
+          <div class="review-score">
+            <div class="big">${p.rating.toFixed(1)}</div>
+            <div class="stars">${'★'.repeat(Math.round(p.rating))}</div>
+            <span>${total.toLocaleString()} reviews</span>
+          </div>
+          <div class="review-bars">${bars}</div>
+        </div>
+        <div class="review-list">${cards}</div>
+      </section>`;
   }
 
   /* ---------- CHECKOUT ---------- */
