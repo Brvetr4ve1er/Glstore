@@ -72,7 +72,7 @@ okami/
 │  │  │  │  ├─ drops/
 │  │  │  │  └─ navigation/
 │  │  │  ├─ lib/
-│  │  │  │  ├─ shopify/                      # storefront API client
+│  │  │  │  ├─ commerce/                     # custom commerce API client
 │  │  │  │  ├─ sanity/                       # CMS client + queries
 │  │  │  │  ├─ algolia/
 │  │  │  │  ├─ klaviyo/
@@ -105,7 +105,7 @@ okami/
 │     │  │  ├─ home.ts
 │     │  │  ├─ drop.ts
 │     │  │  ├─ collection.ts
-│     │  │  ├─ product.ts             # editorial overlay; commerce data in Shopify
+│     │  │  ├─ product.ts             # editorial overlay; commerce data in the custom backend
 │     │  │  ├─ lookbook.ts
 │     │  │  ├─ chapter.ts
 │     │  │  ├─ post.ts                # journal article
@@ -159,15 +159,16 @@ okami/
 │  │  │  └─ figma.json
 │  │  ├─ scripts/build.ts              # Style-Dictionary glue
 │  │  └─ package.json
-│  ├─ shopify/                         # typed Shopify Storefront client + queries
+│  ├─ commerce/                        # typed client for the custom commerce backend
 │  │  ├─ src/
-│  │  │  ├─ client.ts
-│  │  │  ├─ queries/
+│  │  │  ├─ client.ts                  # fetch wrapper + auth
+│  │  │  ├─ resources/
 │  │  │  │  ├─ product.ts
 │  │  │  │  ├─ collection.ts
 │  │  │  │  ├─ cart.ts
+│  │  │  │  ├─ checkout.ts
 │  │  │  │  └─ customer.ts
-│  │  │  └─ types.ts
+│  │  │  └─ types.ts                   # generated from the backend OpenAPI / GraphQL schema
 │  │  └─ package.json
 │  ├─ db/                              # Prisma schema + migrations (drops, reviews, loyalty)
 │  │  ├─ prisma/
@@ -219,12 +220,12 @@ okami/
   compositions that compose `packages/ui`.
 - **Tokens** are the only source of truth for design values; the
   storefront imports the generated CSS, never the source JSON.
-- **Shopify queries** live in a typed package so the storefront does
-  not see GraphQL strings; the package generates types via
-  `graphql-codegen`.
+- **Commerce queries** live in a typed package so the storefront does
+  not see raw REST/GraphQL strings; the package generates types
+  from the backend's OpenAPI spec or schema.
 - **`packages/db`** owns Prisma. Drops, reviews, wishlist sync, and
   the loyalty ledger live in Postgres so the storefront isn't
-  bottlenecked by what Shopify exposes.
+  bottlenecked by what the commerce backend chooses to model.
 - **`tools/scripts/check-tokens.ts`** enforces colour-contrast
   invariants — if a token change drops a critical pair below 4.5 : 1,
   CI rejects.

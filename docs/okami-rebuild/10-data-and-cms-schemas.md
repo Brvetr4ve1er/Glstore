@@ -4,9 +4,9 @@ The system uses **three** data sources, each holding what it is best at:
 
 | System | Owns | Why there |
 |---|---|---|
-| **Shopify** | Products, variants, inventory, orders, customers, hosted checkout, taxes, shipping rates | Commerce backbone — don't rebuild a checkout. |
+| **Custom commerce backend** (existing) | Products, variants, inventory, orders, customers, the custom checkout, taxes, shipping rates | Already running and tuned for the Algerian market — do not replace. |
 | **Sanity (CMS)** | Editorial overlay: home, drops, lookbook, journal, page copy, founder lines, SEO overrides per product/collection | Editor experience, real-time, image pipeline, i18n. |
-| **Postgres (Prisma)** | Drops state, drop subscribers, review records (+ media), wishlist sync, loyalty ledger, audit log, magic-link tokens | The things Shopify and the CMS won't model well. |
+| **Postgres (Prisma)** | Drops state, drop subscribers, review records (+ media), wishlist sync, loyalty ledger, audit log, magic-link tokens | The things the commerce backend and the CMS won't model well. |
 
 Algolia + Klaviyo are **derived** stores (indices and contact lists)
 populated by webhooks; they're not authoritative.
@@ -31,8 +31,8 @@ model Drop {
   state           DropState  @default(UPCOMING)
   scheduledStart  DateTime
   scheduledEnd    DateTime?
-  shopifyTag      String     // products are tagged with this in Shopify
-  accentToken     String?    // e.g. "#B41A24" overriding --c-okami
+  productTag      String     // products are tagged with this in the commerce backend
+  accentToken     String?    // e.g. "#FE6E00" overriding --purple / --orange per drop
   capacity        Int?       // optional per-drop unit cap, when known
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
@@ -58,7 +58,7 @@ model DropSubscription {
 // ── Reviews ──────────────────────────────────────────────────────
 model Review {
   id              String   @id @default(cuid())
-  productHandle   String   // Shopify handle is the join key
+  productHandle   String   // commerce-backend handle is the join key
   variantId       String?
   customerEmail   String
   customerName    String
@@ -67,7 +67,7 @@ model Review {
   body            String
   photos          ReviewMedia[]
   verifiedBuyer   Boolean  @default(false)
-  shopifyOrderId  String?
+  commerceOrderId String?
   language        String   @default("en")
   status          ReviewStatus @default(PENDING)
   helpfulVotes    Int      @default(0)
@@ -160,15 +160,16 @@ model AuditLog {
 }
 ```
 
-### A.1 Why Postgres rather than Shopify metafields?
+### A.1 Why Postgres rather than commerce-backend metafields?
 
 - **Drop state machine** needs scheduled flips and history.
 - **Reviews** with media + moderation workflow + RTL languages do not
-  fit comfortably into Shopify product metafields.
+  fit comfortably as product side-data.
 - **Wishlist sync** must merge anonymous (localStorage) and account
   records.
 - **Loyalty ledger** must be append-only and auditable.
-- All four would otherwise hit Shopify rate limits.
+- All four would otherwise pressure the commerce backend with reads
+  it was not designed for.
 
 ### A.2 Indexes & invariants
 
@@ -206,8 +207,8 @@ export const drop = defineType({
     defineField({ name: 'hero',           type: 'hero' }),
     defineField({ name: 'subtitle',       type: 'string' }),
     defineField({ name: 'story',          type: 'array', of: [{ type: 'block' }, { type: 'media' }] }),
-    defineField({ name: 'accentToken',    type: 'string', description: 'CSS colour to override --c-okami' }),
-    defineField({ name: 'shopifyTag',     type: 'string', description: 'Products tagged with this in Shopify' }),
+    defineField({ name: 'accentToken',    type: 'string', description: 'CSS colour to override --purple / --orange per drop' }),
+    defineField({ name: 'productTag',     type: 'string', description: 'Products tagged with this in the commerce backend' }),
     defineField({ name: 'credits',        type: 'array', of: [{ type: 'string' }] }),
     defineField({ name: 'seo',            type: 'seo' }),
     defineField({ name: 'i18n',           type: 'object', fields: [
@@ -220,7 +221,7 @@ export const drop = defineType({
 
 ### B.2 Product overlay
 
-Shopify owns price, inventory, variant SKUs. The CMS overlays:
+The commerce backend owns price, inventory, variant SKUs. The CMS overlays:
 
 - Long-form description (rich text, blocks).
 - Lookbook references (which chapters this piece appears in).
@@ -233,7 +234,7 @@ export const productOverlay = defineType({
   name: 'product',
   type: 'document',
   fields: [
-    defineField({ name: 'shopifyHandle', type: 'string', validation: r => r.required() }),
+    defineField({ name: 'productHandle', type: 'string', validation: r => r.required(), description: 'Join key to the commerce backend' }),
     defineField({ name: 'description',   type: 'array', of: [{ type: 'block' }] }),
     defineField({ name: 'sizing',        type: 'array', of: [{ type: 'object', fields: [
       { name: 'size', type: 'string' },
@@ -354,28 +355,29 @@ export const seo = defineType({ name: 'seo', type: 'object', fields: [
 
 ---
 
-## C. Shopify product modelling
+## C. Commerce-backend product modelling
 
-We do *not* try to re-implement Shopify product structure. Instead, we
-agree on conventions for what already exists:
+We do *not* try to re-implement the commerce backend's product
+structure. Instead, we agree on conventions for what already exists:
 
 - **Tags** — drop slug (`drop:winter-26`), character (`character:toji`),
   material (`material:cotton`), capsule (`capsule:limited`).
-- **Metafields** — only when truly needed (e.g. `okami.fitNotes`,
-  `okami.dropPriority`).
+- **Side fields / metafields** — only when truly needed (e.g.
+  `okami.fitNotes`, `okami.dropPriority`).
 - **Collections** — keep as a navigation tool; do not encode drop
   state in collections.
 
-The CMS overlay joins on `shopifyHandle`.
+The CMS overlay joins on `productHandle`.
 
 ---
 
 ## D. Webhook flow
 
 ```
-Shopify (product/inventory/order created/updated)
+Custom commerce backend
+  (product/inventory/order created/updated)
         ↓ webhook
-apps/web /api/webhooks/shopify
+apps/web /api/webhooks/commerce
         ↓ verify HMAC
         ↓ enqueue work
 Workers (Vercel cron / Upstash):
@@ -420,8 +422,8 @@ await prisma.review.groupBy({
 
 | Reference | Where it lives | Used by |
 |---|---|---|
-| `shopifyHandle` (e.g. `toji-hoodie`) | Shopify | CMS overlay, reviews, search index |
-| `variantId` | Shopify | Cart, line items, restock notify |
+| `productHandle` (e.g. `toji-hoodie`) | Commerce backend | CMS overlay, reviews, search index |
+| `variantId` | Commerce backend | Cart, line items, restock notify |
 | `dropId` | Postgres + CMS `slug` | Drop state, subscriptions, accent tokens |
-| `userId` | Postgres + Shopify customer | Wishlist, loyalty, addresses |
-| `orderNumber` | Shopify | `/order/track` lookup |
+| `userId` | Postgres + commerce-backend customer | Wishlist, loyalty, addresses |
+| `orderNumber` | Commerce backend | `/order/track` lookup |

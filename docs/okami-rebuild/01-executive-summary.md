@@ -4,10 +4,15 @@
 
 OKAMI is a founder-led, Algiers-based streetwear label that sells graphic
 hoodies and tees with anime-pop-culture references through limited drops.
-The current storefront is (almost certainly) a Shopify theme — capable,
-but generic. The brand's strongest asset is a personal, drop-driven
-narrative on Instagram and TikTok; the storefront does not yet match
-that energy.
+The current storefront is a **custom React + Vite SPA** on **TailwindCSS
+v4** with a **custom headless commerce backend** (see
+[00-extracted-design-system.md](./00-extracted-design-system.md) and
+[13-platform-reconciliation.md](./13-platform-reconciliation.md)). The
+design language is already strong — dark anime brutalism, three custom
+self-hosted fonts, a greyscale → colour product hover, aurora orbs.
+What is missing is the system around it: SSR for SEO, a real drops
+engine, a tuned PDP, search, account, and a checkout built for the
+Algerian market.
 
 ## What the rebuild must do
 
@@ -31,20 +36,25 @@ Algiers."
    videos or fails colour-contrast on a hoodie price tag has already
    lost the click.
 
-## Why a rebuild rather than a re-theme
+## Why a rebuild rather than another theme pass
 
-Shopify themes get you 70 % of the way to "fine" and 0 % of the way to
-"the OKAMI thing." The brand needs:
+A client-side React SPA gets you 70 % of the way to "looks great" and
+0 % of the way to "ranks, converts, and scales." The brand needs:
 
-- A real drop-engine (scheduled release, queue, notify-when-live).
+- **Server-side rendering** for SEO + drop-day cache hit-rate.
+- A real **drop-engine** (scheduled release, queue, notify-when-live)
+  in the backend, not bolted onto the SPA as state.
 - A lookbook + editorial layer that is not a stretched product grid.
 - Bilingual (EN / FR / AR) with proper RTL where relevant.
 - COD checkout flows tuned for Algerian fulfilment.
-- A headless setup that lets the design move quickly without theme
-  overrides bottlenecks.
+- An a11y + perf budget enforced in CI, not just respected when
+  remembered.
 
-A headless front (Next.js) on top of Shopify keeps the inventory /
-payment / Shopify-admin advantages while removing the design ceiling.
+The recommended move is **Next.js (App Router) over the existing
+custom commerce API** — keep what works, ship SSR/ISR, add the
+missing systems (drops, search, reviews, loyalty, magic-link) in
+Postgres alongside the commerce backend. Detail in
+[13-platform-reconciliation.md](./13-platform-reconciliation.md).
 
 ## Headline targets (one quarter, post-launch)
 
@@ -60,8 +70,8 @@ payment / Shopify-admin advantages while removing the design ceiling.
 | Drop-day p95 TTFB            | 800 ms+      | < 250 ms |
 
 These are not guesses pulled from the ether — they are the gap between
-a generic Shopify theme and a hand-built headless storefront targeted
-at this exact segment.
+a client-rendered SPA and a server-rendered Next.js storefront with
+budgets enforced in CI, targeted at this exact segment.
 
 ## Phased plan in one breath
 

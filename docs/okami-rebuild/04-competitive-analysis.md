@@ -32,8 +32,9 @@
 | SEO / content | 5 | 4 | 4 | 4 | 5 | 2 | **4** |
 | Internationalisation | 5 | 3 | 3 | 4 | 5 | 1 | **4** |
 
-`OKAMI today` is a heuristic best-case for a generic Shopify streetwear
-store; revise after a live audit.
+`OKAMI today` is a heuristic best-case for a client-rendered React SPA
+streetwear store with a strong visual identity and weak commerce
+plumbing; revise after a live audit.
 
 ## C. What we steal — by primitive
 

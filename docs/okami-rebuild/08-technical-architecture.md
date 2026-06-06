@@ -8,24 +8,25 @@
         │     Next.js 15 (App Router)  │
         │     Vercel · Edge + Node     │
         └────────┬─────────────────────┘
-                 │  GraphQL / REST
+                 │  REST / GraphQL
         ┌────────┴──────────┐
-        │   Composable API  │
-        │   layer (BFF)     │   — server actions + route handlers
+        │   BFF layer       │   — server actions + route handlers
         └─┬────────┬─────────┬─────────┬────────┬──────────┐
           │        │         │         │        │          │
           ▼        ▼         ▼         ▼        ▼          ▼
-       Shopify  Sanity     Algolia   Klaviyo   Stripe    Postgres
-       (commerce) (CMS)    (search)  (email)   (cards)   (drops,
-                                                          loyalty,
-                                                          reviews)
+       Custom    Sanity   Algolia   Klaviyo   Stripe/CIB Postgres
+       Commerce   (CMS)   (search)  (email)   (cards)    (drops,
+       (existing                                          loyalty,
+        backend)                                          reviews,
+                                                          magic-link)
 ```
 
-Storefront is **headless**: Next.js renders the marketing+commerce
-front, Shopify handles inventory + checkout. Sanity (or Payload) owns
-editorial. A small Postgres (Neon / Supabase) holds the things Shopify
-will not — first-class drops, queue tickets, reviews with media,
-loyalty ledger.
+Storefront is **server-rendered**: Next.js takes over the current
+React-SPA surface, the existing custom commerce backend continues to
+own products, variants, inventory, orders, and the custom checkout.
+Sanity (or Payload) owns editorial. A small Postgres (Neon / Supabase)
+holds what the commerce backend does not — first-class drops, queue
+tickets, reviews with media, loyalty ledger, magic-link tokens.
 
 ## B. Stack — choices and rationale
 
@@ -35,7 +36,7 @@ loyalty ledger.
 | Styling | **Tailwind v4** + design tokens (§06) | Token-driven, low CSS bloat. |
 | UI | **shadcn/ui** + custom | Headless primitives we own; no runtime lock-in. |
 | Motion | **Framer Motion** for page reveals; pure CSS for micro | Predictable on mobile; reduced-motion respected. |
-| Commerce | **Shopify Storefront API** (GraphQL) | Inventory + hosted checkout + Shopify Payments / CIB locally; no PCI scope. |
+| Commerce | **Existing custom backend** (typed client in `packages/commerce`) | Already owns products, variants, inventory, orders, custom checkout; do not replace what works. |
 | CMS | **Sanity v3** *(or Payload CMS on Postgres)* | Real-time editor, strong i18n, image pipeline; Payload is a viable self-hosted alternative. |
 | Search | **Algolia** (with **Typesense** as self-hosted fallback) | Sub-50 ms suggest; typo tolerance critical in FR/AR. |
 | Analytics | **PostHog** (product) + **Plausible** (privacy-friendly traffic) | EU-friendly defaults; cohorts + funnels in PostHog. |
@@ -53,9 +54,9 @@ loyalty ledger.
 | Route | Strategy | Cache key |
 |---|---|---|
 | `/` | ISR · 5 min · revalidate-on-publish webhook | `home_{locale}` |
-| `/collections/[slug]` | ISR · 5 min · per-collection tag | `coll_{slug}_{locale}` |
-| `/collections/[slug]?…filters` | Edge SSR (filtered subsets) | `coll_{slug}_{filterHash}` (short TTL) |
-| `/products/[handle]` | ISR · 1 h · webhook on stock or price change | `prod_{handle}` |
+| `/shop` (catalog) | ISR · 5 min · per-collection tag | `shop_{locale}` |
+| `/shop?…filters` | Edge SSR (filtered subsets) | `shop_{filterHash}` (short TTL) |
+| `/shop/[handle]` (PDP) | ISR · 1 h · webhook on stock or price change | `prod_{handle}` |
 | `/drops/[slug]` | ISR + edge re-render at scheduled flip | `drop_{slug}_{state}` |
 | `/journal/[slug]` | ISR · 1 day | `post_{slug}` |
 | `/search` | Edge SSR (real-time) | none |
@@ -79,14 +80,14 @@ flip state via a cron + an `edge config` flag.
 
 ### E.1 Read paths
 ```
-Page render → server fetch (Shopify Storefront + Sanity + Postgres)
+Page render → server fetch (Custom Commerce API + Sanity + Postgres)
             → React Server Component tree → streamed HTML
 ```
 
 ### E.2 Mutations (cart, wishlist, checkout, reviews)
 ```
 Client → Server Action / Route Handler
-       → external service (Shopify Cart, Klaviyo subscribe, Postgres insert)
+       → external service (Commerce API, Klaviyo subscribe, Postgres insert)
        → revalidatePath / revalidateTag
        → optimistic UI rolled back on error
 ```
@@ -104,18 +105,18 @@ Client → Server Action / Route Handler
 - **Magic-link** primary (Klaviyo or Resend) → JWT cookie (HTTP-only,
   SameSite=Lax, Secure).
 - Optional password-add for power users.
-- Shopify customer object is created on first purchase or first
-  wishlist sync; storefront calls Shopify with a customer access token
-  scoped to that user.
-- Admin areas (if/when we add a back-office) use a separate role-based
-  scheme.
+- The commerce-backend customer record is created on first purchase
+  or first wishlist sync; storefront calls the commerce API with a
+  scoped access token.
+- The verified `admin.` subdomain (Inter-forced UI) continues to use
+  its own role-based scheme, unchanged.
 
 ## G. Payments
 
-- **COD** default — Shopify order placed, `paymentStatus = pending`,
-  fulfilled offline.
-- **Card** secondary — Stripe (if Algerian card processing available
-  via Shopify Payments) or CIB integration via a local gateway.
+- **COD** default — commerce-backend order placed with
+  `paymentStatus = pending`, fulfilled offline.
+- **Card** secondary — Stripe (where DZ card processing is available)
+  or CIB integration via a local gateway.
 - All card flows are PCI-SAQ-A (we never touch PAN).
 
 ## H. Search
@@ -124,7 +125,7 @@ Client → Server Action / Route Handler
 - Index attributes: `title`, `description`, `tags`, `drop`, `colour`,
   `character`, `material`.
 - Synonyms: `hoodie ↔ sweat ↔ سويت` etc.
-- Index updated via Shopify webhook → ingestion worker.
+- Index updated via commerce-API webhook → ingestion worker.
 
 ## I. SEO + structured data
 
@@ -171,9 +172,10 @@ Client → Server Action / Route Handler
 ## N. Local development
 
 - `pnpm` workspaces; one repo (`apps/web`, `apps/cms`, `packages/ui`,
-  `packages/tokens`, `packages/shopify`).
+  `packages/tokens`, `packages/commerce`).
 - `docker-compose` brings up Postgres + Redis locally.
-- Sanity / Shopify hit dev stores; secrets in `.env.local`.
+- Sanity hits a dev dataset; the commerce backend hits a dev origin;
+  secrets in `.env.local`.
 - `pnpm dev` runs Next + Sanity Studio + tokens watcher.
 
 ## O. Drop-day failure modes
@@ -181,17 +183,17 @@ Client → Server Action / Route Handler
 | Failure | Detection | Mitigation |
 |---|---|---|
 | Origin overload | `ttfb > 1 s` p95 alert | Edge cache + queue page (5 s wait) |
-| Oversell | Shopify webhook on stock < 0 | Stop add-to-cart; show sold-out |
+| Oversell | Commerce-API webhook on stock < 0 | Stop add-to-cart; show sold-out |
 | Cart write 5xx | Sentry + PostHog funnel drop | Retry with backoff; toast "try again" |
 | Email blast bounces | Klaviyo rate-limit | Pre-warm with smaller cohorts (10 % → 50 % → 100 %) |
 | CDN image misses | Vercel image-error rate | Pre-warm CDN by curling top URLs |
 
 ## P. Why this stack (and what we are giving up)
 
-- We keep Shopify because: inventory, checkout, taxes, shipping,
-  reporting, integrations are not where we want to spend headcount.
-- We give up: deep customisation inside the hosted checkout unless on
-  Plus.
+- We keep the existing commerce backend because: products, variants,
+  inventory, orders, the custom checkout, and the `admin.` console
+  are already running and tuned for the Algerian market.
+- We give up: nothing on the commerce side.
 - We pick Next.js over a static SSG (Astro/Eleventy) because: server
   actions, ISR, route-level streaming, and middleware are necessary
   for an account + drops + search storefront.
@@ -204,6 +206,6 @@ Client → Server Action / Route Handler
 - **Server-rendered countdowns** that are right on first paint.
 - **Tagged revalidation** so a publish reflects in ≤ 5 s, not 15 min.
 - **Postgres for drops + loyalty + reviews** so the product is not
-  bound by what Shopify exposes via Storefront API.
+  bound by what the commerce backend chooses to model.
 - **Magic-link auth** so 40 %+ account creation is realistic.
 - **Edge image pipeline** so the photography never bottlenecks LCP.

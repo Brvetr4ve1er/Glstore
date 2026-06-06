@@ -58,11 +58,20 @@ Shopify, as earlier inferred).
 - **Distribution model:** drops / limited releases. No custom orders.
 - **Voice:** founder-led, personal — *"just a guy who puts his passion
   on shirts"*. Small but loyal community (~13 K Instagram followers).
-- **Stack (verified from owner's extraction):** React SPA · TailwindCSS
-  v4 · 3 self-hosted custom fonts (OKAMI, Streetwear, Inter) · custom
-  headless commerce backend · client-side routing
-  (`/shop`, `/about`, `/contact`, `/cart`) · `US` / `DA` currency
-  switcher. **Not Shopify.**
+- **Stack (verified from owner's v2 extraction):** React SPA on **Vite**
+  · TailwindCSS v4 (oklch) · 3 self-hosted custom fonts (OKAMI,
+  Streetwear, Inter; **OKAMI is the body default**) · custom headless
+  commerce backend · client-side routing (`/shop`, `/about`,
+  `/contact`, `/cart`) · `US` / `DA` currency switcher · **`admin.`
+  subdomain** (Inter-forced UI) · **Meta + TikTok pixels** on load ·
+  PWA manifest with service worker **actively unregistered** on the
+  storefront. **Not Shopify.**
+- **Brand signature interactions (verified):** greyscale → colour on
+  product hover (scale 1.10, 500 ms `--ease-expo`), 3D card flip
+  (`perspective: 1000px` + `preserve-3d`), aurora orbs
+  (`filter: blur(120px)` + `mix-blend-overlay`), white-glow CTA
+  (`shadow-[0_0_30px/50px_rgba(255,255,255,.3)]`), logoPulse
+  (`1.5s ease-in-out infinite`).
 
 ## Sources
 

@@ -21,7 +21,8 @@
   ```
 - **States:** default · hover · focus-visible · active · disabled · loading.
 - **A11y:** real `<button>` (or `<a>` when `asChild` + `<Link>`); focus
-  ring `2px var(--c-okami)`; loading announces `aria-busy="true"`.
+  ring `2px var(--white)` (or `var(--purple)` for focus on dark cards);
+  loading announces `aria-busy="true"`.
 - **Responsive:** size tokens cascade with breakpoint; touch target ≥ 44 px.
 
 ### 1.2 `Input`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`
@@ -35,7 +36,7 @@
 - Includes `DropTag` variant rendered with drop accent.
 
 ### 1.4 `Card`
-- Hard-edge surface; `--c-paper-2` background.
+- Hard-edge surface; `--bg-card` background, `border var(--w10)`.
 - Slots: `media`, `header`, `body`, `footer`.
 
 ### 1.5 `Skeleton` / `Shimmer`
@@ -88,17 +89,33 @@
 
 ## 3. Commerce primitives
 
-### 3.1 `ProductCard`
-- **Purpose:** PLP card.
+### 3.1 `ProductCard` (greyscale → colour signature)
+
+- **Purpose:** PLP card. **Carries the brand's signature interaction**:
+  product art is desaturated at rest, snaps to full colour on hover,
+  permanent greyscale at brightness 0.5 when sold out (see
+  [00 §8.1](./00-extracted-design-system.md#81-greyscale--colour-on-product-hover)).
 - **Slots:**
-  - `image` — first variant image, hover swaps to second.
+  - `image` — first variant image with `filter: grayscale(0.95) brightness(1.1)`;
+    hover removes the filter and scales `1.10` over 500 ms `--ease-expo`.
   - `swatches` — up to 5 visible, "+N" overflow.
-  - `dropTag` — small pill linking to the drop.
-  - `title` · `price` · `compareAt` · `quickAdd`.
-- **Variants:** `default` (4 : 5) · `featured` (3 : 4 larger) ·
+  - `dropTag` — small pill linking to the drop, coloured by drop tone
+    (`--orange` "Limited Drop", `--purple` "New", `--amber` "Last Pieces").
+  - `title` (OKAMI face) · `price` (OKAMI face, `--ls-1`) ·
+    `category` (Inter, `--w50`) · `quickAdd`.
+- **Variants:** `default` (3 : 4) · `featured` (3 : 4 larger) ·
   `compact` (search results).
-- **States:** in-stock · low-stock badge · sold-out (`opacity 0.6`,
-  watermark, click → notify-me).
+- **States:** in-stock · low-stock badge · sold-out
+  (permanent `filter: grayscale(1) brightness(0.5)`, sold-out pill,
+  click → notify-me).
+- **A11y caveats:**
+  - The greyscale-on-rest treatment **must not** be the only signal
+    of "available vs sold-out" — a sold-out badge + visible price
+    state always accompany it.
+  - The hover-to-reveal-colour pattern is **inaccessible on keyboard /
+    touch by default** — also trigger the colour state on
+    `:focus-within` and via `IntersectionObserver` for touch
+    (cards become coloured once they enter the viewport on mobile).
 - **A11y:** entire card is a single link with `aria-label` "{name},
   {price}, {colour}, {sizes available}". Quick-add is a separate
   `<button>`, not nested in the link.
@@ -247,6 +264,51 @@
 
 ### 7.3 `UgcWall`
 - Instagram-tag-driven grid; each cell links to product.
+
+## 7.5 OKAMI-signature primitives
+
+These three primitives are part of the brand's verified visual
+language ([00 §7, §8](./00-extracted-design-system.md)). They are
+first-class components, not decorations.
+
+### 7.5.1 `FlipCard` (3D card flip)
+
+- **Purpose:** front-to-back reveal on hover; used for "size guide"
+  thumbnails, drop teaser tiles, founder line cards.
+- **Markup:** outer `perspective: 1000px`, inner
+  `transform-style: preserve-3d` + `transition: transform 0.7s var(--ease-expo)`,
+  two faces `backface-visibility: hidden`, back face `transform: rotateY(180deg)`.
+- **A11y:** the back face must be reachable via keyboard — toggle the
+  flipped state on `:focus-within` and via an explicit "Flip" `<button>`
+  for assistive tech. The back content must be readable by screen
+  readers even when not flipped (`aria-hidden` is wrong here; rely
+  on visual `backface-visibility` only).
+- **Reduced motion:** swap to a 200 ms cross-fade.
+
+### 7.5.2 `AuroraOrbs`
+
+- **Purpose:** decorative section-break / hero background atmosphere.
+  Three blurred coloured discs floating behind the content.
+- **Props:** `tone` (`purple` default, `green`, `orange`), `intensity`
+  (`subtle | strong`), `count` (1–3).
+- **Implementation:** absolute-positioned `<div>`s with
+  `filter: blur(120px); mix-blend-mode: overlay`. Sizes 150–240 px.
+- **A11y:** `aria-hidden="true"`. Always behind content; never an
+  interaction target.
+- **Reduced motion:** static positions (no drift animation).
+
+### 7.5.3 `WallpaperBackdrop`
+
+- **Purpose:** the body-level halftone background; pinned with
+  `background-attachment: fixed` so it parallaxes as the page scrolls.
+- **Implementation:** a CSS class applied to `<body>` that sets
+  `background-image: url(/wallpaper.svg)` + `cover` + `fixed`.
+- **A11y:** must not interfere with text contrast — the wallpaper
+  reads at <5 % luminance against `--bg-base`. Plus a grain `body::after`
+  at `mix-blend-overlay; opacity: 0.35`.
+- **Performance:** the SVG is < 8 KB and ships from the static origin;
+  cached forever. Skip on `prefers-reduced-motion: reduce` (the fixed
+  attachment is what gives the parallax feel; it can stay).
 
 ## 8. Surfaces unique to drops
 

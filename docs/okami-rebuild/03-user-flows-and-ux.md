@@ -158,16 +158,15 @@ Each item: **Problem · Impact · Fix · Expected benefit.**
   - secure-COD badge and arrival estimate.
 - **Benefit:** Average order value +8–12 %, cart-abandon -10 %.
 
-### C.7 Checkout is generic Shopify
+### C.7 Checkout is generic
 
-- **Problem:** Shopify hosted checkout works but is one-size-fits-all.
+- **Problem:** The current checkout works but is one-size-fits-all.
   Wilaya then commune is not a cascading select; COD is one of many
   payment buttons; no Arabic.
 - **Impact:** Real, ongoing checkout abandonment.
-- **Fix:** Headless checkout for Algeria (Shopify Plus enables
-  customisation; if not on Plus, build a thin checkout that posts to
-  Shopify Cart API for non-card and uses Stripe for card).
-  - Wilaya → commune cascading select.
+- **Fix:** A custom checkout built against the existing commerce API,
+  tuned for the Algerian market.
+  - Wilaya → commune cascading select (58 wilayas dataset).
   - COD as the **default**, card as the secondary option.
   - Live shipping cost + ETA.
   - Bilingual (FR primary, AR toggle).
@@ -205,8 +204,10 @@ Each item: **Problem · Impact · Fix · Expected benefit.**
 
 ### C.11 Accessibility
 
-- **Problems:** common Shopify-theme defaults — low-contrast prices,
-  no focus rings, modal focus traps absent, hero videos auto-playing.
+- **Problems:** common React-streetwear-SPA defaults — low-contrast
+  prices on dark surfaces, no focus rings, modal focus traps absent,
+  hero videos auto-playing, the greyscale → colour signature relying
+  on hover (unreachable by keyboard / touch).
 - **Impact:** unusable for some customers; SEO hit (Core Web Vitals);
   legal exposure as EU diaspora grows.
 - **Fix:** WCAG 2.2 AA baseline, captured in the design tokens and

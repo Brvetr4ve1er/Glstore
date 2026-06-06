@@ -81,7 +81,7 @@ Use as a pre-flight gate. Nothing ships until every box is checked.
 - [ ] CSP enabled with nonce/hash; report-uri set.
 - [ ] Rate limits on auth, magic-link, tracking, reviews, subscribe.
 - [ ] Secrets in Vercel env; no `.env*` committed.
-- [ ] HMAC verified on every Shopify webhook.
+- [ ] HMAC verified on every commerce-backend webhook (`/api/webhooks/commerce`).
 - [ ] Audit log writes for admin actions.
 - [ ] Sentry sourcemaps uploaded; PII filters configured.
 

@@ -119,7 +119,8 @@ Implementation priority encoded in the roadmap; this is the catalog.
   PDP and cart.
 - **Upsell** — at checkout: a sticker pack at 0.5 × shipping cost,
   one-click add.
-- **Gift cards** — Shopify-native.
+- **Gift cards** — issued by the commerce backend (custom code-table +
+  spend rules).
 - **Reviews** — first-party (Judge.me-compatible schema) with photo
   upload; verified-buyer flag tied to fulfilled orders.
 - **UGC gallery** — `#okami` Instagram hashtag scraped (Foursixty /
@@ -169,8 +170,8 @@ If a page cannot ship within the budget, the page does not ship.
 
 ## I. SEO architecture (highlights)
 
-- Stable URLs: `/products/…`, `/collections/…`, `/drops/…`,
-  `/journal/…`. No tracking params in canonical.
+- Stable URLs: `/shop`, `/shop/{handle}` (PDP), `/drops/{slug}`,
+  `/lookbook/{slug}`, `/journal/{slug}`. No tracking params in canonical.
 - JSON-LD: `Product`, `Offer`, `AggregateRating`, `BreadcrumbList`,
   `Organization`, `WebSite` (with `SearchAction`), `FAQPage` where
   applicable, `Article` for journal.
@@ -186,7 +187,7 @@ If a page cannot ship within the budget, the page does not ship.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Shopify Plus not in budget → headless checkout cannot fully replace hosted checkout | Medium | High | Phase 1 launches with hosted checkout, headless checkout enabled when Plus is in budget. Either way, the *site* is headless on the rest of the funnel. |
+| Existing commerce API missing capabilities (e.g. scheduled drops, segmented notify lists, granular inventory holds) | Medium | High | Postgres + Prisma layer (see [10-data-and-cms-schemas.md](./10-data-and-cms-schemas.md)) absorbs the gaps; commerce API stays focused on products / orders / inventory. |
 | Drop traffic spikes outpace ISR + cache | Medium | High | Server-render with edge cache; queue page when stock < 5 % to avoid oversell. Pre-warm cache. |
 | Bilingual launch slips Phase 1 | High | Medium | Ship EN at v1; FR within v1.1; AR with RTL after observability. |
 | Image asset volume (lookbook + drops) exceeds CDN budget | Medium | Medium | Server-resize via `@vercel/image` or `next/image`; cap originals at 2400 px max edge. |

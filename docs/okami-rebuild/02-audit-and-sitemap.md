@@ -78,10 +78,10 @@ Out-of-band but linked:
 
 | Object | Identifier | Notes |
 |---|---|---|
-| Product | `/products/{handle}` | Shopify product |
+| Product | Custom API resource | `[VERIFIED]` — custom headless commerce |
 | Variants | size × colour (mostly size; colour usually fixed per design) | `[INFERRED]` |
-| Collections | manual + smart (tagged) | `[CONVENTION]` |
-| Drops | modelled as a collection (Shopify has no first-class "drop") | `[INFERRED]` — major weakness, see §6 |
+| Collections | tagged groupings | `[INFERRED]` |
+| Drops | likely a collection or tag in the current backend; no first-class state machine surfaced | `[INFERRED]` — major weakness, see §6 |
 
 ## 5. Conversion funnel — as-is
 
@@ -90,51 +90,53 @@ Instagram / TikTok post
         ↓
 Homepage  (or direct PDP via bio link)
         ↓
-Collection grid  →  Product detail
-                          ↓
-                     Add to cart
-                          ↓
-                     Cart drawer
-                          ↓
-              Shopify-hosted checkout
-                          ↓
-                  Order confirmation
-                          ↓
-            Email confirmation (Shopify Email)
-                          ↓
+/shop grid  →  Product detail
+                    ↓
+                Add to cart
+                    ↓
+                Cart drawer / /cart
+                    ↓
+              Custom checkout
+                    ↓
+            Order confirmation
+                    ↓
+            Email confirmation
+                    ↓
             COD courier dispatch (manual)
 ```
 
-**Funnel friction (typical of generic Shopify themes in this segment):**
+**Funnel friction (typical of a client-rendered SPA in this segment):**
 
-- Homepage → PLP: hero carousel often slow on mobile; CTA labels weak
-  ("Shop Now" not "Shop the X Drop").
+- Homepage → PLP: hero is client-rendered → blank flash before LCP;
+  CTA labels weak ("Shop Now" not "Shop the X Drop").
 - PLP → PDP: grid lacks colour swatches; user must click through to
   see if the design is available.
 - PDP → Add: size-selector inconsistent with grid information; no
   inline stock signals ("only 2 left in M").
 - Cart → Checkout: cart drawer often lacks shipping promise / total
   visibility / upsell.
-- Checkout → Paid: COD is fine, but card payment in Algeria is rare;
-  no clear "wilaya then commune" cascade is provided by the default
-  Shopify address form.
+- Checkout → Paid: COD is the dominant payment path in DZ but the
+  current address form is unlikely to cascade wilaya → commune; card
+  payment in Algeria is rare, so it cannot be the default.
 
 ## 6. Notable gaps vs the brand promise
 
 | Gap | Why it hurts |
 |---|---|
-| No first-class **drops** model | The whole brand revolves around drops, but Shopify treats them as just another collection — no countdown, no notify, no "drop replay" page. |
+| No first-class **drops** model | The whole brand revolves around drops; the current backend has no scheduled state machine, no countdown, no notify, no "drop replay" page. |
+| No **SSR / SEO surface** | The SPA renders client-side; Google sees a thin shell. Organic traffic ceiling is low. |
 | No **lookbook** beyond a product grid | Streetwear is bought on context; a flat catalog underplays the styling. |
 | **Founder voice** invisible | A homepage selling "just a guy who puts his passion on shirts" should *show* that guy in 5 seconds. |
 | **Size guide** typically a single static image | Returns are expensive in Algeria; specific cm measurements per garment reduce returns. |
-| **Notify-on-restock** unlikely in the default theme | Sellouts are the drop's biggest signal but the email-capture is wasted. |
+| **Notify-on-restock** missing | Sellouts are the drop's biggest signal; the email capture is wasted. |
 | **No bilingual UX** (EN / FR / AR) confirmed | The Algerian market is naturally FR-dominant with AR speakers; an EN-only premium positioning blocks a real customer segment. |
-| **Search** is Shopify default | Streetwear shoppers search by drop, character, colourway — default search returns title-keyword matches only. |
-| **COD friction** | The default Shopify address form does not know about wilaya/commune ordering. |
+| **Search** is presumed basic | Streetwear shoppers search by drop, character, colourway — title-keyword matching is not enough. |
+| **COD friction** | The current address form is unlikely to cascade wilaya → commune for the 58-wilaya Algerian model. |
+| **Service worker actively unregistered** | The site currently kills SW on load (verified). With SSR this changes — PWA install + offline-cache becomes viable. |
 
 ## 7. Accessibility quick-check (heuristic, not measured)
 
-Common Shopify-streetwear-theme failures to expect:
+Common React-SPA-streetwear-theme failures to expect:
 
 - Low-contrast helper text under price (`#9CA3AF` on white < 4.5:1).
 - Image carousels with no keyboard navigation or aria-live updates.
@@ -147,11 +149,14 @@ the component-library spec ([07-component-library.md](./07-component-library.md)
 
 ## 8. SEO quick-check (heuristic)
 
-Default Shopify gives you:
+A client-rendered React SPA typically gives you:
 
-- Per-product `<title>`/`<meta description>` (often the product handle).
-- Auto JSON-LD `Product` + `Offer` + `BreadcrumbList` on PDPs.
-- Sitemap.xml + robots.txt.
+- A near-empty initial HTML payload (just the `#root` shell).
+- A single `<title>` set in `<head>`; per-route titles only after JS
+  hydrates.
+- No server-rendered JSON-LD; structured data is added by JS after
+  load — Google may or may not crawl it.
+- A `sitemap.xml` only if explicitly hand-maintained.
 
 It does **not** give you:
 
@@ -159,6 +164,8 @@ It does **not** give you:
   "anime hoodie Algeria", etc.
 - Story-driven blog content for top-of-funnel.
 - `hreflang` for FR / AR variants.
-- Structured FAQ schema where relevant.
+- Structured FAQ / Article / Product schema rendered server-side.
 
-These become Phase 1 deliverables in [05-rebuild-strategy.md](./05-rebuild-strategy.md).
+These become Phase 1 deliverables in
+[05-rebuild-strategy.md](./05-rebuild-strategy.md) — they fall out of
+the move to Next.js SSR.

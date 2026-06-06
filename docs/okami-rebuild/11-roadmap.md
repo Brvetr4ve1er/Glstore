@@ -23,18 +23,18 @@ Exit criteria: a deployable home page on Vercel that renders one hero
 
 | Workstream | Deliverables |
 |---|---|
-| Shopify | `packages/shopify` client + types; product, collection, cart queries. |
+| Commerce | `packages/commerce` client + types generated from the existing backend's OpenAPI / GraphQL schema; product, collection, cart, checkout, customer queries. |
 | Routing | `(marketing)`, `(shop)`, `(account)` route groups; middleware for i18n cookie + redirect; `robots.ts` + `sitemap.ts`. |
-| Pages | Home (no drops yet), `/shop`, `/collections/[slug]`, `/products/[handle]`, `/search`, `/cart`, `/checkout` (Shopify-hosted), `/order/track`, `/help/*`, `/legal/*`. |
+| Pages | Home (no drops yet), `/shop`, `/shop/[handle]` (PDP), `/search`, `/cart`, `/checkout` (custom), `/order/track`, `/help/*`, `/legal/*`. |
 | Components | Nav, Footer, ProductCard, Gallery, VariantSelector, AddToCartButton, CartDrawer, FilterBar, Pagination. |
 | Search | Algolia ingestion worker; SearchOverlay component; PLP filters. |
 | Analytics | PostHog + Plausible installed; key events: `view_product`, `add_to_cart`, `checkout_start`, `purchase`. |
-| Auth | Magic-link primary; Shopify customer token mapping. |
+| Auth | Magic-link primary; commerce-backend customer token mapping. |
 | Account | Dashboard, orders, addresses. |
-| Tests | E2E happy path (home → PLP → PDP → cart → Shopify checkout). |
+| Tests | E2E happy path (home → PLP → PDP → cart → custom checkout). |
 
 Exit criteria: a customer can find a real product, add it, and check
-out via Shopify-hosted checkout; Lighthouse ≥ 85 mobile on the four
+out via the custom checkout; Lighthouse ≥ 85 mobile on the four
 core templates.
 
 ### Phase 2 — Drops engine (Weeks 5–6)
@@ -71,7 +71,7 @@ PDP, cart, account.
 
 | Workstream | Deliverables |
 |---|---|
-| Loyalty | `LoyaltyLedger`, `Referral`; points-on-order, redemption at checkout (Shopify discount code creation via Admin API). |
+| Loyalty | `LoyaltyLedger`, `Referral`; points-on-order, redemption at checkout (discount-code creation via the commerce backend's admin endpoint). |
 | Reviews | Submit form + moderation queue + display on PDP + Schema.org `AggregateRating`. |
 | Recommendations | `pdp.related`, `pdp.cross_sell`, `cart.upsell` slots; curated lists in CMS first; Algolia personalisation second. |
 | Reactivation | Klaviyo flows: cart abandon, browse abandon, post-purchase. |
@@ -98,7 +98,7 @@ zero `serious` violations; security scan clean.
 
 | Workstream | Deliverables |
 |---|---|
-| Migration | DNS cutover; legacy redirects (old Shopify URLs → new). |
+| Migration | DNS cutover; legacy redirects (old SPA URLs → new SSR routes). |
 | Soft launch | 10 % traffic via Vercel A/B for 48 h; full cutover after. |
 | Comms | Founder post, Instagram + TikTok announcement, email blast. |
 | Day-1 ops | War-room channel, on-call rota, sub-15-min SLA on cart/checkout errors. |
@@ -127,8 +127,8 @@ deliberately in v1.1 (Weeks 13–14). Plan:
 | Risk | Mitigation |
 |---|---|
 | Drop-day origin overload | Pre-warm cache; edge SSR; queue page at >X req/s/sku. |
-| Shopify rate limits on bulk reads | Use Storefront API + persistent queries + GraphQL `cost` awareness. |
-| CMS / Shopify "two sources of truth" drift | A single nightly reconciliation job logs deltas and Slack-alerts. |
+| Commerce-backend rate limits on bulk reads | Persistent queries + ETag-aware caching at the BFF layer; pre-warm before drops. |
+| CMS / commerce-backend "two sources of truth" drift | A single nightly reconciliation job logs deltas and Slack-alerts. |
 | Email deliverability MENA | Dedicated subdomain + DKIM/SPF/DMARC; warm before drop blasts. |
 | Image weight creep | CI gate: page weight > budget = fail build. |
 | Translation rot | Per-locale CI check: missing keys / untranslated strings. |
@@ -156,17 +156,19 @@ deliberately in v1.1 (Weeks 13–14). Plan:
 2. **Ship EN + FR in v1, not EN-only.** The Algerian customer reads
    FR. Adding AR is a v1.1 task because it is a design exercise as
    well as a translation one.
-3. **Buy Shopify Plus only when the checkout customisation pays for
-   itself.** Until then, keep the headless storefront + hosted checkout
-   combination — the rest of the site already lives in our hands.
+3. **Do not migrate off the custom commerce backend.** It already
+   models the Algerian-market realities (DZD pricing, currency switch,
+   admin subdomain). Evolve in place — re-platforming would burn
+   months for no customer-visible win.
 4. **Treat the founder voice as a fixture.** A weekly line in the home
    page, a monthly journal post, a quarterly lookbook. The site falls
    apart when this fades; do not let it.
 5. **Lighthouse and axe gates are non-negotiable in CI.** They are the
    only honest defence against drift. Once a budget is broken, it
    tends to stay broken.
-6. **Use Postgres for the things Shopify won't model.** Drops, reviews,
-   loyalty, magic-links. Resist the temptation to over-use metafields.
+6. **Use Postgres for the things the commerce backend won't model.**
+   Drops, reviews, loyalty, magic-links. Resist the temptation to
+   bend the commerce schema for editorial concerns.
 7. **Instrument from day one.** PostHog funnels, Sentry, Lighthouse-CI,
    and a drop-day Grafana board. You cannot fix what you cannot see.
 8. **Be honest in copy about the COD reality, the delivery window,

@@ -28,63 +28,92 @@
 
 ### B.1 Colour
 
-A dark purple-black base with white type. The lime green pop is the
-*only* accent. Drop pages may introduce a per-drop accent override
-(see §F).
+Tokens **mirror the verified v2 ground truth** in
+[00 §2](./00-extracted-design-system.md#2-colour-system). Names are
+unprefixed (matching the bundle) — no `--c-` namespace.
 
 ```css
-/* tokens/colour.css */
+/* tokens/colour.css — v2 source-verified */
 :root {
   /* ── Surfaces ─────────────────────────── */
-  --c-bg:           #1E1623;                  /* primary background */
-  --c-bg-rgb:       30 22 35;
-  --c-surface:      #241A2A;                  /* card / panel (one step up) */
-  --c-dark:         rgb(20, 20, 19);          /* footer / overlays */
-  --c-cream:        rgb(250, 249, 245);       /* rare light-section background */
+  --bg-base:   #1E1623;     /* body default — deep purple-black */
+  --bg-deep:   #0A050D;     /* deepest void — full-bleed heroes */
+  --bg-dark:   #0D0B14;     /* modals */
+  --bg-mid:    #1a1520;     /* raised — nav / panels */
+  --bg-card:   #251f2b;     /* card surface */
+  --bg-hover:  #2a2533;     /* hover state */
+  --bg-near:   #0a0a0a;     /* footer alt / near-black */
 
-  /* ── Type ─────────────────────────────── */
-  --c-white:        #FFFFFF;
-  --c-white-60:     rgba(255, 255, 255, 0.60);  /* secondary text */
-  --c-white-10:     rgba(255, 255, 255, 0.10);  /* hover surfaces */
-  --c-white-05:     rgba(255, 255, 255, 0.05);  /* card borders, dividers */
-  --c-black:        #000000;                    /* white-button label, marquee text */
+  /* ── Ink scale (white-on-dark) ────────── */
+  --white: #FFFFFF;
+  --w90: rgba(255,255,255,0.90);
+  --w80: rgba(255,255,255,0.80);
+  --w70: rgba(255,255,255,0.70);
+  --w60: rgba(255,255,255,0.60);
+  --w50: rgba(255,255,255,0.50);
+  --w30: rgba(255,255,255,0.30);
+  --w20: rgba(255,255,255,0.20);
+  --w10: rgba(255,255,255,0.10);
+  --w05: rgba(255,255,255,0.05);
 
-  /* ── Accents ──────────────────────────── */
-  --c-lime:         #B6FF3D;                  /* sale / drop-live signal */
-  --c-lime-glow:    rgba(182, 255, 61, 0.30);
-  --c-violet:       #9B5CF6;                  /* "new drop" badges (added — see upgrade list) */
-  --c-warn:         #F2A341;
-  --c-error:        #E54B3C;
-  --c-ok:           #4F8F4A;
-  --c-info:         #3D7BCB;
+  /* ── Semantic palette (CORRECTED — full set, not "green only") ── */
+  --green:  #00C758;     /* in stock / success */
+  --red:    #FB2C36;     /* sold out / danger */
+  --orange: #FE6E00;     /* limited drop alert */
+  --amber:  #F59E0B;     /* gold / promo highlight */
+  --yellow: #EDB200;     /* "new" badge */
+  --purple: #AC4BFF;     /* brand accent / aurora */
+  --blue:   #3080FF;     /* info */
+
+  /* ── Glow shadows (real elevation, no box-shadow) ── */
+  --glow-w-sm:  0 0 15px rgba(255,255,255,0.10);
+  --glow-w-md:  0 0 20px rgba(255,255,255,0.20);
+  --glow-w-lg:  0 0 30px rgba(255,255,255,0.30);
+  --glow-w-xl:  0 0 50px rgba(255,255,255,0.30);
+  --glow-green: 0 0 15px rgba(34,197,94,0.20);
+  --glow-red:   0 0 30px rgba(255,0,0,0.40);
 }
 ```
 
-Halftone background overlay (applied at the `<body>` level):
+Wallpaper background (CORRECTED — **external SVG with
+`background-attachment: fixed`**, not a CSS gradient):
 
 ```css
 body {
-  background-color: var(--c-bg);
-  background-image: radial-gradient(
-    circle, rgba(255,255,255,0.04) 1px, transparent 1px
-  );
-  background-size: 20px 20px;
+  background-color: var(--bg-base);
+  background-image: url("/assets/icons/wallpaper.svg");
+  background-position: top;
+  background-size: cover;
+  background-attachment: fixed;          /* the parallax pin */
+  font-family: OKAMI, -apple-system, sans-serif;
+  color: #fff;
+}
+body::after {                            /* mix-blend-overlay grain */
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+  background: url("data:image/svg+xml;…fractalNoise…");
 }
 ```
 
 Contrast invariants (must hold automatically in CI):
 
-- `--c-white` on `--c-bg`          : ≥ 7 : 1
-- `--c-white-60` on `--c-bg`       : ≥ 4.5 : 1
-- `--c-black` on `--c-white`       : ≥ 7 : 1  (marquee, primary CTA)
-- `--c-lime` on `--c-bg`           : ≥ 4.5 : 1
-- `--c-violet` on `--c-bg`         : ≥ 4.5 : 1
+| Pair | Target |
+|---|---|
+| `--white` on `--bg-base`        | ≥ 7 : 1 |
+| `--w60` on `--bg-base`          | ≥ 4.5 : 1 (secondary text) |
+| `#000` on `--white`             | ≥ 7 : 1 (marquee, primary CTA) |
+| `--green`, `--red`, `--orange`, `--amber`, `--yellow`, `--purple`, `--blue` on `--bg-base` | ≥ 4.5 : 1 |
+| Any badge text on its tinted background | ≥ 3 : 1 (badge UI exception) |
 
-Per-drop accent override (set on `<html data-drop="…">`):
+Per-drop accent override — drops can re-paint the *accent* colours
+(`--purple`, `--orange`), never the base surface:
 
 ```css
-:root[data-drop="toji"]    { --c-lime: #FF3D45; --c-violet: #FF8A8E; }
-:root[data-drop="winter"]  { --c-lime: #6EC1E4; --c-violet: #C5E9F7; }
+:root[data-drop="toji"]    { --purple: #FF3D45; --orange: #FF8A8E; }
+:root[data-drop="winter"]  { --purple: #6EC1E4; --orange: #C5E9F7; }
 ```
 
 ### B.2 Typography
@@ -199,15 +228,16 @@ Used sparingly. Lifts come from contrast, not blur.
 
 ```css
 :root {
-  --d-fast:  120ms;
-  --d-base:  240ms;          /* matches Tailwind `transition-colors` defaults */
-  --d-slow:  500ms;          /* card-shimmer */
-  --d-card:  700ms;          /* category-card image zoom */
-  --d-marquee: 30s;          /* ticker loop */
+  --d-fast:    120ms;
+  --d-base:    240ms;          /* matches Tailwind `transition-colors` defaults */
+  --d-slow:    500ms;          /* card-shimmer */
+  --d-card:    700ms;          /* category-card image zoom */
+  --d-marquee: 18s;            /* ticker loop (verified) */
 
-  --e-out:   cubic-bezier(0.19, 1, 0.22, 1);
-  --e-in:    cubic-bezier(0.6, 0, 0.8, 0);
-  --e-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Two verified custom bezier curves */
+  --ease-expo:   cubic-bezier(0.16, 1, 0.3, 1);     /* primary — product hover, nav reveal, page xs */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* delight — size select, cart badge, add-to-cart */
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);        /* generic */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -231,7 +261,8 @@ Allowed motions:
 
 - `logoPulse` on the wordmark (existing).
 - `marquee` / `marquee-reverse` on the ticker (existing).
-- Category-card image `scale-110` at `--d-card` on hover (existing).
+- Category-card image `scale-110` at `--d-card` with `--ease-expo` on
+  hover (existing).
 - Card shimmer (`opacity 0 → 1` on `bg-white/10` gradient) on hover.
 - Hero parallax: 4–8 % vertical `translate3d` driven by scroll.
 - Cart-drawer slide and modal fade — added by the rebuild.
@@ -287,19 +318,22 @@ full-bleed for hero + lookbook chapters.
 
 ## F. Theming for drops
 
-A drop overrides:
+A drop overrides the *accent* tokens, never the surfaces:
 
-- `--c-lime`, `--c-violet`, optionally `--c-bg`.
+- `--purple`, `--orange` (the two accents components actually consume).
 - `--f-display` (rarely; e.g. a hand-drawn face for a special
   collaboration drop).
 
 Set on `<html data-drop="…">` server-side from the drop record.
 Components read from tokens; no per-drop overrides in components.
 
-## G. Tailwind v4 config (re-implementation)
+## G. Tailwind v4 config (re-implementation, v2-aligned)
+
+Token names match the unprefixed v2 spec; Tailwind utilities resolve
+to the live `:root` CSS variables.
 
 ```js
-// tailwind.config.ts (excerpt) — TailwindCSS v4
+// tailwind.config.ts — TailwindCSS v4
 import type { Config } from 'tailwindcss'
 
 export default {
@@ -307,52 +341,81 @@ export default {
   theme: {
     screens: { sm: '640px', md: '768px', lg: '1024px', xl: '1280px', '2xl': '1536px' },
     colors: {
-      bg:        'var(--c-bg)',
-      surface:   'var(--c-surface)',
-      dark:      'var(--c-dark)',
-      cream:     'var(--c-cream)',
-      white:     'var(--c-white)',
-      'white-60':'var(--c-white-60)',
-      'white-10':'var(--c-white-10)',
-      'white-05':'var(--c-white-05)',
-      black:     'var(--c-black)',
-      lime:      'var(--c-lime)',
-      violet:    'var(--c-violet)',
-      warn:      'var(--c-warn)',
-      error:     'var(--c-error)',
-      ok:        'var(--c-ok)',
+      /* surfaces */
+      'bg-base':  'var(--bg-base)',
+      'bg-deep':  'var(--bg-deep)',
+      'bg-dark':  'var(--bg-dark)',
+      'bg-mid':   'var(--bg-mid)',
+      'bg-card':  'var(--bg-card)',
+      'bg-hover': 'var(--bg-hover)',
+      'bg-near':  'var(--bg-near)',
+      /* ink */
+      white: 'var(--white)',
+      w90: 'var(--w90)', w80: 'var(--w80)', w70: 'var(--w70)', w60: 'var(--w60)',
+      w50: 'var(--w50)', w30: 'var(--w30)', w20: 'var(--w20)', w10: 'var(--w10)', w05: 'var(--w05)',
+      black: '#000000',
+      /* semantic */
+      green:  'var(--green)',
+      red:    'var(--red)',
+      orange: 'var(--orange)',
+      amber:  'var(--amber)',
+      yellow: 'var(--yellow)',
+      purple: 'var(--purple)',
+      blue:   'var(--blue)',
     },
     fontFamily: {
-      okami:      ['var(--f-display)'],
-      streetwear: ['var(--f-action)'],
-      inter:      ['var(--f-ui)'],
-      arabic:     ['var(--f-arabic)'],
-      mono:       ['var(--f-mono)'],
+      okami:      ['OKAMI', 'system-ui', 'sans-serif'],         /* default */
+      streetwear: ['Streetwear', 'Bebas Neue', 'sans-serif'],   /* CTA / marquee */
+      inter:      ['Inter', 'system-ui', 'sans-serif'],         /* body / admin */
+      arabic:     ['"IBM Plex Arabic"', 'Inter', 'sans-serif'],
+      mono:       ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+    },
+    letterSpacing: {
+      tight: '-0.025em',
+      '1': '0.1em', '2': '0.2em', '3': '0.3em', '4': '0.4em', '5': '0.5em',
     },
     extend: {
-      spacing: Object.fromEntries(
-        Array.from({ length: 14 }, (_, i) => [String(i), `var(--s-${i})`]),
-      ),
-      borderRadius: { card: 'var(--r-1)', pill: 'var(--r-pill)' },
-      backgroundImage: {
-        halftone: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
+      borderRadius: {
+        sm: '6px', md: '9px', lg: '16px', xl: '24px', '2xl': '32px', pill: '999px',
       },
-      backgroundSize: { halftone: '20px 20px' },
+      boxShadow: {
+        'glow-w-sm':  'var(--glow-w-sm)',
+        'glow-w-md':  'var(--glow-w-md)',
+        'glow-w-lg':  'var(--glow-w-lg)',
+        'glow-w-xl':  'var(--glow-w-xl)',
+        'glow-green': 'var(--glow-green)',
+        'glow-red':   'var(--glow-red)',
+      },
+      transitionTimingFunction: {
+        expo:   'cubic-bezier(0.16, 1, 0.3, 1)',
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
       keyframes: {
-        logoPulse:       { '0%,100%': { opacity: '0.5', transform: 'scale(0.85)' }, '50%': { opacity: '1', transform: 'scale(1.10)' } },
+        logoPulse: {
+          '0%,100%': { opacity: '0.5', transform: 'scale(0.85)' },
+          '50%':     { opacity: '1',   transform: 'scale(1.10)' },
+        },
         marquee:         { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
         'marquee-reverse': { from: { transform: 'translateX(-50%)' }, to: { transform: 'translateX(0)' } },
       },
       animation: {
-        'logo-pulse':      'logoPulse 3s ease-in-out infinite',
-        marquee:           'marquee 30s linear infinite',
-        'marquee-reverse': 'marquee-reverse 30s linear infinite',
+        'logo-pulse':      'logoPulse 1.5s ease-in-out infinite',
+        marquee:           'marquee 18s linear infinite',
+        'marquee-reverse': 'marquee-reverse 18s linear infinite',
       },
-      transitionTimingFunction: { 'out-x': 'var(--e-out)', 'in-x': 'var(--e-in)', 'inout-x': 'var(--e-inout)' },
     },
   },
 } satisfies Config
 ```
+
+Notes:
+
+- **No CSS-gradient halftone preset** — the background is the external
+  `wallpaper.svg`, set on `<body>` not via a Tailwind utility.
+- **No box-shadow elevation tokens** — only `glow-*` tokens; elevation
+  is communicated by changing the surface colour (`bg-mid` → `bg-card`).
+- **Easings are named `expo` and `spring`** (matching the bundle), not
+  `out-x` / `in-x` / `inout-x`.
 
 ## H. Token export pipeline
 
