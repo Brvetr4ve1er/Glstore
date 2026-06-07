@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHINOBI — Design System · Live Preview</title>
+<meta name="description" content="Live preview of the SHINOBI Shop design system. Torii red, sumi ink, seigaiha wave background, the chibi-ninja mascot, the bilingual nav, the in-store-pickup picker, the Print Queue dashboard, and a working Custom Builder.">
+<meta name="theme-color" content="#CC0000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="./assets/mascot.svg">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   SHINOBI · Design System Live Preview
+   Source: docs/shinobi-rebuild/06-design-system.md
+   Tokens, easings, seigaiha bands, mascot, and the Custom Builder
+   are wired live. Display proxies: Bebas Neue / Anton (free).
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Brand reds */
+  --torii:        #CC0000;
+  --torii-bright: #E00000;
+  --torii-deep:   #A30000;
+  --torii-glow:   rgba(204, 0, 0, 0.30);
+
+  /* Ink */
+  --sumi:    #0E0E0E;
+  --sumi-2:  rgba(14, 14, 14, 0.72);
+  --sumi-3:  rgba(14, 14, 14, 0.50);
+  --sumi-4:  rgba(14, 14, 14, 0.18);
+  --sumi-5:  rgba(14, 14, 14, 0.08);
+  --black:   #000000;
+
+  /* Paper */
+  --washi:   #FAFAF7;
+  --washi-2: #F2F0EA;
+  --washi-3: #E6E3DA;
+
+  /* Night */
+  --indigo:   #0F1A2A;
+  --indigo-2: #16243A;
+  --indigo-3: #1F2F47;
+
+  /* White inks */
+  --white: #FFFFFF;
+  --w90: rgba(255,255,255,0.90);
+  --w70: rgba(255,255,255,0.70);
+  --w60: rgba(255,255,255,0.60);
+  --w50: rgba(255,255,255,0.50);
+  --w30: rgba(255,255,255,0.30);
+  --w20: rgba(255,255,255,0.20);
+  --w10: rgba(255,255,255,0.10);
+  --w05: rgba(255,255,255,0.05);
+
+  /* Accents */
+  --gold:   #D7A33A;
+  --cherry: #FFB5C5;
+  --jade:   #2E8B57;
+
+  /* Status */
+  --ok:   #2E8B57;
+  --warn: #C68A00;
+  --err:  #C0273B;
+  --info: #2F6FB4;
+
+  /* Radii */
+  --r-1: 4px; --r-2: 8px; --r-3: 12px; --r-4: 16px;
+  --r-pill: 9999px; --r-circle: 50%;
+
+  /* Shadows */
+  --e-1: 0 1px 2px rgba(14,14,14,0.06);
+  --e-2: 0 4px 12px rgba(14,14,14,0.10);
+  --e-3: 0 16px 32px -8px rgba(14,14,14,0.16);
+  --e-torii: 0 0 24px var(--torii-glow);
+
+  /* Motion */
+  --d-fast: 120ms; --d-base: 240ms; --d-slow: 520ms;
+  --ease-shuriken: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-koi:      cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-inout:    cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Fonts */
+  --f-display: "Bebas Neue", "Anton", "Impact", system-ui, sans-serif;
+  --f-body:    "Inter", system-ui, sans-serif;
+  --f-kanji:   "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+  --f-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* Seigaiha background URLs */
+  --seigaiha-light: url("./assets/seigaiha-light.svg");
+  --seigaiha-dark:  url("./assets/seigaiha-dark.svg");
+  --seigaiha-red:   url("./assets/seigaiha-red.svg");
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--f-body);
+  color: var(--sumi);
+  background-color: var(--washi);
+  background-image: var(--seigaiha-light);
+  background-size: 96px 48px;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  padding: clamp(16px, 4vw, 56px);
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.wrap { max-width: 1200px; margin: 0 auto; }
+
+/* ── Cover ─────────────────────────────────────── */
+.cover {
+  position: relative;
+  padding: 36px 32px;
+  border: 1px solid var(--sumi-4);
+  border-radius: var(--r-4);
+  background: var(--washi);
+  box-shadow: var(--e-2);
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 24px;
+  align-items: center;
+}
+@media (max-width: 720px) { .cover { grid-template-columns: 1fr; text-align: center; } .cover .mascot-wrap { margin: 0 auto; } }
+.mascot-wrap { width: 140px; height: 140px; }
+.mascot-wrap img { width: 100%; height: auto; display: block; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.18)); }
+.cover h1 { font-family: var(--f-display); font-size: clamp(48px, 8vw, 88px); letter-spacing: 0.04em; line-height: 0.9; color: var(--sumi); text-transform: uppercase; }
+.cover h1 span.k { font-family: var(--f-kanji); font-size: 0.55em; vertical-align: middle; color: var(--torii); margin-left: 0.2em; letter-spacing: 0; }
+.cover p { font-size: 16px; color: var(--sumi-2); margin-top: 12px; max-width: 64ch; }
+.cover .tagline { display: inline-block; font-family: var(--f-display); letter-spacing: 0.1em; color: var(--torii); text-transform: uppercase; font-size: 14px; margin-top: 14px; }
+.badge-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; justify-content: flex-start; }
+@media (max-width: 720px) { .badge-row { justify-content: center; } }
+.bt { font-size: 11px; border: 1px solid var(--sumi-4); border-radius: var(--r-pill); padding: 4px 10px; color: var(--sumi-2); background: var(--washi-2); }
+.bt.red { background: var(--torii); color: var(--white); border-color: var(--torii); }
+
+/* ── Section primitive ─────────────────────────── */
+section { padding: 48px 0; border-top: 1px solid var(--sumi-4); }
+.sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 24px; }
+.sec-num { font-family: var(--f-mono); font-size: 12px; color: var(--torii); }
+.sec-head h2 { font-family: var(--f-display); font-size: clamp(28px, 4vw, 44px); letter-spacing: 0.04em; text-transform: uppercase; color: var(--sumi); }
+.sec-head h2 .k { font-family: var(--f-kanji); font-size: 0.5em; color: var(--torii); margin-left: 0.4em; letter-spacing: 0; }
+.lead { font-size: 15px; color: var(--sumi-2); max-width: 66ch; margin: -8px 0 22px; line-height: 1.7; }
+.lead code, .note code { font-family: var(--f-mono); background: var(--sumi-5); padding: 1px 5px; border-radius: 3px; color: var(--sumi); font-size: 0.9em; }
+.subhead { font-family: var(--f-display); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sumi-3); margin: 24px 0 12px; }
+
+/* ── Colour swatches ───────────────────────────── */
+.colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.chip { border: 1px solid var(--sumi-4); border-radius: var(--r-2); overflow: hidden; background: var(--washi); }
+.chip .fill { height: 64px; border-bottom: 1px solid var(--sumi-4); }
+.chip .meta { padding: 8px 12px; }
+.chip .nm { font-weight: 600; font-size: 13px; }
+.chip .hx { font-family: var(--f-mono); font-size: 11px; color: var(--sumi-3); margin-top: 2px; }
+.chip .rl { font-size: 10px; color: var(--torii); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── Type rows ─────────────────────────────────── */
+.type-row { display: flex; align-items: baseline; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--sumi-5); }
+.type-row .label { font-size: 11px; color: var(--sumi-3); min-width: 200px; letter-spacing: 0.04em; }
+.t-hero    { font-family: var(--f-display); font-size: clamp(40px, 6vw, 72px); letter-spacing: 0.04em; text-transform: uppercase; line-height: 0.9; color: var(--sumi); }
+.t-h2      { font-family: var(--f-display); font-size: 32px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sumi); }
+.t-h3      { font-family: var(--f-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sumi); }
+.t-body    { font-family: var(--f-body); font-size: 16px; color: var(--sumi-2); }
+.t-label   { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sumi-3); font-weight: 600; }
+.t-kanji   { font-family: var(--f-kanji); font-size: 28px; color: var(--torii); font-weight: 700; }
+.t-num     { font-family: var(--f-mono); font-size: 18px; color: var(--sumi); }
+
+/* ── Layout ────────────────────────────────────── */
+.cols2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+@media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+.surfaces { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.surf { border-radius: var(--r-3); border: 1px solid var(--sumi-4); padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; color: var(--sumi); }
+.surf.dark { color: var(--white); border-color: var(--w20); }
+.surf .sn { font-weight: 600; font-size: 13px; }
+.surf .sx { font-family: var(--f-mono); font-size: 11px; opacity: 0.7; }
+
+/* ── Seigaiha bands ────────────────────────────── */
+.band {
+  border-radius: var(--r-3);
+  margin: 8px 0;
+  padding: 32px 28px;
+  background-size: 96px 48px;
+}
+.band-light { background-color: var(--washi-2); background-image: var(--seigaiha-light); color: var(--sumi); }
+.band-dark  { background-color: var(--indigo); background-image: var(--seigaiha-dark);  color: var(--white); }
+.band-red   { background-color: var(--torii);  background-image: var(--seigaiha-red);   color: var(--white); }
+.band h3 { font-family: var(--f-display); font-size: 28px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+.band p { opacity: 0.85; font-size: 14px; max-width: 50ch; }
+
+/* ── Buttons + chips ───────────────────────────── */
+.btn { font-family: var(--f-display); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; border: none; border-radius: var(--r-pill); padding: 12px 24px; cursor: pointer; transition: all var(--d-base) var(--ease-shuriken); display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
+.btn:active { transform: scale(0.96); }
+.btn-torii { background: var(--torii); color: var(--white); }
+.btn-torii:hover { background: var(--torii-bright); box-shadow: var(--e-torii); transform: translateY(-1px); }
+.btn-sumi  { background: var(--sumi); color: var(--white); }
+.btn-sumi:hover { background: var(--black); transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--sumi); border: 1px solid var(--sumi); }
+.btn-outline:hover { background: var(--sumi); color: var(--white); }
+.btn-ghost { background: var(--sumi-5); color: var(--sumi); }
+.btn-ghost:hover { background: var(--sumi-4); }
+.btnrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+.bdgs { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.bdg { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: var(--r-2); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.bd-drop  { background: var(--torii); color: var(--white); }
+.bd-new   { background: var(--gold); color: var(--sumi); }
+.bd-ok    { background: rgba(46,139,87,0.15); color: var(--ok); border: 1px solid rgba(46,139,87,0.30); }
+.bd-sold  { background: rgba(192,39,59,0.15); color: var(--err); border: 1px solid rgba(192,39,59,0.30); }
+.bd-pickup{ background: var(--gold); color: var(--sumi); }
+.bd-w     { background: var(--washi-2); color: var(--sumi); border: 1px solid var(--sumi-4); }
+
+/* AnimeTag — colour per franchise */
+.atag { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--r-pill); font-weight: 600; }
+.at-naruto { background: #F5A623; color: var(--sumi); }
+.at-jjk    { background: #6E3FB1; color: var(--white); }
+.at-onepiece{ background: #E03A3E; color: var(--white); }
+.at-dbz    { background: #FF7F2A; color: var(--sumi); }
+.at-bleach { background: #25B7C7; color: var(--white); }
+.at-aot    { background: #6B7280; color: var(--white); }
+.at-deathnote { background: #2E2E2E; color: var(--white); }
+.at-bluelock  { background: #1E61DC; color: var(--white); }
+
+/* ── Top nav ───────────────────────────────────── */
+.topnav { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-pill); box-shadow: var(--e-1); gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 36px; height: 36px; }
+.brand .word { font-family: var(--f-display); font-size: 26px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sumi); }
+.brand .k { font-family: var(--f-kanji); font-size: 16px; color: var(--torii); margin-left: 4px; }
+.nav-links { display: flex; gap: 8px; }
+.nav-links a { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--sumi); text-decoration: none; padding: 8px 12px; border-radius: var(--r-2); }
+.nav-links a:hover { background: var(--washi-2); }
+.nav-links a.live { color: var(--white); background: var(--torii); }
+.nav-right { display: flex; gap: 8px; align-items: center; }
+.icobtn { width: 38px; height: 38px; border-radius: var(--r-circle); border: 1px solid var(--sumi-4); display: grid; place-items: center; background: var(--washi); cursor: pointer; position: relative; }
+.icobtn:hover { border-color: var(--sumi); box-shadow: var(--e-1); }
+.cart-c { position: absolute; top: -4px; right: -4px; background: var(--torii); width: 16px; height: 16px; border-radius: var(--r-circle); font-size: 9px; display: grid; place-items: center; color: var(--white); font-weight: 700; font-family: var(--f-body); }
+
+/* ── Mobile bottom nav ─────────────────────────── */
+.mbn { display: flex; align-items: center; justify-content: space-around; background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); height: 72px; padding: 0 12px; box-shadow: var(--e-2); }
+.mbn-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 12px; border-radius: var(--r-2); cursor: pointer; min-width: 64px; position: relative; }
+.mbn-item .ic { font-size: 18px; }
+.mbn-item .lb { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--sumi-3); }
+.mbn-item.active { color: var(--torii); }
+.mbn-item.active .lb { color: var(--torii); }
+.mbn-item.active::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 2px; background: var(--torii); border-radius: 2px; }
+
+/* ── Hero ──────────────────────────────────────── */
+.hero { position: relative; border-radius: var(--r-4); overflow: hidden; min-height: 360px; border: 1px solid var(--sumi-4); display: flex; align-items: flex-end; }
+.hero .bg { position: absolute; inset: 0; background-color: var(--indigo); background-image: var(--seigaiha-dark); background-size: 96px 48px; }
+.hero .bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 75% 35%, rgba(204,0,0,0.40), transparent 60%); }
+.hero .content { position: relative; z-index: 2; padding: 36px; color: var(--white); display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; width: 100%; }
+.hero h2 { font-family: var(--f-display); font-size: clamp(36px, 7vw, 72px); letter-spacing: 0.04em; text-transform: uppercase; line-height: 0.9; }
+.hero h2 .k { font-family: var(--f-kanji); font-size: 0.55em; color: var(--torii); margin-left: 0.3em; }
+.hero .sub { font-size: 14px; opacity: 0.85; margin-top: 8px; max-width: 50ch; }
+
+/* ── Category cards ────────────────────────────── */
+.cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (min-width: 768px) { .cats { grid-template-columns: repeat(4, 1fr); } }
+.cat { position: relative; overflow: hidden; border-radius: var(--r-3); border: 1px solid var(--sumi-4); cursor: pointer; display: flex; align-items: flex-end; min-height: 180px; background: var(--washi-2); }
+.cat.big { grid-column: span 2; }
+.cat .cbg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; transition: transform 0.7s var(--ease-shuriken); background: var(--washi-2); }
+.cat:hover .cbg { transform: scale(1.08); }
+.cat .lbl { position: relative; z-index: 2; padding: 16px; width: 100%; background: linear-gradient(to top, rgba(14,14,14,0.85), transparent); color: var(--white); }
+.cat .lbl h4 { font-family: var(--f-display); font-size: clamp(20px, 3vw, 32px); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ── Product cards ─────────────────────────────── */
+.pgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (min-width: 768px) { .pgrid { grid-template-columns: repeat(4, 1fr); } }
+.pcard { background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); overflow: hidden; cursor: pointer; transition: all var(--d-base) var(--ease-shuriken); }
+.pcard:hover, .pcard:focus-within { border-color: var(--torii); box-shadow: var(--e-torii); transform: translateY(-2px); }
+.pcard .aw { aspect-ratio: 3/4; background: var(--washi-2); display: flex; align-items: center; justify-content: center; font-size: 64px; position: relative; }
+.pcard .ptag { position: absolute; top: 10px; left: 10px; }
+.pcard .pickup { position: absolute; top: 10px; right: 10px; }
+.pcard .pb { padding: 12px 14px 14px; border-top: 1px solid var(--sumi-5); }
+.pcard .pn { font-family: var(--f-display); font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sumi); }
+.pcard .pa { font-size: 11px; color: var(--sumi-3); margin: 4px 0 8px; letter-spacing: 0.04em; }
+.pcard .pp { font-family: var(--f-mono); font-size: 16px; color: var(--sumi); font-weight: 600; }
+.pcard.sold .aw { opacity: 0.5; }
+.pcard.sold .pp { color: var(--sumi-3); text-decoration: line-through; }
+
+/* ── Pickup-vs-Delivery picker ─────────────────── */
+.pdp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .pdp { grid-template-columns: 1fr; } }
+.pdp .opt { background: var(--washi); border: 2px solid var(--sumi-4); border-radius: var(--r-3); padding: 18px; cursor: pointer; transition: all var(--d-base) var(--ease-shuriken); }
+.pdp .opt:hover { border-color: var(--sumi-3); }
+.pdp .opt.on { border-color: var(--torii); background: rgba(204,0,0,0.04); box-shadow: var(--e-torii); }
+.pdp .opt .hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pdp .opt .nm { font-family: var(--f-display); font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; }
+.pdp .opt .pr { font-family: var(--f-mono); font-weight: 600; color: var(--torii); }
+.pdp .opt .meta { font-size: 12px; color: var(--sumi-3); }
+.pdp .opt .meta b { color: var(--sumi); }
+
+/* ── Custom Builder ────────────────────────────── */
+.builder { background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-4); overflow: hidden; }
+.builder .step { padding: 18px 20px; border-bottom: 1px solid var(--sumi-5); }
+.builder .step:last-child { border-bottom: none; }
+.builder .step .num { display: inline-block; background: var(--torii); color: var(--white); border-radius: var(--r-circle); width: 22px; height: 22px; line-height: 22px; text-align: center; font-size: 12px; font-weight: 700; margin-right: 8px; }
+.builder .step .lab { font-family: var(--f-display); font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; }
+.builder .opts { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.builder .opt {
+  border: 2px solid var(--sumi-4); padding: 10px 14px; border-radius: var(--r-2); cursor: pointer;
+  font-size: 13px; transition: all var(--d-base) var(--ease-koi); background: var(--washi);
+  display: flex; flex-direction: column; gap: 2px; min-width: 120px;
+}
+.builder .opt b { font-weight: 600; }
+.builder .opt span { font-family: var(--f-mono); font-size: 11px; color: var(--sumi-3); }
+.builder .opt:hover { border-color: var(--sumi-3); transform: translateY(-1px); }
+.builder .opt.on { border-color: var(--torii); background: rgba(204,0,0,0.05); }
+.builder .opt.on b, .builder .opt.on span { color: var(--torii); }
+
+.builder .designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+@media (max-width: 600px) { .builder .designs { grid-template-columns: repeat(2, 1fr); } }
+.builder .design { aspect-ratio: 1/1; border-radius: var(--r-2); border: 2px solid var(--sumi-4); background: var(--washi-2); display: flex; align-items: center; justify-content: center; font-size: 36px; cursor: pointer; transition: all var(--d-base) var(--ease-shuriken); position: relative; }
+.builder .design:hover { border-color: var(--sumi-3); transform: scale(1.02); }
+.builder .design.on { border-color: var(--torii); box-shadow: var(--e-torii); }
+.builder .design .nm { position: absolute; bottom: 4px; left: 4px; right: 4px; text-align: center; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sumi-3); font-weight: 600; }
+
+.builder .summary { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; background: var(--sumi); color: var(--white); }
+.builder .summary .total .num { font-family: var(--f-mono); font-size: 26px; font-weight: 700; }
+.builder .summary .total .lab { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--w70); margin-bottom: 2px; }
+.builder .summary .breakdown { font-size: 11px; color: var(--w50); font-family: var(--f-mono); margin-top: 2px; }
+.builder .summary .actions { display: flex; gap: 10px; }
+
+/* ── Print queue mock ─────────────────────────── */
+.queue { background: var(--sumi); color: var(--white); padding: 18px; border-radius: var(--r-3); font-family: var(--f-mono); font-size: 13px; line-height: 1.8; }
+.queue .ttl { font-family: var(--f-display); font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--torii); margin-bottom: 10px; }
+.queue .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--w10); }
+.queue .row:last-child { border: none; }
+.queue .row .tag { color: var(--gold); }
+.queue .row .ct  { color: var(--w50); }
+
+/* ── Boutique callout ──────────────────────────── */
+.boutique-card { display: grid; grid-template-columns: 200px 1fr; gap: 18px; background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); padding: 18px; align-items: center; }
+@media (max-width: 600px) { .boutique-card { grid-template-columns: 1fr; } }
+.boutique-card .map { aspect-ratio: 16/9; background-color: var(--indigo); background-image: var(--seigaiha-dark); background-size: 96px 48px; border-radius: var(--r-2); display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 42px; }
+.boutique-card h4 { font-family: var(--f-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+.boutique-card .addr { color: var(--sumi-2); font-size: 14px; }
+.boutique-card .meta { display: flex; gap: 16px; margin: 10px 0; font-size: 12px; color: var(--sumi-3); }
+.boutique-card .meta b { color: var(--sumi); }
+
+/* ── Easings demo ──────────────────────────────── */
+.ease-row { background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); padding: 16px; }
+.ease-row b { display: block; color: var(--torii); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.ease-row .cv { font-family: var(--f-mono); font-size: 11px; color: var(--sumi-2); }
+.ease-row p { font-size: 11px; color: var(--sumi-3); margin-top: 6px; }
+.ease-row .hb { height: 4px; border-radius: 2px; background: var(--sumi-5); margin-top: 12px; overflow: hidden; position: relative; }
+.ease-row .hb::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--torii); border-radius: 2px; }
+.ease-row.shuriken .hb::after { transition: width 0.7s var(--ease-shuriken); }
+.ease-row.koi      .hb::after { transition: width 0.7s var(--ease-koi); }
+.ease-row.inout    .hb::after { transition: width 0.7s var(--ease-inout); }
+.ease-row:hover .hb::after { width: 100%; }
+
+/* ── Notes / lists / code ──────────────────────── */
+.note { background: var(--washi-2); border: 1px solid var(--sumi-4); border-radius: var(--r-3); padding: 16px 18px; font-size: 13.5px; color: var(--sumi-2); line-height: 1.7; }
+.note b { color: var(--sumi); }
+.note.good { border-color: rgba(46,139,87,0.30); background: rgba(46,139,87,0.06); }
+.note.warn { border-color: rgba(198,138,0,0.30); background: rgba(198,138,0,0.06); }
+ul.clean { list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; color: var(--sumi-2); line-height: 1.55; }
+ul.clean b { color: var(--sumi); }
+ul.clean .tag { font-family: var(--f-mono); font-size: 11px; color: var(--torii); }
+.code { background: var(--sumi); color: var(--white); border-radius: var(--r-3); padding: 22px; overflow: auto; }
+.code pre { font-family: var(--f-mono); font-size: 12.5px; line-height: 1.8; white-space: pre; color: var(--w80); }
+.code .c { color: var(--w50); } .code .k { color: var(--torii); } .code .v { color: var(--gold); }
+
+footer { padding: 36px 0 8px; text-align: center; font-size: 12px; color: var(--sumi-3); letter-spacing: 0.04em; line-height: 1.7; border-top: 1px solid var(--sumi-4); margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ─── COVER ──────────────────────────────────── -->
+<header class="cover">
+  <div class="mascot-wrap"><img src="./assets/mascot.svg" alt="SHINOBI mascot"></div>
+  <div>
+    <h1>Shinobi<span class="k">忍者</span></h1>
+    <span class="tagline">La Boutique du Guerrier</span>
+    <p>A live preview of the SHINOBI design system: <b>torii red</b> on warm paper, sumi-ink on white, the <b>seigaiha</b> wave pattern, the chibi-ninja mascot, the bilingual FR / EN voice, the pickup-vs-delivery picker, the owner-side print queue and a working Custom Builder. Hover the product cards, toggle the picker, click the builder.</p>
+    <div class="badge-row">
+      <span class="bt red">FR primary · EN v1.1 AR</span>
+      <span class="bt">Glstore FastAPI backend</span>
+      <span class="bt">Custom Builder · live price</span>
+      <span class="bt">In-store pickup, first-class</span>
+      <span class="bt">Bab Ezzouar boutique</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── 01 BRAND ───────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>Brand expression <span class="k">忍</span></h2></div>
+  <p class="lead"><b>Anime warrior streetwear.</b> The brand voice is direct, French-first, scarcity-aware. The visual system is restrained — one red, one ink, one paper, one wave pattern. Kanji <code>忍者</code> appears as an accent next to section titles; never as body content. The mascot is a friend to the wordmark, not a mascot-takeover.</p>
+  <div class="band band-red">
+    <h3>Forge ton univers</h3>
+    <p>A signature seigaiha-red band. White wave pattern at 22 % opacity over <code>#CC0000</code>. Used once or twice per page — never as a full section background.</p>
+  </div>
+  <div class="band band-dark">
+    <h3>L'univers Otaku <span style="font-family:var(--f-kanji);color:var(--torii);font-size:0.7em">忍者</span></h3>
+    <p>Dark indigo band with the white-on-indigo seigaiha. The home page's "drops" section reads on a band like this.</p>
+  </div>
+  <div class="band band-light">
+    <h3>Notre Catalogue</h3>
+    <p>The default surface — warm washi paper, ink seigaiha at 10 % opacity, body-content sits cleanly on top.</p>
+  </div>
+</section>
+
+<!-- ─── 02 COLOUR ──────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Colour system</h2></div>
+  <p class="lead">One brand red (<b>torii</b>), one ink (<b>sumi</b>), one paper (<b>washi</b>), one dark surface (<b>indigo</b>) for the seigaiha band, plus accents (<b>gold</b>, <b>cherry</b>, <b>jade</b>) and a four-status palette.</p>
+
+  <div class="subhead">Brand reds</div>
+  <div class="colors">
+    <div class="chip"><div class="fill" style="background:#CC0000"></div><div class="meta"><div class="nm">Torii</div><div class="hx">#CC0000</div><div class="rl">primary action</div></div></div>
+    <div class="chip"><div class="fill" style="background:#E00000"></div><div class="meta"><div class="nm">Torii bright</div><div class="hx">#E00000</div><div class="rl">hover · signal</div></div></div>
+    <div class="chip"><div class="fill" style="background:#A30000"></div><div class="meta"><div class="nm">Torii deep</div><div class="hx">#A30000</div><div class="rl">pressed</div></div></div>
+  </div>
+
+  <div class="subhead">Ink, paper, night</div>
+  <div class="colors">
+    <div class="chip"><div class="fill" style="background:#0E0E0E"></div><div class="meta"><div class="nm">Sumi</div><div class="hx">#0E0E0E</div><div class="rl">primary text</div></div></div>
+    <div class="chip"><div class="fill" style="background:#FAFAF7"></div><div class="meta"><div class="nm">Washi</div><div class="hx">#FAFAF7</div><div class="rl">page surface</div></div></div>
+    <div class="chip"><div class="fill" style="background:#F2F0EA"></div><div class="meta"><div class="nm">Washi 2</div><div class="hx">#F2F0EA</div><div class="rl">alt surface</div></div></div>
+    <div class="chip"><div class="fill" style="background:#0F1A2A"></div><div class="meta"><div class="nm">Indigo</div><div class="hx">#0F1A2A</div><div class="rl">dark band</div></div></div>
+    <div class="chip"><div class="fill" style="background:#16243A"></div><div class="meta"><div class="nm">Indigo 2</div><div class="hx">#16243A</div><div class="rl">raised dark</div></div></div>
+  </div>
+
+  <div class="subhead">Accents &amp; status</div>
+  <div class="colors">
+    <div class="chip"><div class="fill" style="background:#D7A33A"></div><div class="meta"><div class="nm">Gold</div><div class="hx">#D7A33A</div><div class="rl">drop · rare</div></div></div>
+    <div class="chip"><div class="fill" style="background:#FFB5C5"></div><div class="meta"><div class="nm">Cherry</div><div class="hx">#FFB5C5</div><div class="rl">editorial sakura</div></div></div>
+    <div class="chip"><div class="fill" style="background:#2E8B57"></div><div class="meta"><div class="nm">Jade · OK</div><div class="hx">#2E8B57</div><div class="rl">in stock</div></div></div>
+    <div class="chip"><div class="fill" style="background:#C68A00"></div><div class="meta"><div class="nm">Warn</div><div class="hx">#C68A00</div><div class="rl">low stock</div></div></div>
+    <div class="chip"><div class="fill" style="background:#C0273B"></div><div class="meta"><div class="nm">Err</div><div class="hx">#C0273B</div><div class="rl">sold out</div></div></div>
+    <div class="chip"><div class="fill" style="background:#2F6FB4"></div><div class="meta"><div class="nm">Info</div><div class="hx">#2F6FB4</div><div class="rl">info</div></div></div>
+  </div>
+</section>
+
+<!-- ─── 03 TYPE ────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Type</h2></div>
+  <p class="lead">Three families in role discipline. Display (Bebas Neue proxy) shouts; Inter does the body work; Noto Sans JP carries the <code>忍者</code> accents. When the real custom display face arrives, it drops in via <code>@font-face</code>.</p>
+  <div class="type-row"><span class="label">Hero · display · ls .04em</span><span class="t-hero">Forge ton univers <span class="t-kanji">忍者</span></span></div>
+  <div class="type-row"><span class="label">H2 · display</span><span class="t-h2">Nos collections</span></div>
+  <div class="type-row"><span class="label">H3 · display</span><span class="t-h3">Hoodies oversize</span></div>
+  <div class="type-row"><span class="label">Body · Inter</span><span class="t-body">Heavyweight 400 gsm. Imprimé en boutique. Livraison 48 h après impression.</span></div>
+  <div class="type-row"><span class="label">Micro-label · Inter · ls .16em</span><span class="t-label">Boutique · Custom · Panier · 023 925 014</span></div>
+  <div class="type-row"><span class="label">Kanji accent · Noto Sans JP</span><span class="t-kanji">忍者</span></div>
+  <div class="type-row"><span class="label">Numeric · Mono</span><span class="t-num">2 200 DA · +500 DA recto/verso</span></div>
+</section>
+
+<!-- ─── 04 SURFACES + Z ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Surfaces &amp; layout</h2></div>
+  <div class="cols2">
+    <div>
+      <div class="subhead">Surfaces (light vs dark)</div>
+      <div class="surfaces">
+        <div class="surf" style="background:var(--washi)"><div class="sn">Washi</div><div class="sx">#FAFAF7</div></div>
+        <div class="surf" style="background:var(--washi-2)"><div class="sn">Washi 2</div><div class="sx">#F2F0EA</div></div>
+        <div class="surf dark" style="background:var(--indigo)"><div class="sn">Indigo</div><div class="sx">#0F1A2A</div></div>
+        <div class="surf dark" style="background:var(--indigo-2)"><div class="sn">Indigo 2</div><div class="sx">#16243A</div></div>
+        <div class="surf" style="background:var(--torii);color:var(--white)"><div class="sn">Torii</div><div class="sx">#CC0000</div></div>
+      </div>
+      <div class="note" style="margin-top:12px">Container <code>w-[90%]</code> · section <code>py-12 → py-24</code> · product grid <code>cols-2 md:cols-3 lg:cols-4</code> · category grid <code>cols-2 md:cols-4</code> with the lead card <code>col-span-2</code>.</div>
+    </div>
+    <div>
+      <div class="subhead">Z-index ladder</div>
+      <ul class="clean">
+        <li><b>z-10</b> content · <b>z-20</b> marquee / hero text</li>
+        <li><b>z-30</b> image overlays · <b>z-40</b> nav gradient (no-pointer)</li>
+        <li><b>z-50</b> nav · mobile bottom bar</li>
+        <li><b>z-60</b> dropdowns · cart drawer</li>
+        <li><b>z-100</b> modal overlay · <b>z-110</b> modal surface</li>
+        <li><b>z-200</b> takeover (drop landing)</li>
+        <li><b>z-9999</b> toasts · top modal</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 05 NAV ─────────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Navigation</h2></div>
+  <p class="lead">Top nav is a soft pill with the mascot + wordmark on the left, primary FR routes in the middle, and the utility cluster (search · compte · favoris · panier) on the right. Mobile collapses into a bottom nav.</p>
+
+  <div class="subhead">Top nav (desktop)</div>
+  <div class="topnav">
+    <div class="brand">
+      <img src="./assets/mascot.svg" alt="">
+      <div class="word">Shinobi<span class="k">忍者</span></div>
+    </div>
+    <div class="nav-links">
+      <a href="#">Boutique</a>
+      <a href="#" class="live">Custom</a>
+      <a href="#">Drops</a>
+      <a href="#">Journal</a>
+      <a href="#">Notre shop</a>
+      <a href="#">Aide</a>
+    </div>
+    <div class="nav-right">
+      <button class="icobtn" aria-label="Recherche">🔍</button>
+      <button class="icobtn" aria-label="Compte">👤</button>
+      <button class="icobtn" aria-label="Favoris">♡</button>
+      <button class="icobtn" aria-label="Panier">🛒<span class="cart-c">3</span></button>
+    </div>
+  </div>
+
+  <div class="subhead" style="margin-top:24px">Mobile bottom nav</div>
+  <div class="mbn" style="max-width: 480px; margin: 0 auto;">
+    <div class="mbn-item active"><span class="ic">🛍</span><span class="lb">Boutique</span></div>
+    <div class="mbn-item"><span class="ic">✦</span><span class="lb">Custom</span></div>
+    <div class="mbn-item"><span class="ic">🔍</span><span class="lb">Search</span></div>
+    <div class="mbn-item"><span class="ic">♡</span><span class="lb">Favoris</span></div>
+    <div class="mbn-item"><span class="ic">👤</span><span class="lb">Compte</span></div>
+  </div>
+</section>
+
+<!-- ─── 06 HERO + CATEGORIES ──────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Hero &amp; categories</h2></div>
+  <div class="hero">
+    <div class="bg"></div>
+    <div class="content">
+      <div>
+        <h2>Drop · Ramadan <span class="k">忍</span></h2>
+        <p class="sub">Une capsule limitée pour le mois sacré. Cinq pièces, livrées avec un mug surprise. Disponible le vendredi à 20 h.</p>
+      </div>
+      <button class="btn btn-torii">Voir le drop →</button>
+    </div>
+  </div>
+
+  <div style="margin-top:18px"></div>
+  <div class="cats">
+    <div class="cat big"><div class="cbg" style="background:linear-gradient(135deg,#1F2F47,#0F1A2A)">🥷</div><div class="lbl"><h4>Hoodies oversize</h4></div></div>
+    <div class="cat"><div class="cbg" style="background:linear-gradient(135deg,#CC0000,#A30000)">👕</div><div class="lbl"><h4>T-shirts</h4></div></div>
+    <div class="cat"><div class="cbg" style="background:linear-gradient(135deg,#F2F0EA,#E6E3DA);color:var(--sumi)">☕</div><div class="lbl"><h4>Mugs</h4></div></div>
+  </div>
+</section>
+
+<!-- ─── 07 PRODUCT GRID ────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Product grid</h2></div>
+  <p class="lead">Cards on warm paper, 3:4 portrait, anime franchise pills, mono prices in DA. Hover lifts the card with a torii glow. Sold-out is greyed + struck. Pickup-only accessories carry a gold pill.</p>
+  <div class="pgrid">
+    <div class="pcard" tabindex="0">
+      <div class="aw">
+        🥷
+        <span class="atag at-jjk ptag">JJK</span>
+      </div>
+      <div class="pb">
+        <div class="pn">Gojo Tee</div>
+        <div class="pa">Oversize · Black</div>
+        <div class="pp">2 200 DA</div>
+      </div>
+    </div>
+    <div class="pcard" tabindex="0">
+      <div class="aw">
+        🍜
+        <span class="atag at-onepiece ptag">One Piece</span>
+        <span class="bdg bd-new pickup">Nouveau</span>
+      </div>
+      <div class="pb">
+        <div class="pn">Luffy Wanted</div>
+        <div class="pa">Oversize · White</div>
+        <div class="pp">2 200 DA</div>
+      </div>
+    </div>
+    <div class="pcard sold" tabindex="0">
+      <div class="aw">
+        🍃
+        <span class="atag at-naruto ptag">Naruto</span>
+        <span class="bdg bd-sold pickup">Sold out</span>
+      </div>
+      <div class="pb">
+        <div class="pn">Kakashi Warrior</div>
+        <div class="pa">Oversize · Black</div>
+        <div class="pp">2 200 DA</div>
+      </div>
+    </div>
+    <div class="pcard" tabindex="0">
+      <div class="aw">
+        ⚔
+        <span class="atag at-deathnote ptag">Death Note</span>
+        <span class="bdg bd-pickup pickup">En boutique</span>
+      </div>
+      <div class="pb">
+        <div class="pn">Katana display</div>
+        <div class="pa">Bab Ezzouar · pickup only</div>
+        <div class="pp">9 500 DA</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 08 PICKUP-OR-DELIVERY PICKER ───────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">08</span><h2>Pickup or delivery</h2></div>
+  <p class="lead">A first-class checkout primitive — never hidden under "options". Click to toggle.</p>
+  <div class="pdp" id="pdpdemo">
+    <div class="opt on" data-pdp="pickup">
+      <div class="hd"><span class="nm">Retrait en boutique</span><span class="pr">0 DA</span></div>
+      <div class="meta"><b>Centre Commercial Bab Ezzouar</b> · prêt en 3 – 4 jours · SMS quand prêt.</div>
+    </div>
+    <div class="opt" data-pdp="delivery">
+      <div class="hd"><span class="nm">Livraison à domicile</span><span class="pr">690 DA</span></div>
+      <div class="meta"><b>58 wilayas</b> · 48 h après impression · paiement à la livraison.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 09 BUTTONS + BADGES ────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">09</span><h2>Buttons, badges &amp; anime tags</h2></div>
+  <div class="bdgs" style="margin-bottom:14px">
+    <span class="bdg bd-drop">Drop · Ramadan</span>
+    <span class="bdg bd-new">Nouveau</span>
+    <span class="bdg bd-ok">En stock</span>
+    <span class="bdg bd-sold">Sold out</span>
+    <span class="bdg bd-pickup">Retrait en boutique</span>
+    <span class="bdg bd-w">Alger</span>
+  </div>
+  <div class="bdgs" style="margin-bottom:18px">
+    <span class="atag at-naruto">Naruto</span>
+    <span class="atag at-jjk">JJK</span>
+    <span class="atag at-onepiece">One Piece</span>
+    <span class="atag at-dbz">DBZ</span>
+    <span class="atag at-bleach">Bleach</span>
+    <span class="atag at-aot">AOT</span>
+    <span class="atag at-deathnote">Death Note</span>
+    <span class="atag at-bluelock">Blue Lock</span>
+  </div>
+  <div class="btnrow">
+    <button class="btn btn-torii">Ajouter au panier · 2 200 DA</button>
+    <button class="btn btn-sumi">Voir le drop</button>
+    <button class="btn btn-outline">Continuer mes achats</button>
+    <button class="btn btn-ghost">♡ Favoris</button>
+  </div>
+</section>
+
+<!-- ─── 10 CUSTOM BUILDER (THE MOAT) ──────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">10</span><h2>Custom Builder <span class="k">忍</span></h2></div>
+  <p class="lead">The brand's moat — productises the in-shop custom-print service. Pick a base → design → side(s) → size, the price chip updates from the owner's table (T-shirt 2 200, sweat 3 300, pull 2 800, mug/tote 1 000; +500 recto/verso). Try it.</p>
+  <div class="builder" id="builder">
+    <div class="step">
+      <div class="lab"><span class="num">1</span> Choisis ta base</div>
+      <div class="opts" id="bases">
+        <div class="opt on" data-base="tshirt" data-price="2200"><b>T-shirt</b><span>2 200 DA</span></div>
+        <div class="opt" data-base="sweat" data-price="3300"><b>Sweatshirt</b><span>3 300 DA</span></div>
+        <div class="opt" data-base="pull"  data-price="2800"><b>Pull</b><span>2 800 DA</span></div>
+        <div class="opt" data-base="tote"  data-price="1000"><b>Tote bag</b><span>1 000 DA</span></div>
+        <div class="opt" data-base="mug"   data-price="1000"><b>Mug</b><span>1 000 DA</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="lab"><span class="num">2</span> Choisis le design</div>
+      <div class="designs" id="designs">
+        <div class="design on" data-design="gojo">🥷<span class="nm">Gojo · JJK</span></div>
+        <div class="design" data-design="sukuna">👹<span class="nm">Sukuna · JJK</span></div>
+        <div class="design" data-design="goku">⚡<span class="nm">Goku · DBZ</span></div>
+        <div class="design" data-design="luffy">🏴‍☠️<span class="nm">Luffy · One Piece</span></div>
+        <div class="design" data-design="naruto">🍃<span class="nm">Naruto</span></div>
+        <div class="design" data-design="ryuk">💀<span class="nm">Ryuk · Death Note</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="lab"><span class="num">3</span> Côté(s) d'impression</div>
+      <div class="opts" id="sides">
+        <div class="opt on"    data-side="single" data-extra="0">  <b>Recto seulement</b><span>+0 DA</span></div>
+        <div class="opt"      data-side="double" data-extra="500"><b>Recto + Verso</b><span>+500 DA</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="lab"><span class="num">4</span> Taille</div>
+      <div class="opts" id="sizes">
+        <div class="opt" data-size="S">  <b>S</b></div>
+        <div class="opt on" data-size="M"><b>M</b></div>
+        <div class="opt" data-size="L">  <b>L</b></div>
+        <div class="opt" data-size="XL"> <b>XL</b></div>
+        <div class="opt" data-size="XXL"><b>XXL</b></div>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="total">
+        <div class="lab">Total</div>
+        <span class="num" id="total">2 200 DA</span>
+        <div class="breakdown" id="brk">T-shirt 2 200 · Gojo · recto · M</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" style="border-color:var(--w20);color:var(--white)">Garder le devis</button>
+        <button class="btn btn-torii">Ajouter au panier</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 11 PRINT QUEUE ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">11</span><h2>Owner Print Queue (admin)</h2></div>
+  <p class="lead">A single screen the owner runs the print day from. Custom orders auto-group by <code>base × design × side × size</code> so a batch of 3 Gojo recto/verso M is one job, not three. Status transitions update the buyer-facing tracking page in real time.</p>
+  <div class="queue">
+    <div class="ttl">Print queue — 12 ouvertes · 4 prêtes</div>
+    <div class="row"><span>[T-shirt · noir · M] <span class="tag">Gojo</span> · recto + verso</span><span class="ct">× 3 · ETA mar 14h</span></div>
+    <div class="row"><span>[Sweat · noir · L] <span class="tag">Sukuna</span> · recto</span><span class="ct">× 1 · ETA mar 16h</span></div>
+    <div class="row"><span>[Mug · blanc] <span class="tag">Luffy</span> · recto</span><span class="ct">× 2 · prêt · pickup</span></div>
+    <div class="row"><span>[Pull · noir · M] <span class="tag">Naruto</span> · recto</span><span class="ct">× 1 · ETA mer 11h</span></div>
+    <div class="row"><span>[T-shirt · blanc · L] <span class="tag">Ryuk</span> · recto + verso</span><span class="ct">× 1 · attribué</span></div>
+  </div>
+</section>
+
+<!-- ─── 12 BOUTIQUE (LOCALBUSINESS) ────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">12</span><h2>Notre Boutique <span class="k">店</span></h2></div>
+  <p class="lead">The Bab Ezzouar shop is an asset, not just an address. <code>/boutique</code> ships with a <code>LocalBusiness</code> JSON-LD (hours, geo, priceRange) so Google's Knowledge Panel surfaces SHINOBI for "boutique anime Alger".</p>
+  <div class="boutique-card">
+    <div class="map">🗺️</div>
+    <div>
+      <h4>Centre Commercial Bab Ezzouar</h4>
+      <div class="addr">Bab Ezzouar, Alger, Algérie · 023 925 014</div>
+      <div class="meta">
+        <span><b>Lun – Sam</b> · 10 h – 20 h</span>
+        <span><b>Dim</b> · 14 h – 20 h</span>
+      </div>
+      <div class="btnrow">
+        <button class="btn btn-torii">Itinéraire Maps</button>
+        <button class="btn btn-ghost">@shinobishopdz · DM</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 13 MOTION ──────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">13</span><h2>Motion</h2></div>
+  <p class="lead">Two named curves. <b>Shuriken</b> snaps in. <b>Koi</b> overshoots and settles. Hover the cards to feel each.</p>
+  <div class="cols2">
+    <div class="ease-row shuriken"><b>Shuriken — primary</b><span class="cv">cubic-bezier(0.16, 1, 0.3, 1)</span><p>Cards, nav reveal, page transitions. Snap in, instant settle.</p><div class="hb"></div></div>
+    <div class="ease-row koi"><b>Koi — delight</b><span class="cv">cubic-bezier(0.34, 1.56, 0.64, 1)</span><p>Size selectors, cart badge, "ajouter" success. Overshoots, returns.</p><div class="hb"></div></div>
+  </div>
+</section>
+
+<!-- ─── 14 DROP-IN TOKENS ──────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">14</span><h2>Drop-in tokens</h2></div>
+  <div class="code">
+<pre><span class="c">/* SHINOBI · brand tokens */</span>
+<span class="k">:root</span> {
+  <span class="c">/* Reds */</span>
+  --torii: <span class="v">#CC0000</span>; --torii-bright: <span class="v">#E00000</span>; --torii-deep: <span class="v">#A30000</span>;
+  --torii-glow: <span class="v">rgba(204, 0, 0, 0.30)</span>;
+
+  <span class="c">/* Ink + paper + indigo */</span>
+  --sumi: <span class="v">#0E0E0E</span>; --washi: <span class="v">#FAFAF7</span>; --washi-2: <span class="v">#F2F0EA</span>;
+  --indigo: <span class="v">#0F1A2A</span>; --indigo-2: <span class="v">#16243A</span>;
+
+  <span class="c">/* Accents + status */</span>
+  --gold: <span class="v">#D7A33A</span>; --cherry: <span class="v">#FFB5C5</span>; --jade: <span class="v">#2E8B57</span>;
+
+  <span class="c">/* Easings */</span>
+  --ease-shuriken: <span class="v">cubic-bezier(0.16, 1, 0.3, 1)</span>;
+  --ease-koi:      <span class="v">cubic-bezier(0.34, 1.56, 0.64, 1)</span>;
+}
+
+<span class="k">body</span> {
+  background-color: <span class="v">var(--washi)</span>;
+  background-image:  <span class="v">url(/assets/seigaiha-light.svg)</span>;  <span class="c">/* the wave pattern */</span>
+  background-size:   <span class="v">96px 48px</span>;
+  background-attachment: <span class="v">fixed</span>;
+  font-family: <span class="v">"Inter", system-ui, sans-serif</span>;
+  color: <span class="v">var(--sumi)</span>;
+}
+
+<span class="c">/* Seigaiha bands — used once per page for contrast */</span>
+<span class="k">.band-red</span> { background-color: <span class="v">var(--torii)</span>; background-image: <span class="v">url(/assets/seigaiha-red.svg)</span>; color: <span class="v">#fff</span>; }
+<span class="k">.band-dark</span>{ background-color: <span class="v">var(--indigo)</span>; background-image: <span class="v">url(/assets/seigaiha-dark.svg)</span>; color: <span class="v">#fff</span>; }
+
+<span class="c">/* Custom Builder price quote — single function */</span>
+<span class="k">function</span> quoteCustom(cfg, bases) {
+  <span class="k">const</span> base = bases.find(b =&gt; b.id === cfg.baseId);
+  <span class="k">let</span> total = base.basePrice;
+  <span class="k">if</span> (cfg.doubleSide &amp;&amp; base.doubleSideAllowed) total += 500;
+  <span class="k">return</span> total;
+}</pre>
+  </div>
+</section>
+
+<footer>
+  SHINOBI Design System · Live Preview · <code>docs/shinobi-rebuild/preview/index.html</code><br>
+  Source of truth: <code>docs/shinobi-rebuild/00-source-data.md</code> · <code>06-design-system.md</code> · <code>07-component-library.md §6</code>
+</footer>
+
+</div>
+
+<script>
+/* Pickup-vs-delivery picker — visual toggle. */
+document.getElementById('pdpdemo').addEventListener('click', e => {
+  const opt = e.target.closest('.opt[data-pdp]');
+  if (!opt) return;
+  opt.parentNode.querySelectorAll('.opt').forEach(o => o.classList.remove('on'));
+  opt.classList.add('on');
+});
+
+/* Custom Builder — live quote (mirrors the spec's quoteCustom). */
+const builder = document.getElementById('builder');
+function single(group) {
+  return group.querySelector('.opt.on');
+}
+function recompute() {
+  const b = single(document.getElementById('bases'));
+  const s = single(document.getElementById('sides'));
+  const z = single(document.getElementById('sizes'));
+  const d = document.querySelector('#designs .design.on');
+  const base = parseInt(b.dataset.price, 10);
+  const extra = parseInt(s.dataset.extra, 10);
+  const total = base + extra;
+  document.getElementById('total').textContent =
+    total.toLocaleString('fr-FR').replace(/,/g, ' ') + ' DA';
+  document.getElementById('brk').textContent =
+    `${b.querySelector('b').textContent} ${base} · ${d.querySelector('.nm').textContent.split(' ·')[0]} · ${s.dataset.side === 'double' ? 'recto + verso' : 'recto'}${z ? ' · ' + z.dataset.size : ''}`;
+}
+function bindGroup(id) {
+  document.getElementById(id).addEventListener('click', e => {
+    const opt = e.target.closest('.opt');
+    if (!opt) return;
+    opt.parentNode.querySelectorAll('.opt').forEach(o => o.classList.remove('on'));
+    opt.classList.add('on');
+    recompute();
+  });
+}
+['bases','sides','sizes'].forEach(bindGroup);
+document.getElementById('designs').addEventListener('click', e => {
+  const d = e.target.closest('.design');
+  if (!d) return;
+  document.querySelectorAll('#designs .design').forEach(x => x.classList.remove('on'));
+  d.classList.add('on');
+  recompute();
+});
+recompute();
+</script>
+</body>
+</html>
