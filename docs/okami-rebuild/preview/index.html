@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKAMI — Design System v2 · Live Preview</title>
+<meta name="description" content="Live, source-verified preview of the OKAMI Streetwear design system (v2). Renders the wallpaper recipe, the 7-colour semantic palette, the two custom easings, the greyscale → colour signature, the 3D flip and the aurora orbs.">
+<meta name="theme-color" content="#1E1623">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   OKAMI · Design System v2 · LIVE PREVIEW
+   Source: docs/okami-rebuild/00-extracted-design-system.md
+   Tokens, recipes, easings and signature interactions match the spec
+   1:1. OKAMI / Streetwear faces fall back to Anton / Bebas Neue
+   (free Google Fonts) when the real .otf/.ttf files are not present.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Surfaces (verified) ─────────────────────── */
+  --bg-base:   #1E1623;
+  --bg-deep:   #0A050D;
+  --bg-dark:   #0D0B14;
+  --bg-mid:    #1A1520;
+  --bg-card:   #251F2B;
+  --bg-hover:  #2A2533;
+  --bg-near:   #0A0A0A;
+
+  /* ── Ink ─────────────────────────────────────── */
+  --white: #FFFFFF;
+  --w90: rgba(255,255,255,0.90);
+  --w80: rgba(255,255,255,0.80);
+  --w70: rgba(255,255,255,0.70);
+  --w60: rgba(255,255,255,0.60);
+  --w50: rgba(255,255,255,0.50);
+  --w30: rgba(255,255,255,0.30);
+  --w20: rgba(255,255,255,0.20);
+  --w10: rgba(255,255,255,0.10);
+  --w05: rgba(255,255,255,0.05);
+
+  /* ── Semantic palette (FULL — not green only) ── */
+  --green:  #00C758;
+  --red:    #FB2C36;
+  --orange: #FE6E00;
+  --amber:  #F59E0B;
+  --yellow: #EDB200;
+  --purple: #AC4BFF;
+  --blue:   #3080FF;
+
+  /* ── Glows (elevation; no box-shadow scale) ──── */
+  --glow-w-sm: 0 0 15px rgba(255,255,255,0.10);
+  --glow-w-md: 0 0 20px rgba(255,255,255,0.20);
+  --glow-w-lg: 0 0 30px rgba(255,255,255,0.30);
+  --glow-w-xl: 0 0 50px rgba(255,255,255,0.30);
+  --glow-green: 0 0 15px rgba(0,199,88,0.30);
+  --glow-red:   0 0 30px rgba(251,44,54,0.40);
+
+  /* ── Radii ───────────────────────────────────── */
+  --r-sm: 6px; --r-md: 9px; --r-lg: 16px; --r-xl: 24px; --r-2xl: 32px; --r-pill: 999px;
+
+  /* ── Custom easings (verified) ───────────────── */
+  --ease-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Fonts (with proxies) ────────────────────── */
+  --f-okami:  'Anton', 'Bebas Neue', Impact, sans-serif;       /* default body */
+  --f-street: 'Bebas Neue', Impact, sans-serif;                /* nav / CTA / marquee */
+  --f-inter:  'Inter', system-ui, sans-serif;                  /* body copy / labels / admin */
+
+  /* ── Letter-spacing scale ────────────────────── */
+  --ls-tight: -0.025em;
+  --ls-1: 0.1em; --ls-2: 0.2em; --ls-3: 0.3em; --ls-4: 0.4em; --ls-5: 0.5em;
+}
+
+/* ── Reset ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+/* ── Body — external SVG wallpaper, FIXED attachment (✦ corrected) ── */
+body {
+  font-family: var(--f-okami);
+  color: #fff;
+  background-color: var(--bg-base);
+  background-image:    url("./assets/wallpaper.svg");
+  background-position: top;
+  background-repeat:   repeat;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  padding: clamp(16px, 4vw, 56px);
+}
+
+/* mix-blend-overlay grain noise (verified) */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.wrap { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+
+h1, h2, h3, .okami { font-family: var(--f-okami); letter-spacing: var(--ls-3); text-transform: uppercase; }
+.eyebrow { font-family: var(--f-inter); font-size: 11px; letter-spacing: var(--ls-4); text-transform: uppercase; color: var(--w50); }
+.muted { color: var(--w50); }
+
+/* ── Cover ─────────────────────────────────────── */
+.cover { padding: 52px 0 44px; }
+.cover .logo { font-family: var(--f-okami); font-size: clamp(54px, 13vw, 120px); letter-spacing: var(--ls-5); line-height: 0.82; text-transform: uppercase; }
+.cover .logo b { color: var(--purple); -webkit-text-stroke: 0; }
+.cover p { font-family: var(--f-inter); font-size: clamp(14px, 1.6vw, 17px); color: var(--w70); max-width: 64ch; margin-top: 18px; line-height: 1.65; font-weight: 400; }
+.prov { margin-top: 20px; background: rgba(0,199,88,0.06); border: 1px solid rgba(0,199,88,0.25); border-radius: var(--r-md); padding: 14px 16px; font-family: var(--f-inter); font-size: 12.5px; color: var(--w70); line-height: 1.65; }
+.prov b { color: var(--green); }
+.badge-row { display: flex; gap: 9px; margin-top: 18px; flex-wrap: wrap; }
+.bt { font-family: var(--f-inter); font-size: 11px; border: 1px solid var(--w20); border-radius: var(--r-pill); padding: 5px 13px; color: var(--w70); }
+
+section { padding: 50px 0; border-top: 1px solid var(--w10); }
+.sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 26px; }
+.sec-num { font-family: var(--f-inter); font-size: 12px; color: var(--purple); }
+.sec-head h2 { font-size: clamp(22px, 3vw, 32px); letter-spacing: var(--ls-3); }
+.lead { font-family: var(--f-inter); font-size: 14px; color: var(--w50); max-width: 66ch; margin: -12px 0 22px; line-height: 1.7; }
+.lead code, .note code { font-family: 'Courier New', monospace; background: var(--w05); padding: 1px 5px; border-radius: 4px; color: var(--w80); font-size: 0.92em; }
+.subhead { font-family: var(--f-inter); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--w30); margin: 24px 0 12px; }
+
+/* ── Colour swatches ──────────────────────────── */
+.colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 12px; }
+.chip { border: 1px solid var(--w10); border-radius: var(--r-md); overflow: hidden; }
+.chip .fill { height: 66px; }
+.chip .meta { padding: 9px 11px; background: var(--bg-card); }
+.chip .nm { font-family: var(--f-inter); font-weight: 600; font-size: 13px; }
+.chip .hx { font-family: var(--f-inter); font-size: 11px; color: var(--w50); margin-top: 2px; }
+.chip .rl { font-family: var(--f-inter); font-size: 10px; color: var(--purple); margin-top: 3px; }
+
+/* ── Type rows ────────────────────────────────── */
+.type-row { display: flex; align-items: baseline; gap: 18px; padding: 15px 0; border-bottom: 1px solid var(--w10); }
+.type-row .label { font-family: var(--f-inter); font-size: 11px; color: var(--w30); min-width: 170px; letter-spacing: 0.04em; }
+.t-hero    { font-family: var(--f-okami); font-size: clamp(36px, 7vw, 64px); letter-spacing: var(--ls-3); text-transform: uppercase; line-height: 0.88; }
+.t-h2      { font-family: var(--f-okami); font-size: 32px; letter-spacing: var(--ls-3); text-transform: uppercase; }
+.t-h3      { font-family: var(--f-okami); font-size: 22px; letter-spacing: var(--ls-2); text-transform: uppercase; }
+.t-street  { font-family: var(--f-street); font-size: 40px; letter-spacing: var(--ls-2); text-transform: uppercase; }
+.t-body    { font-family: var(--f-inter); font-size: 16px; color: var(--w70); }
+.t-label   { font-family: var(--f-inter); font-size: 11px; letter-spacing: var(--ls-3); text-transform: uppercase; color: var(--w50); }
+
+/* ── Layout / surfaces / z ────────────────────── */
+.cols2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 26px; }
+@media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+.surfaces { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.surf { border-radius: var(--r-lg); border: 1px solid var(--w10); padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; }
+.surf .sn { font-family: var(--f-inter); font-size: 13px; font-weight: 600; }
+.surf .sx { font-family: var(--f-inter); font-size: 11px; color: var(--w50); }
+.zscale { display: flex; flex-direction: column; gap: 6px; }
+.zrow { display: flex; align-items: center; gap: 12px; font-family: var(--f-inter); font-size: 13px; color: var(--w70); }
+.zrow .zn { font-family: 'Courier New', monospace; color: var(--purple); min-width: 90px; }
+.zbar { height: 8px; background: var(--purple); border-radius: 4px; opacity: 0.5; }
+
+/* ── Glows + aurora ───────────────────────────── */
+.glows { display: flex; gap: 18px; flex-wrap: wrap; }
+.glow-card { width: 118px; height: 78px; border-radius: var(--r-md); border: 1px solid var(--w20); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 9px; font-family: var(--f-inter); font-size: 11px; color: var(--w50); background: var(--bg-card); text-align: center; gap: 4px; }
+.aurora { position: relative; height: 190px; border-radius: var(--r-xl); overflow: hidden; border: 1px solid var(--w10); margin-top: 8px; }
+.aurora .orb { position: absolute; border-radius: 50%; filter: blur(60px); mix-blend-mode: overlay; }
+.o1 { width: 240px; height: 240px; background: rgba(172,75,255,0.55); top: -80px; left: -40px; }
+.o2 { width: 170px; height: 170px; background: rgba(0,199,88,0.40);  top:  30px; right: -20px; }
+.o3 { width: 150px; height: 150px; background: rgba(254,110,0,0.35); bottom: -50px; left: 42%; }
+.aurora .lab { position: absolute; bottom: 14px; left: 18px; font-family: var(--f-inter); font-size: 11px; color: var(--w50); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ── Badges + buttons ─────────────────────────── */
+.bdgs { display: flex; gap: 11px; flex-wrap: wrap; align-items: center; }
+.bdg  { font-family: var(--f-inter); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.bd-drop { background: rgba(254,110,0,0.15);  border: 1px solid rgba(254,110,0,0.30);  color: var(--orange); }
+.bd-new  { background: rgba(172,75,255,0.20); border: 1px solid rgba(172,75,255,0.40); color: var(--purple); }
+.bd-ok   { background: rgba(0,199,88,0.10);   border: 1px solid rgba(0,199,88,0.30);   color: var(--green); box-shadow: var(--glow-green); }
+.bd-sold { background: rgba(251,44,54,0.10);  border: 1px solid rgba(251,44,54,0.30);  color: var(--red); }
+.bd-gold { background: rgba(245,158,11,0.20); border: 1px solid rgba(245,158,11,0.30); color: var(--amber); }
+.bd-w    { background: rgba(255,255,255,0.08); border: 1px solid var(--w20);            color: #fff; }
+
+.btnrow { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.btn { font-family: var(--f-street); font-size: 15px; letter-spacing: var(--ls-2); text-transform: uppercase; border: none; border-radius: var(--r-pill); padding: 14px 28px; cursor: pointer; transition: all 0.3s var(--ease-expo); display: inline-flex; align-items: center; gap: 8px; }
+.btn:active { transform: scale(0.95); }
+.btn-white { background: #fff; color: #000; }
+.btn-white:hover { box-shadow: var(--glow-w-lg); transform: scale(1.02); }
+.btn-outline { background: transparent; color: #fff; border: 1px solid var(--w20); border-radius: var(--r-sm); letter-spacing: var(--ls-3); }
+.btn-outline:hover { border-color: #fff; background: var(--w05); }
+.btn-ghost { background: var(--w05); color: var(--w70); border: 1px solid var(--w10); }
+.btn-ghost:hover { background: var(--w10); color: #fff; }
+.btn-red { background: var(--red); color: #fff; box-shadow: 0 0 20px rgba(251,44,54,0.30); }
+
+/* ── Nav (floating glass pill) ────────────────── */
+.nav { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; background: rgba(30,22,35,0.80); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--w10); border-radius: var(--r-pill); flex-wrap: wrap; gap: 12px; }
+.nav .left { display: flex; gap: 14px; align-items: center; font-family: var(--f-inter); font-size: 11px; letter-spacing: var(--ls-2); color: var(--w60); text-transform: uppercase; }
+.nav .logo-c { font-family: var(--f-okami); font-size: 24px; letter-spacing: var(--ls-4); }
+.nav .right { display: flex; gap: 12px; align-items: center; }
+.nav .ico { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--w20); display: grid; place-items: center; cursor: pointer; transition: all 0.2s; font-size: 15px; position: relative; }
+.nav .ico:hover { border-color: #fff; box-shadow: var(--glow-w-sm); }
+.cart-c { position: absolute; top: -4px; right: -4px; background: var(--red); width: 16px; height: 16px; border-radius: 50%; font-size: 9px; display: grid; place-items: center; font-family: var(--f-inter); color: #fff; }
+
+/* ── Mobile bottom nav ────────────────────────── */
+.mnav { display: flex; align-items: center; justify-content: center; gap: 64px; background: linear-gradient(0deg, #1E1623 0%, #1E1623 50%, transparent 100%); backdrop-filter: blur(24px); height: 72px; border-top: 1px solid var(--w05); border-radius: var(--r-lg); box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+.mnav .item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: var(--r-lg); cursor: pointer; transition: background 0.2s; min-width: 64px; }
+.mnav .item:hover { background: var(--w05); }
+.mnav .ic { font-size: 18px; }
+.mnav .tx { font-size: 10px; text-transform: uppercase; font-family: var(--f-inter); letter-spacing: var(--ls-3); color: var(--w60); }
+
+/* ── Hero ─────────────────────────────────────── */
+.hero { position: relative; border-radius: var(--r-2xl); overflow: hidden; min-height: 360px; display: flex; align-items: flex-end; border: 1px solid var(--w10); perspective: 1000px; }
+.hero .bg { position: absolute; inset: 0; background: linear-gradient(135deg, #2A1F3A, #140B24); will-change: transform; }
+.hero .bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 70% 35%, rgba(172,75,255,0.30), transparent 60%); }
+.hero .cine { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.4), transparent, rgba(0,0,0,0.2)); }
+.hero .fade { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(30,22,35,0.92) 100%); }
+.hero .content { position: relative; z-index: 2; width: 100%; display: flex; align-items: flex-end; justify-content: space-between; padding: 28px; gap: 20px; flex-wrap: wrap; }
+.hero h2 { font-family: var(--f-okami); font-size: clamp(40px, 8vw, 72px); line-height: 0.85; text-transform: uppercase; letter-spacing: var(--ls-2); color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.55); }
+.hero .order { font-family: var(--f-street); font-size: clamp(20px, 3vw, 30px); background: #fff; color: #000; border: none; border-radius: var(--r-pill); padding: 12px 28px; letter-spacing: var(--ls-1); text-transform: uppercase; cursor: pointer; transition: all 0.3s var(--ease-expo); white-space: nowrap; }
+.hero .order:hover { background: var(--w90); box-shadow: var(--glow-w-lg); }
+
+/* ── Marquee ──────────────────────────────────── */
+.marquee { background: #fff; overflow: hidden; border-radius: var(--r-sm); padding: 14px 0; white-space: nowrap; }
+.marquee .track { display: inline-flex; animation: marqueeMove 18s linear infinite; }
+.marquee span { font-family: var(--f-street); font-weight: 700; color: #000; font-size: 22px; text-transform: uppercase; margin: 0 40px; letter-spacing: var(--ls-1); }
+@keyframes marqueeMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── Category cards ───────────────────────────── */
+.cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (min-width: 768px) { .cats { grid-template-columns: repeat(4, 1fr); } }
+.cat { position: relative; overflow: hidden; border-radius: var(--r-sm); border: 1px solid var(--w05); cursor: pointer; display: flex; align-items: flex-end; min-height: 180px; }
+.cat.big { grid-column: span 2; }
+.cat .cbg { position: absolute; inset: 0; transition: transform 0.7s var(--ease-expo); display: flex; align-items: center; justify-content: center; font-size: 60px; }
+.cat:hover .cbg { transform: scale(1.10); }
+.cat .dark { position: absolute; inset: 0; background: rgba(0,0,0,0.30); transition: background 0.3s; }
+.cat:hover .dark { background: rgba(0,0,0,0.10); }
+.cat .shine { position: absolute; inset: 0; background: linear-gradient(to top right, rgba(255,255,255,0.10), transparent 50%); opacity: 0; transition: opacity 0.5s; }
+.cat:hover .shine { opacity: 1; }
+.cat .lbl { position: relative; z-index: 2; width: 100%; padding: 18px; text-align: center; background: linear-gradient(to top, rgba(0,0,0,0.80), transparent); }
+.cat .lbl h4 { font-family: var(--f-okami); font-size: clamp(22px, 3vw, 36px); text-transform: uppercase; letter-spacing: var(--ls-2); line-height: 0.9; }
+
+/* ── Product cards (THE signature: greyscale → colour) ── */
+.pgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (min-width: 768px) { .pgrid { grid-template-columns: repeat(4, 1fr); } }
+.pcard { cursor: pointer; }
+.pcard .aw { aspect-ratio: 3/4; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--w10); position: relative; transition: border-color 0.3s var(--ease-expo), box-shadow 0.3s var(--ease-expo); }
+.pcard:hover .aw, .pcard:focus-within .aw { border-color: var(--w30); box-shadow: var(--glow-w-sm); }
+.pcard .art { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 64px; transition: transform 0.5s var(--ease-expo), filter 0.4s ease; filter: grayscale(0.95) brightness(1.1); }
+.pcard:hover .art, .pcard:focus-within .art { transform: scale(1.10); filter: grayscale(0) brightness(1); } /* ✦ THE SIGNATURE */
+.pcard .ov { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg-base) 0%, var(--bg-base) 8%, transparent 55%); border-radius: var(--r-lg); }
+.pcard .pb { position: absolute; top: 10px; left: 10px; }
+.pcard .pn { font-family: var(--f-okami); font-size: 16px; letter-spacing: var(--ls-2); text-transform: uppercase; margin-top: 10px; }
+.pcard .pc { font-family: var(--f-inter); font-size: 11px; color: var(--w50); margin-top: 3px; letter-spacing: 0.05em; }
+.pcard .pp { font-family: var(--f-okami); font-size: 18px; letter-spacing: var(--ls-1); margin-top: 6px; }
+.pcard.sold .art { filter: grayscale(1) brightness(0.5); }
+.pcard.sold:hover .art { filter: grayscale(1) brightness(0.5); transform: scale(1); }
+.pcard.sold .pp { color: var(--w30); text-decoration: line-through; text-decoration-color: var(--red); }
+
+/* ── 3D card flip ─────────────────────────────── */
+.flip { perspective: 1000px; width: 150px; height: 200px; cursor: pointer; }
+.flip .in { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.7s var(--ease-expo); }
+.flip:hover .in, .flip:focus-within .in { transform: rotateY(180deg); }
+.flip .f, .flip .b { position: absolute; inset: 0; backface-visibility: hidden; border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; border: 1px solid var(--w20); }
+.flip .f { background: var(--bg-card); font-size: 56px; filter: grayscale(0.8); }
+.flip .b { background: linear-gradient(135deg, var(--bg-mid), var(--bg-card)); transform: rotateY(180deg); font-family: var(--f-inter); font-size: 12px; color: var(--w70); padding: 14px; text-align: center; flex-direction: column; gap: 8px; }
+
+/* ── Form + size selector ─────────────────────── */
+.form { background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-xl); padding: 26px; }
+.lbl  { font-family: var(--f-inter); font-size: 11px; letter-spacing: var(--ls-2); text-transform: uppercase; color: var(--w50); display: block; margin-bottom: 8px; }
+.fld  { width: 100%; padding: 13px 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--w20); border-radius: var(--r-md); font-family: var(--f-inter); font-size: 15px; color: #fff; transition: border-color 0.2s, background 0.2s; }
+.fld:focus { outline: none; border-color: #fff; background: var(--w05); }
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 600px) { .fgrid { grid-template-columns: 1fr; } }
+.sizes { display: flex; gap: 10px; flex-wrap: wrap; }
+.sz { font-family: var(--f-okami); font-size: 14px; letter-spacing: var(--ls-2); text-transform: uppercase; width: 46px; height: 46px; border-radius: var(--r-md); border: 1px solid var(--w20); background: transparent; color: var(--w70); cursor: pointer; transition: all 0.2s var(--ease-spring); }
+.sz:hover { border-color: #fff; color: #fff; }
+.sz.on { background: #fff; color: #000; border-color: #fff; transform: scale(1.06); }
+.sz.x  { border-color: var(--w10); color: var(--w20); cursor: not-allowed; text-decoration: line-through; }
+
+/* ── Motion (easing demo) ─────────────────────── */
+.ease-demo { display: flex; gap: 16px; flex-wrap: wrap; }
+.ec { background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-md); padding: 14px 16px; flex: 1; min-width: 200px; font-family: var(--f-inter); }
+.ec b  { display: block; color: var(--purple); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.ec .cv { font-family: 'Courier New', monospace; font-size: 11px; color: var(--w70); }
+.ec p  { font-size: 11px; color: var(--w50); margin-top: 6px; }
+.hb    { height: 4px; border-radius: 2px; background: var(--w10); margin-top: 10px; overflow: hidden; position: relative; }
+.hb::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--purple); border-radius: 2px; transition-property: width; }
+.hb-expo::after   { transition: width 0.6s var(--ease-expo); }
+.hb-spring::after { transition: width 0.6s var(--ease-spring); }
+.ec:hover .hb::after { width: 100%; }
+.logo-pulse { animation: logoPulse 1.5s ease-in-out infinite; display: inline-block; font-family: var(--f-okami); font-size: 40px; letter-spacing: var(--ls-3); }
+@keyframes logoPulse { 0% { opacity: 0.5; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.10); } 100% { opacity: 0.5; transform: scale(0.85); } }
+
+/* ── Notes / lists ────────────────────────────── */
+.note { background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-lg); padding: 18px 20px; font-family: var(--f-inter); font-size: 13.5px; color: var(--w70); line-height: 1.7; }
+.note.good { border-color: rgba(0,199,88,0.25);  background: rgba(0,199,88,0.05); }
+.note.warn { border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.05); }
+ul.clean { list-style: none; display: flex; flex-direction: column; gap: 10px; font-family: var(--f-inter); font-size: 13.5px; color: var(--w70); line-height: 1.55; }
+ul.clean b { color: #fff; }
+ul.clean .tag { font-family: 'Courier New', monospace; font-size: 11px; color: var(--purple); }
+
+/* ── Code block ───────────────────────────────── */
+.code { background: #0A050D; border: 1px solid var(--w10); border-radius: var(--r-lg); padding: 22px; overflow: auto; }
+.code pre { font-family: 'Courier New', monospace; font-size: 12.5px; line-height: 1.8; color: #ccc; white-space: pre; }
+.code .c { color: #5A4870; } .code .k { color: var(--purple); } .code .v { color: #E8A87C; }
+
+/* ── Footer ───────────────────────────────────── */
+footer { padding: 38px 0; text-align: center; font-family: var(--f-inter); font-size: 12px; color: var(--w30); border-top: 1px solid var(--w10); letter-spacing: 0.04em; line-height: 1.7; }
+
+.demo { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+.phero { position: relative; border-radius: var(--r-2xl); overflow: hidden; border: 1px solid var(--w10); display: grid; grid-template-columns: 1fr 1fr; min-height: 340px; }
+@media (max-width: 600px) { .phero { grid-template-columns: 1fr; } }
+.phero .pa { background: linear-gradient(135deg, #2A1F3A, #140B24); display: flex; align-items: center; justify-content: center; font-size: 90px; position: relative; overflow: hidden; }
+.phero .pa::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 60% 40%, rgba(172,75,255,0.25), transparent 65%); }
+.phero .pi { padding: 30px; display: flex; flex-direction: column; justify-content: center; gap: 14px; background: var(--bg-card); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ─── COVER ─────────────────────────────────── -->
+<header class="cover">
+  <div class="logo">OKAMI<b>.</b></div>
+  <div class="eyebrow" style="margin-top: 18px">Design System · v2 · Live Preview · Source-Verified · Algiers Streetwear</div>
+  <p>A working preview of the design system documented in <code>docs/okami-rebuild</code>. Tokens, easings, gradient fades, wallpaper recipe and the brand's two signature interactions (greyscale → colour, 3D card flip) all render live. Hover the product cards, the flip card, the size selector and the easing demos to feel each curve.</p>
+  <div class="prov">
+    <b>✦ What this preview verifies:</b> the body wallpaper is an <em>external SVG</em> with <code>background-attachment: fixed</code> (not a CSS gradient) · the palette has <em>seven</em> semantic colours, not one · easings are <code>--ease-expo</code> and <code>--ease-spring</code> · elevation is glow, not box-shadow · the greyscale → colour and the 3D flip are first-class interactions, not decorations.
+  </div>
+  <div class="badge-row">
+    <span class="bt">React + Vite SPA</span>
+    <span class="bt">Tailwind v4</span>
+    <span class="bt">3 self-hosted fonts</span>
+    <span class="bt">bg #1E1623</span>
+    <span class="bt">Greyscale → Color</span>
+    <span class="bt">3D Flip</span>
+    <span class="bt">2 bezier curves</span>
+    <span class="bt">Meta + TikTok pixels</span>
+  </div>
+</header>
+
+<!-- ─── 01 AESTHETIC ──────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>Aesthetic Direction</h2></div>
+  <p class="lead"><strong>Dark anime streetwear brutalism.</strong> Japanese manga print culture (halftone texture, monochrome restraint) crossed with Western streetwear loudness (oversized condensed type, brutal letter-spacing, white-on-void contrast). Mood: gritty, confident, underground, scarcity-driven. Product art carries all the colour; chrome stays near-monochrome so a grid of tees reads like a gallery wall.</p>
+</section>
+
+<!-- ─── 02 COLOUR ─────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Colour System</h2></div>
+  <p class="lead">One deep purple-black base, a near-monochrome white-ink scale, and a <strong>full semantic palette</strong> reserved for status. Purple <code>#AC4BFF</code> doubles as the brand accent and the aurora-orb colour.</p>
+
+  <div class="subhead">Surfaces (verified)</div>
+  <div class="colors">
+    <div class="chip"><div class="fill" style="background:#1E1623"></div><div class="meta"><div class="nm">Base</div><div class="hx">#1E1623</div><div class="rl">body default</div></div></div>
+    <div class="chip"><div class="fill" style="background:#0A050D"></div><div class="meta"><div class="nm">Deep Void</div><div class="hx">#0A050D</div><div class="rl">hero bleed</div></div></div>
+    <div class="chip"><div class="fill" style="background:#0D0B14"></div><div class="meta"><div class="nm">Dark</div><div class="hx">#0D0B14</div><div class="rl">modals</div></div></div>
+    <div class="chip"><div class="fill" style="background:#1A1520"></div><div class="meta"><div class="nm">Raised</div><div class="hx">#1A1520</div><div class="rl">nav / panels</div></div></div>
+    <div class="chip"><div class="fill" style="background:#251F2B"></div><div class="meta"><div class="nm">Card</div><div class="hx">#251F2B</div><div class="rl">cards</div></div></div>
+    <div class="chip"><div class="fill" style="background:#2A2533"></div><div class="meta"><div class="nm">Hover</div><div class="hx">#2A2533</div><div class="rl">hover</div></div></div>
+    <div class="chip"><div class="fill" style="background:#0A0A0A"></div><div class="meta"><div class="nm">Near-black</div><div class="hx">#0A0A0A</div><div class="rl">footer alt</div></div></div>
+  </div>
+
+  <div class="subhead">Semantic palette (full set)</div>
+  <div class="colors">
+    <div class="chip"><div class="fill" style="background:#00C758"></div><div class="meta"><div class="nm">Available</div><div class="hx">#00C758</div><div class="rl">in stock</div></div></div>
+    <div class="chip"><div class="fill" style="background:#FB2C36"></div><div class="meta"><div class="nm">Sold Out</div><div class="hx">#FB2C36</div><div class="rl">danger</div></div></div>
+    <div class="chip"><div class="fill" style="background:#FE6E00"></div><div class="meta"><div class="nm">Drop</div><div class="hx">#FE6E00</div><div class="rl">limited alert</div></div></div>
+    <div class="chip"><div class="fill" style="background:#F59E0B"></div><div class="meta"><div class="nm">Gold</div><div class="hx">#F59E0B</div><div class="rl">promo</div></div></div>
+    <div class="chip"><div class="fill" style="background:#EDB200"></div><div class="meta"><div class="nm">Yellow</div><div class="hx">#EDB200</div><div class="rl">new badge</div></div></div>
+    <div class="chip"><div class="fill" style="background:#AC4BFF"></div><div class="meta"><div class="nm">Brand Purple</div><div class="hx">#AC4BFF</div><div class="rl">accent / aurora</div></div></div>
+    <div class="chip"><div class="fill" style="background:#3080FF"></div><div class="meta"><div class="nm">Info Blue</div><div class="hx">#3080FF</div><div class="rl">info</div></div></div>
+    <div class="chip"><div class="fill" style="background:#FFFFFF;border-bottom:1px solid var(--w10)"></div><div class="meta"><div class="nm">Ink</div><div class="hx">#FFFFFF</div><div class="rl">text / CTA</div></div></div>
+  </div>
+</section>
+
+<!-- ─── 03 FONTS ──────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Fonts</h2></div>
+  <p class="lead">Three self-hosted faces in <code>/assets/font/</code>. <strong>OKAMI.otf is the default body font</strong>. <strong>Streetwear.ttf</strong> drives nav, CTAs and the marquee. <strong>Inter.ttf</strong> handles body copy, labels and the admin UI. This preview uses <em>Anton</em> + <em>Bebas Neue</em> + <em>Inter</em> as free proxies for the real custom faces.</p>
+  <div class="demo" style="gap: 14px">
+    <div style="background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-lg); padding: 22px">
+      <div class="eyebrow" style="color: var(--purple); margin-bottom: 8px">OKAMI.otf — default body · headings · category labels</div>
+      <div style="font-family: var(--f-okami); font-size: clamp(30px, 6vw, 58px); letter-spacing: 0.3em; text-transform: uppercase; line-height: 0.9">OKAMI STREETWEAR</div>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-lg); padding: 22px">
+      <div class="eyebrow" style="color: var(--orange); margin-bottom: 8px">Streetwear.ttf — nav · CTA · marquee</div>
+      <div style="font-family: var(--f-street); font-size: clamp(26px, 5vw, 48px); letter-spacing: 0.2em; text-transform: uppercase">Wear Anime With Confidence</div>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--w10); border-radius: var(--r-lg); padding: 22px">
+      <div class="eyebrow" style="color: var(--w50); margin-bottom: 8px">Inter.ttf — body copy · labels · admin</div>
+      <div style="font-family: var(--f-inter); font-size: 17px; color: var(--w70)">Handcrafted in Algiers. Limited runs, no restocks. Product descriptions, prices, form inputs, metadata.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 04 TYPE ───────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Type Scale</h2></div>
+  <p class="lead">Everything uppercase. Letter-spacing runs from tight (<code>-0.025em</code>) to brutal (<code>0.5em</code>). Display stacks use <code>line-height: 0.85</code>. Responsive nav pattern: <code>text-sm md:text-base lg:text-2xl xl:text-3xl</code>.</p>
+  <div class="type-row"><span class="label">VW hero · ls 0.4em</span><span style="font-family: var(--f-okami); font-size: clamp(36px, 6vw, 64px); letter-spacing: 0.4em; line-height: 0.85; text-transform: uppercase; color: var(--w30); overflow: hidden; white-space: nowrap">DROP</span></div>
+  <div class="type-row"><span class="label">Hero · text-7xl · ls 0.3em</span><span class="t-hero">LATEST DROP</span></div>
+  <div class="type-row"><span class="label">H2 · text-5xl · ls 0.3em</span><span class="t-h2">Categories</span></div>
+  <div class="type-row"><span class="label">H3 · text-2xl · ls 0.2em</span><span class="t-h3">Hoodies</span></div>
+  <div class="type-row"><span class="label">Streetwear display</span><span class="t-street">Order Now</span></div>
+  <div class="type-row"><span class="label">Body · Inter</span><span class="t-body">Heavyweight 400gsm. Screenprinted original art.</span></div>
+  <div class="type-row"><span class="label">Micro-label · Inter · ls 0.3em</span><span class="t-label">MENU · CART · 5–7 day shipping</span></div>
+</section>
+
+<!-- ─── 05 LAYOUT + Z ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Layout, Surfaces &amp; Z-Index</h2></div>
+  <div class="cols2">
+    <div>
+      <div class="subhead">Surfaces &amp; elevation (colour, not shadow)</div>
+      <div class="surfaces">
+        <div class="surf" style="background: var(--bg-deep)"><div class="sn">Deep</div><div class="sx">#0A050D</div></div>
+        <div class="surf" style="background: var(--bg-base)"><div class="sn">Base</div><div class="sx">#1E1623</div></div>
+        <div class="surf" style="background: var(--bg-mid)"><div class="sn">Raised</div><div class="sx">#1A1520</div></div>
+        <div class="surf" style="background: var(--bg-card)"><div class="sn">Card</div><div class="sx">#251F2B</div></div>
+        <div class="surf" style="background: rgba(30,22,35,0.8); backdrop-filter: blur(20px)"><div class="sn">Glass</div><div class="sx">bg-base/80 + blur20</div></div>
+      </div>
+      <div class="note" style="margin-top: 14px">Container: <code>w-[90%]</code> centred · padding <code>px-6 md:px-8 lg:px-12</code> · section <code>py-20 md:py-24</code>. Product grid <code>grid-cols-2 md:grid-cols-3 lg:grid-cols-4</code>. Category grid <code>cols-2 md:cols-4</code> with the lead card <code>col-span-2</code>.</div>
+    </div>
+    <div>
+      <div class="subhead">Z-index scale (full stack)</div>
+      <div class="zscale">
+        <div class="zrow"><span class="zn">z-10</span>  <div class="zbar" style="width: 18%"></div><span>content</span></div>
+        <div class="zrow"><span class="zn">z-20</span>  <div class="zbar" style="width: 26%"></div><span>marquee · hero text</span></div>
+        <div class="zrow"><span class="zn">z-30</span>  <div class="zbar" style="width: 34%"></div><span>image overlays</span></div>
+        <div class="zrow"><span class="zn">z-40</span>  <div class="zbar" style="width: 42%"></div><span>nav gradient (no-pointer)</span></div>
+        <div class="zrow"><span class="zn">z-50</span>  <div class="zbar" style="width: 52%"></div><span>nav · bottom bar</span></div>
+        <div class="zrow"><span class="zn">z-60</span>  <div class="zbar" style="width: 62%"></div><span>dropdowns</span></div>
+        <div class="zrow"><span class="zn">z-100/110</span><div class="zbar" style="width: 78%"></div><span>cart drawer</span></div>
+        <div class="zrow"><span class="zn">z-200</span> <div class="zbar" style="width: 88%"></div><span>overlays</span></div>
+        <div class="zrow"><span class="zn">z-9999</span><div class="zbar" style="width: 100%"></div><span>toasts · top modal</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 06 BACKGROUND ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Background &amp; Texture</h2></div>
+  <p class="lead">The body background is an external <code>/assets/icons/wallpaper.svg</code> with <code>background-attachment: fixed</code> — the wallpaper stays pinned while content scrolls over it, giving subtle parallax. A <code>mix-blend-overlay</code> grain layer sits on top. Plus the signature gradient fades used to dissolve content into the base colour:</p>
+  <div class="cols2">
+    <div class="note">
+      <b style="color: #fff; font-family: var(--f-inter)">Top nav fade</b><br>
+      <code>linear-gradient(180deg, #1E1623 0%, #1E162380 75%, transparent 100%)</code>
+      <div style="height: 60px; margin-top: 10px; border-radius: var(--r-sm); background: linear-gradient(180deg, #1E1623 0%, #1E162380 75%, transparent 100%); border: 1px solid var(--w10)"></div>
+    </div>
+    <div class="note">
+      <b style="color: #fff; font-family: var(--f-inter)">Bottom nav fade</b><br>
+      <code>linear-gradient(0deg, #1E1623 0%, #1E1623 50%, transparent 100%)</code>
+      <div style="height: 60px; margin-top: 10px; border-radius: var(--r-sm); background: linear-gradient(0deg, #1E1623 0%, #1E1623 50%, transparent 100%); border: 1px solid var(--w10)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 07 GLOW ───────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Glow System</h2></div>
+  <p class="lead">No elevation shadows — glows do the work, both decorative and semantic. White glow = interactive / CTA, green = available, red = sold / danger, purple = aurora orbs (<code>blur(120px)</code> + <code>mix-blend-overlay</code>).</p>
+  <div class="glows" style="margin-bottom: 18px">
+    <div class="glow-card" style="box-shadow: var(--glow-w-sm)">white sm<br><span style="color: var(--w30)">idle</span></div>
+    <div class="glow-card" style="box-shadow: var(--glow-w-lg)">white lg<br><span style="color: var(--w30)">hover / CTA</span></div>
+    <div class="glow-card" style="box-shadow: var(--glow-green)">green<br><span style="color: var(--green)">in stock</span></div>
+    <div class="glow-card" style="box-shadow: var(--glow-red)">red<br><span style="color: var(--red)">sold out</span></div>
+    <div class="glow-card" style="box-shadow: 0 0 30px rgba(172,75,255,0.4)">purple<br><span style="color: var(--purple)">aurora</span></div>
+  </div>
+  <div class="aurora">
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+    <span class="lab">Aurora orbs · blur-[120px] · behind heroes &amp; section breaks</span>
+  </div>
+</section>
+
+<!-- ─── 08 COMPONENTS ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">08</span><h2>Components</h2></div>
+  <div class="demo">
+
+    <div>
+      <div class="subhead">Floating top nav · glass · centred logo</div>
+      <div class="nav">
+        <span class="left">☰ &nbsp; EN / عربي</span>
+        <span class="logo-c" style="position: absolute; left: 50%; transform: translateX(-50%)">OKAMI</span>
+        <span class="right"><span class="ico">🔍</span><span class="ico">🛒<span class="cart-c">3</span></span></span>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Marquee ticker · white bar · black Streetwear text</div>
+      <div class="marquee"><div class="track">
+        <span>Wear Anime Merch With Confidence •</span><span>Limited Drops •</span><span>Made In Algiers •</span>
+        <span>Wear Anime Merch With Confidence •</span><span>Limited Drops •</span><span>Made In Algiers •</span>
+      </div></div>
+    </div>
+
+    <div>
+      <div class="subhead">Hero · perspective-1000 · text mix-blend-overlay</div>
+      <div class="hero">
+        <div class="bg"></div><div class="cine"></div><div class="fade"></div>
+        <div class="content">
+          <h2>LATEST<br>DROP</h2>
+          <button class="order">ORDER NOW</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Category grid · lead col-span-2 · hover scale-110 + shine sweep</div>
+      <div class="cats">
+        <div class="cat big">
+          <div class="cbg" style="background: linear-gradient(135deg, #2A1F3A, #140B24)">🧥</div>
+          <div class="dark"></div><div class="shine"></div>
+          <div class="lbl"><h4>Outfit</h4></div>
+        </div>
+        <div class="cat">
+          <div class="cbg" style="background: linear-gradient(135deg, #1A1F2E, #0F0A2E)">👕</div>
+          <div class="dark"></div><div class="shine"></div>
+          <div class="lbl"><h4>Hoodies</h4></div>
+        </div>
+        <div class="cat">
+          <div class="cbg" style="background: linear-gradient(135deg, #0A1F0A, #0F2E1A)">🌿</div>
+          <div class="dark"></div><div class="shine"></div>
+          <div class="lbl"><h4>Tees</h4></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Product grid · ✦ greyscale → full colour + scale-110 on hover (the signature)</div>
+      <div class="pgrid">
+        <div class="pcard" tabindex="0">
+          <div class="aw">
+            <div class="art" style="background: linear-gradient(135deg, #2A1F3A, #1A0F2E)">🐺</div>
+            <div class="ov"></div>
+            <div class="pb"><span class="bdg bd-drop">Limited</span></div>
+          </div>
+          <div class="pn">Wolf Spirit Hoodie</div>
+          <div class="pc">Hoodies · Drop #04</div>
+          <div class="pp">4 200 DA</div>
+        </div>
+        <div class="pcard" tabindex="0">
+          <div class="aw">
+            <div class="art" style="background: linear-gradient(135deg, #0A1F0A, #0F2E1A)">🌿</div>
+            <div class="ov"></div>
+            <div class="pb"><span class="bdg bd-new">New</span></div>
+          </div>
+          <div class="pn">Forest Tee Vol.2</div>
+          <div class="pc">T-Shirts · Season 3</div>
+          <div class="pp">2 800 DA</div>
+        </div>
+        <div class="pcard sold" tabindex="0">
+          <div class="aw">
+            <div class="art" style="background: linear-gradient(135deg, #2A0A0A, #1A0F0F)">🔥</div>
+            <div class="ov"></div>
+            <div class="pb"><span class="bdg bd-sold">Sold Out</span></div>
+          </div>
+          <div class="pn">Flame Series</div>
+          <div class="pc">T-Shirts · Drop #02</div>
+          <div class="pp">3 500 DA</div>
+        </div>
+        <div class="pcard" tabindex="0">
+          <div class="aw">
+            <div class="art" style="background: linear-gradient(135deg, #1A1F2E, #0F0A2E)">⚡</div>
+            <div class="ov"></div>
+            <div class="pb"><span class="bdg bd-gold">Last 2</span></div>
+          </div>
+          <div class="pn">Electric Hoodie</div>
+          <div class="pc">Hoodies · Drop #05</div>
+          <div class="pp">4 900 DA</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Product detail · size selector (spring ease) · sold-out struck through</div>
+      <div class="phero">
+        <div class="pa">🐺</div>
+        <div class="pi">
+          <div style="font-family: var(--f-inter); font-size: 11px; letter-spacing: var(--ls-3); text-transform: uppercase; color: var(--orange)">Drop #04 · Limited Edition</div>
+          <div style="font-family: var(--f-okami); font-size: clamp(26px, 4vw, 40px); letter-spacing: var(--ls-2); text-transform: uppercase; line-height: 0.9">Wolf Spirit Hoodie</div>
+          <div style="font-family: var(--f-inter); font-size: 14px; color: var(--w50); line-height: 1.6">Heavyweight 400gsm fleece. Original screenprinted art. No restocks.</div>
+          <div style="font-family: var(--f-okami); font-size: 30px; letter-spacing: var(--ls-2)">4 200 DA</div>
+          <div>
+            <div class="lbl">Size</div>
+            <div class="sizes">
+              <span class="sz x">XS</span>
+              <span class="sz">S</span>
+              <span class="sz on">M</span>
+              <span class="sz">L</span>
+              <span class="sz">XL</span>
+              <span class="sz x">XXL</span>
+            </div>
+          </div>
+          <div class="btnrow">
+            <button class="btn btn-white" style="flex: 1; justify-content: center">Add to Cart</button>
+            <button class="btn btn-outline">♡</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Actions &amp; badges</div>
+      <div class="bdgs" style="margin-bottom: 16px">
+        <span class="bdg bd-drop">Limited Drop</span>
+        <span class="bdg bd-new">New</span>
+        <span class="bdg bd-ok">In Stock</span>
+        <span class="bdg bd-sold">Sold Out</span>
+        <span class="bdg bd-gold">Last Pieces</span>
+        <span class="bdg bd-w">Algiers</span>
+      </div>
+      <div class="btnrow">
+        <button class="btn btn-white">Add to Cart</button>
+        <button class="btn btn-outline">View Details</button>
+        <button class="btn btn-ghost">Continue Shopping</button>
+        <button class="btn btn-red">Sold Out</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="subhead">Mobile bottom nav · h-20 · backdrop-blur-xl · border-t white/5</div>
+      <div class="mnav">
+        <div class="item"><span class="ic">☰</span><span class="tx">Menu</span></div>
+        <div class="item"><span class="ic">🏠</span><span class="tx">Home</span></div>
+        <div class="item"><span class="ic">🛒</span><span class="tx">Cart</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── 09 SIGNATURES ─────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">09</span><h2>Signature Interactions</h2></div>
+  <p class="lead">The two patterns that define the whole feel.</p>
+  <div class="cols2">
+    <div class="note good">
+      <b style="color: var(--green); font-family: var(--f-inter)">① Greyscale → Colour</b><br>
+      Product art defaults to <code>filter: grayscale(0.95) brightness(1.1)</code>. On hover (or focus-within) → <code>grayscale(0)</code> + <code>scale(1.10)</code>; greyscale transitions <code>0.4s ease</code>, scale <code>0.5s expo</code>. Sold-out = <code>grayscale(1) brightness(0.5)</code>, permanent. Hover the product grid above to feel it.
+    </div>
+    <div>
+      <div class="note" style="margin-bottom: 12px">
+        <b style="color: var(--purple); font-family: var(--f-inter)">② 3D Card Flip</b> —
+        <code>perspective: 1000px</code> + <code>preserve-3d</code> + <code>backface-hidden</code>, 700 ms <code>--ease-expo</code>. Hover or tab to the card below ↓
+      </div>
+      <div class="flip" tabindex="0">
+        <div class="in">
+          <div class="f">🐺</div>
+          <div class="b">
+            Wolf Spirit Hoodie<br>
+            <span style="color: var(--green); font-size: 10px">● Available · 4 200 DA</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 10 MOTION ─────────────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">10</span><h2>Motion System</h2></div>
+  <p class="lead">Two custom bezier curves, one infinite logo pulse, hover transitions ~300 ms. Hover the cards to feel each curve.</p>
+  <div class="ease-demo" style="margin-bottom: 22px">
+    <div class="ec">
+      <b>Expo Out — primary</b>
+      <span class="cv">cubic-bezier(0.16, 1, 0.3, 1)</span>
+      <p>Product hover, nav reveal, page transitions. Snappy in, instant settle.</p>
+      <div class="hb hb-expo"></div>
+    </div>
+    <div class="ec">
+      <b>Spring — delight</b>
+      <span class="cv">cubic-bezier(0.34, 1.56, 0.64, 1)</span>
+      <p>Size select, cart badge, add-to-cart. Overshoots, bounces back.</p>
+      <div class="hb hb-spring"></div>
+    </div>
+    <div class="ec">
+      <b>Logo Pulse — infinite</b>
+      <span class="cv">1.5s ease-in-out infinite</span>
+      <p>scale 0.85 → 1.10, opacity 0.5 → 1.0. Breathing brand mark.</p>
+      <div style="margin-top: 8px"><span class="logo-pulse">OKAMI</span></div>
+    </div>
+  </div>
+  <ul class="clean">
+    <li><b>Card image zoom</b> — <span class="tag">scale-110 · 700 ms expo</span></li>
+    <li><b>Category shine sweep</b> — <span class="tag">white/10 gradient · opacity 0 → 1 · 500 ms</span></li>
+    <li><b>Image brighten</b> — <span class="tag">overlay black/30 → black/10 · 300 ms</span></li>
+    <li><b>Button press</b> — <span class="tag">active:scale-95</span></li>
+    <li><b>Marquee</b> — <span class="tag">translateX 0 → -50% · linear infinite</span></li>
+    <li><b>Page transition</b> — <span class="tag">translate-y 200px → 0 + opacity fade</span></li>
+  </ul>
+</section>
+
+<!-- ─── 11 TOKENS DROP-IN ─────────────────────── -->
+<section>
+  <div class="sec-head"><span class="sec-num">11</span><h2>Drop-in Tokens</h2></div>
+  <div class="code">
+<pre><span class="c">/* OKAMI v2 — source-verified tokens */</span>
+<span class="k">@font-face</span> { font-family: <span class="v">OKAMI</span>;      src: url(<span class="v">/assets/font/OKAMI.otf</span>)      format("opentype"); font-display: swap; }
+<span class="k">@font-face</span> { font-family: <span class="v">Streetwear</span>; src: url(<span class="v">/assets/font/streetwear.ttf</span>) format("truetype"); font-display: swap; }
+<span class="k">@font-face</span> { font-family: <span class="v">Inter</span>;      src: url(<span class="v">/assets/font/inter.ttf</span>)      format("truetype"); font-display: swap; }
+
+<span class="k">body</span> {
+  background-color: <span class="v">#1E1623</span>;
+  background-image:    url(<span class="v">/assets/icons/wallpaper.svg</span>);   <span class="c">/* ✦ external asset, NOT a CSS gradient */</span>
+  background-position: top;
+  background-size:     cover;
+  background-attachment: <span class="v">fixed</span>;                            <span class="c">/* ✦ pinned parallax */</span>
+  font-family: <span class="v">OKAMI</span>, -apple-system, sans-serif;
+  color: #fff;
+}
+
+<span class="k">:root</span> {
+  --bg-base: <span class="v">#1E1623</span>; --bg-deep: <span class="v">#0A050D</span>; --bg-dark: <span class="v">#0D0B14</span>;
+  --bg-mid:  <span class="v">#1A1520</span>; --bg-card: <span class="v">#251F2B</span>; --bg-hover:<span class="v">#2A2533</span>;
+
+  --green: <span class="v">#00C758</span>; --red: <span class="v">#FB2C36</span>; --orange: <span class="v">#FE6E00</span>;
+  --amber: <span class="v">#F59E0B</span>; --yellow: <span class="v">#EDB200</span>; --purple: <span class="v">#AC4BFF</span>; --blue: <span class="v">#3080FF</span>;
+
+  --ease-expo:   <span class="v">cubic-bezier(0.16, 1, 0.3, 1)</span>;
+  --ease-spring: <span class="v">cubic-bezier(0.34, 1.56, 0.64, 1)</span>;
+}
+
+<span class="c">/* ✦ THE signature — greyscale → colour */</span>
+<span class="k">.product-img</span>            { filter: grayscale(<span class="v">0.95</span>) brightness(<span class="v">1.1</span>);
+                          transition: filter 0.4s ease, transform 0.5s var(--ease-expo); }
+<span class="k">.product:hover .img</span>      { filter: grayscale(<span class="v">0</span>); transform: scale(<span class="v">1.10</span>); }
+<span class="k">.product.sold .img</span>       { filter: grayscale(<span class="v">1</span>) brightness(<span class="v">0.5</span>); }
+
+<span class="c">/* ✦ 3D flip */</span>
+<span class="k">.flip</span>                   { perspective: 1000px; }
+<span class="k">.flip-inner</span>             { transform-style: preserve-3d; transition: transform 0.7s var(--ease-expo); }
+<span class="k">.flip:hover .flip-inner</span> { transform: rotateY(180deg); }
+<span class="k">.flip-face</span>              { backface-visibility: hidden; }
+
+<span class="c">/* logo pulse */</span>
+<span class="k">@keyframes</span> logoPulse {
+  0%   { opacity: 0.5; transform: scale(0.85); }
+  50%  { opacity: 1;   transform: scale(1.10); }
+  100% { opacity: 0.5; transform: scale(0.85); }
+}</pre>
+  </div>
+</section>
+
+<footer>
+  OKAMI Design System · v2 · Live Preview · <code>docs/okami-rebuild/preview/index.html</code><br>
+  Built from the source-verified spec in <code>docs/okami-rebuild/00-extracted-design-system.md</code>
+</footer>
+
+</div>
+</body>
+</html>
