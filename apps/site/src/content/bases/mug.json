@@ -1,0 +1,9 @@
+{
+  "id": "mug",
+  "name": "Mug céramique",
+  "price": 1000,
+  "doubleSideAllowed": false,
+  "extraDoubleSide": 0,
+  "icon": "☕",
+  "order": 5
+}

@@ -1,0 +1,427 @@
+---
+import Base from '~/layouts/Base.astro';
+import site from '~/content/site.json';
+import { getCollection } from 'astro:content';
+
+const bases = (await getCollection('bases')).sort((a, b) => a.data.order - b.data.order);
+const designs = (await getCollection('designs')).sort((a, b) => a.data.order - b.data.order);
+
+// Embed the catalog in a JSON island so the script can read it without
+// running through any framework. Static + tiny + accessible.
+const catalog = {
+  bases: bases.map(b => b.data),
+  designs: designs.map(d => d.data),
+  contact: {
+    whatsappNumber: site.contact.whatsappNumber,
+    instagram: site.contact.instagram,
+  },
+  brand: site.brand,
+};
+---
+<Base title="Personnaliser" description="Choisis ta base, ton design anime, taille — commande en un clic sur WhatsApp.">
+
+  <section class="band-light" style="padding: var(--s-9) 0;">
+    <div class="wrap text-center">
+      <span class="eyebrow">Custom Builder</span>
+      <h1 class="display" style="font-size: clamp(36px, 6vw, 64px); margin-top: var(--s-3);">
+        Forge ton univers <span class="kanji">{site.brand.kanji}</span>
+      </h1>
+      <p class="muted" style="max-width: 56ch; margin: var(--s-4) auto 0;">
+        4 étapes, prix calculé en direct, commande envoyée sur WhatsApp.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap builder-wrap">
+      <div class="builder card" id="builder">
+
+        <!-- Step 1 — Base -->
+        <div class="step">
+          <h2 class="step-label"><span class="num">1</span> Choisis ta base</h2>
+          <div class="opts" id="bases">
+            {bases.map((b, i) => (
+              <button class:list={['opt opt-base', i === 0 && 'on']} data-base={b.data.id}>
+                <span class="icon">{b.data.icon}</span>
+                <span class="name">{b.data.name}</span>
+                <span class="price">{b.data.price.toLocaleString('fr-FR').replace(/,/g, ' ')} DA</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <!-- Step 2 — Design -->
+        <div class="step">
+          <h2 class="step-label"><span class="num">2</span> Choisis le design</h2>
+          <div class="designs" id="designs">
+            {designs.map((d, i) => (
+              <button class:list={['design', i === 0 && 'on']} data-design={d.data.id}>
+                <span class="img">{d.data.image}</span>
+                <span class="meta">
+                  <span class="dn">{d.data.name}</span>
+                  <span class="da">{d.data.anime}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <!-- Step 3 — Side -->
+        <div class="step" id="step-side">
+          <h2 class="step-label"><span class="num">3</span> Côté(s) d'impression</h2>
+          <div class="opts">
+            <button class="opt on" data-side="single"><b>Recto seulement</b><span>+ 0 DA</span></button>
+            <button class="opt"    data-side="double"><b>Recto + Verso</b><span>+ 500 DA</span></button>
+          </div>
+        </div>
+
+        <!-- Step 4 — Size -->
+        <div class="step" id="step-size">
+          <h2 class="step-label"><span class="num">4</span> Taille</h2>
+          <div class="opts" id="sizes">
+            <button class="opt size" data-size="S">S</button>
+            <button class="opt size on" data-size="M">M</button>
+            <button class="opt size" data-size="L">L</button>
+            <button class="opt size" data-size="XL">XL</button>
+            <button class="opt size" data-size="XXL">XXL</button>
+          </div>
+        </div>
+
+        <!-- Step 5 — Colour -->
+        <div class="step">
+          <h2 class="step-label"><span class="num">5</span> Couleur</h2>
+          <div class="opts">
+            <button class="opt on" data-colour="Noir">Noir</button>
+            <button class="opt"    data-colour="Blanc">Blanc</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sticky summary -->
+      <aside class="summary">
+        <div class="sum-card">
+          <span class="eyebrow" style="color: var(--w70);">Total</span>
+          <div class="total" id="total">2 200 DA</div>
+          <div class="brk muted" id="brk">T-shirt oversize · Gojo · recto · M · Noir</div>
+
+          <div class="actions">
+            <a href="#" id="wa-btn" class="btn btn-wa" target="_blank" rel="noreferrer">
+              💬 Commander sur WhatsApp
+            </a>
+            <button id="copy-btn" class="btn btn-ghost" type="button">
+              📋 Copier la commande
+            </button>
+            <a id="ig-btn" href={`https://www.instagram.com/${site.contact.instagram}/`} target="_blank" rel="noreferrer" class="btn btn-ig">
+              📸 DM Instagram
+            </a>
+          </div>
+
+          <p class="hint muted">
+            La commande est pré-remplie dans WhatsApp.
+            Tu peux la modifier avant d'envoyer.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Embed catalogue + brand for the script -->
+  <script type="application/json" id="catalog" set:html={JSON.stringify(catalog)}></script>
+
+  <script is:inline>
+    /*
+     * SHINOBI Custom Builder — vanilla JS, no framework.
+     * Reads catalogue from #catalog, watches step buttons, recomputes
+     * the price + summary, and builds the pre-filled WhatsApp link.
+     */
+    (function () {
+      const CAT = JSON.parse(document.getElementById('catalog').textContent);
+      const fmt = (n) => n.toLocaleString('fr-FR').replace(/,/g, ' ') + ' DA';
+
+      const state = {
+        baseId:   CAT.bases[0].id,
+        designId: CAT.designs[0].id,
+        side:     'single',
+        size:     'M',
+        colour:   'Noir',
+      };
+
+      function quote() {
+        const base = CAT.bases.find(b => b.id === state.baseId);
+        let total  = base.price;
+        if (state.side === 'double' && base.doubleSideAllowed) {
+          total += base.extraDoubleSide;
+        }
+        return { base, total };
+      }
+
+      function design() {
+        return CAT.designs.find(d => d.id === state.designId);
+      }
+
+      function needsSize() {
+        const id = state.baseId;
+        return id !== 'mug' && id !== 'tote';
+      }
+
+      function needsSide() {
+        const base = CAT.bases.find(b => b.id === state.baseId);
+        return base.doubleSideAllowed;
+      }
+
+      function update() {
+        const { base, total } = quote();
+        const d = design();
+
+        // Total + breakdown
+        document.getElementById('total').textContent = fmt(total);
+        const parts = [
+          base.name,
+          d.name,
+          needsSide() ? (state.side === 'double' ? 'recto + verso' : 'recto') : null,
+          needsSize() ? state.size : null,
+          state.colour,
+        ].filter(Boolean);
+        document.getElementById('brk').textContent = parts.join(' · ');
+
+        // Conditionally hide steps that don't apply to the chosen base
+        document.getElementById('step-side').style.display = needsSide() ? '' : 'none';
+        document.getElementById('step-size').style.display = needsSize() ? '' : 'none';
+
+        // Build the WhatsApp message
+        const lines = [
+          `Salut ${CAT.brand.name} 👋`,
+          `Je voudrais commander :`,
+          ``,
+          `• Base    : ${base.name} — ${fmt(base.price)}`,
+          `• Design  : ${d.name} (${d.anime})`,
+        ];
+        if (needsSide()) {
+          lines.push(`• Côté(s) : ${state.side === 'double' ? 'Recto + Verso (+500 DA)' : 'Recto seulement'}`);
+        }
+        if (needsSize()) lines.push(`• Taille  : ${state.size}`);
+        lines.push(`• Couleur : ${state.colour}`);
+        lines.push(``);
+        lines.push(`Total : ${fmt(total)}`);
+        lines.push(``);
+        lines.push(`Mon prénom :`);
+        lines.push(`Mon wilaya :`);
+        lines.push(`Téléphone  :`);
+
+        const msg = lines.join('\n');
+        const waUrl = `https://wa.me/${CAT.contact.whatsappNumber}?text=${encodeURIComponent(msg)}`;
+        document.getElementById('wa-btn').href = waUrl;
+        window.__shinobiMessage = msg;
+      }
+
+      // Wire up clicks on every option group
+      function bindGroup(rootId, key) {
+        const root = document.getElementById(rootId);
+        if (!root) return;
+        root.addEventListener('click', (e) => {
+          const opt = e.target.closest('button[data-' + key + ']');
+          if (!opt) return;
+          root.querySelectorAll('button').forEach(o => o.classList.remove('on'));
+          opt.classList.add('on');
+          state[key === 'base' ? 'baseId' : key === 'design' ? 'designId' : key] = opt.dataset[key];
+          update();
+        });
+      }
+      bindGroup('bases',   'base');
+      bindGroup('designs', 'design');
+
+      // The side / size / colour groups don't have wrappers with ids, so
+      // wire the whole builder once and dispatch on dataset.
+      document.getElementById('builder').addEventListener('click', (e) => {
+        const opt = e.target.closest('button[data-side], button[data-size], button[data-colour]');
+        if (!opt) return;
+        const group = opt.parentNode;
+        group.querySelectorAll('button').forEach(o => o.classList.remove('on'));
+        opt.classList.add('on');
+        if (opt.dataset.side)   state.side   = opt.dataset.side;
+        if (opt.dataset.size)   state.size   = opt.dataset.size;
+        if (opt.dataset.colour) state.colour = opt.dataset.colour;
+        update();
+      });
+
+      // Copy to clipboard (for the Instagram fallback)
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('copy-btn');
+        try {
+          await navigator.clipboard.writeText(window.__shinobiMessage || '');
+          const old = btn.textContent;
+          btn.textContent = '✓ Copié ! Va dans Instagram DM';
+          setTimeout(() => { btn.textContent = old; }, 2500);
+        } catch (err) {
+          alert('Copie échouée. Sélectionne le texte du résumé manuellement.');
+        }
+      });
+
+      update();
+    })();
+  </script>
+
+</Base>
+
+<style>
+  .builder-wrap {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: var(--s-7);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .builder-wrap { grid-template-columns: 1fr; }
+  }
+  .builder {
+    padding: 0;
+    overflow: hidden;
+  }
+  .step {
+    padding: var(--s-6) var(--s-7);
+    border-bottom: 1px solid var(--sumi-5);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-label {
+    font-family: var(--f-display);
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sumi);
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--s-4);
+  }
+  .step-label .num {
+    background: var(--torii);
+    color: var(--white);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    margin-right: var(--s-3);
+  }
+  .opts {
+    display: flex;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .opt {
+    border: 2px solid var(--sumi-4);
+    background: var(--washi);
+    border-radius: var(--r-2);
+    padding: 12px 16px;
+    cursor: pointer;
+    font-family: var(--f-body);
+    font-size: 14px;
+    transition: all 0.18s var(--ease-koi);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    color: var(--sumi);
+  }
+  .opt:hover  { border-color: var(--sumi-3); transform: translateY(-1px); }
+  .opt.on     { border-color: var(--torii); background: rgba(204, 0, 0, 0.05); }
+  .opt.on b, .opt.on span, .opt.on .name, .opt.on .price { color: var(--torii); }
+  .opt-base {
+    min-width: 130px;
+    align-items: center;
+    text-align: center;
+  }
+  .opt-base .icon { font-size: 24px; }
+  .opt-base .name { font-weight: 600; }
+  .opt-base .price { font-size: 12px; color: var(--sumi-3); font-family: var(--f-display); letter-spacing: 0.04em; }
+  .opt b { font-weight: 600; }
+  .opt span { font-size: 12px; color: var(--sumi-3); }
+  .opt.size {
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--f-display);
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+
+  .designs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--s-3);
+  }
+  .design {
+    background: var(--washi);
+    border: 2px solid var(--sumi-4);
+    border-radius: var(--r-2);
+    padding: var(--s-3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.18s var(--ease-shuriken);
+    text-align: center;
+  }
+  .design:hover { border-color: var(--sumi-3); transform: translateY(-2px); }
+  .design.on    { border-color: var(--torii); box-shadow: var(--e-torii); }
+  .design .img {
+    font-size: 36px;
+    background: var(--washi-2);
+    border-radius: var(--r-2);
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .design .dn {
+    display: block;
+    font-family: var(--f-display);
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .design .da { font-size: 10px; color: var(--sumi-3); letter-spacing: 0.06em; }
+
+  /* Summary sidebar */
+  .summary { position: sticky; top: 100px; }
+  .sum-card {
+    background: var(--sumi);
+    color: var(--white);
+    border-radius: var(--r-3);
+    padding: var(--s-7);
+    box-shadow: var(--e-2);
+  }
+  .total {
+    font-family: var(--f-display);
+    font-size: 48px;
+    letter-spacing: 0.04em;
+    color: var(--white);
+    line-height: 1;
+    margin-top: var(--s-2);
+  }
+  .brk {
+    font-family: var(--f-body);
+    font-size: 13px;
+    color: var(--w70);
+    margin-top: var(--s-3);
+    line-height: 1.55;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    margin-top: var(--s-7);
+  }
+  .actions .btn { justify-content: center; }
+  .hint {
+    font-size: 12px;
+    color: var(--w50);
+    margin-top: var(--s-4);
+    line-height: 1.5;
+  }
+</style>

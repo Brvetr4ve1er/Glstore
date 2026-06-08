@@ -1,0 +1,9 @@
+{
+  "id": "sweat",
+  "name": "Sweatshirt",
+  "price": 3300,
+  "doubleSideAllowed": true,
+  "extraDoubleSide": 500,
+  "icon": "🧥",
+  "order": 2
+}

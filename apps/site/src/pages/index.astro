@@ -1,0 +1,253 @@
+---
+import Base from '~/layouts/Base.astro';
+import site from '~/content/site.json';
+import { getCollection } from 'astro:content';
+
+const designs = (await getCollection('designs'))
+  .filter(d => d.data.featured)
+  .sort((a, b) => a.data.order - b.data.order);
+
+const waLink = `https://wa.me/${site.contact.whatsappNumber}?text=${encodeURIComponent(
+  `Salut ${site.brand.name} 👋\nJe voudrais passer une commande.`
+)}`;
+---
+<Base title="Accueil" description={site.hero.subtitle}>
+
+  <!-- ── Hero ──────────────────────────────────── -->
+  <section class="hero band-light">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">{site.hero.eyebrow}</span>
+        <h1 class="display hero-title">
+          {site.hero.title.split(' ').slice(0, -1).join(' ')}
+          <span class="last">{site.hero.title.split(' ').slice(-1)[0]}</span>
+          <span class="kanji">{site.brand.kanji}</span>
+        </h1>
+        <p class="muted lead">{site.hero.subtitle}</p>
+        <div class="hero-cta">
+          <a href={site.hero.primaryCtaHref} class="btn btn-torii">{site.hero.primaryCta} →</a>
+          <a href={site.hero.secondaryCtaHref} class="btn btn-outline">{site.hero.secondaryCta}</a>
+        </div>
+      </div>
+      <div class="mascot-wrap">
+        <img src="/assets/mascot.svg" alt={`${site.brand.name} mascot`} width="280" height="280" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Three steps ──────────────────────────── -->
+  <section class="section">
+    <div class="wrap">
+      <div class="text-center" style="margin-bottom: var(--s-9);">
+        <span class="eyebrow">3 étapes</span>
+        <h2 class="display" style="font-size: clamp(28px, 4vw, 44px); margin-top: var(--s-3);">
+          De l'idée au tee, en boutique
+        </h2>
+      </div>
+      <div class="grid-3">
+        <div class="card text-center">
+          <div class="step-num">1</div>
+          <h3 class="step-title">Personnalise</h3>
+          <p class="muted small">Choisis ta base, un design anime, recto ou recto + verso, ta taille. Le prix s'affiche en direct.</p>
+        </div>
+        <div class="card text-center">
+          <div class="step-num">2</div>
+          <h3 class="step-title">Envoie ta commande</h3>
+          <p class="muted small">Un clic ouvre WhatsApp avec ta commande pré-remplie. On confirme la dispo et la livraison.</p>
+        </div>
+        <div class="card text-center">
+          <div class="step-num">3</div>
+          <h3 class="step-title">Reçois ou viens chercher</h3>
+          <p class="muted small">Imprimé en boutique en 3 – 4 jours. Livraison dans les 58 wilayas (690 DA) ou retrait gratuit à Bab Ezzouar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Featured designs ─────────────────────── -->
+  <section class="section band-light">
+    <div class="wrap">
+      <div class="row-header">
+        <div>
+          <span class="eyebrow">Designs · Bestsellers</span>
+          <h2 class="display" style="font-size: clamp(28px, 4vw, 44px); margin-top: var(--s-3);">
+            Choisis ton perso
+          </h2>
+        </div>
+        <a href="/custom" class="btn btn-ghost">Voir tout →</a>
+      </div>
+      <div class="design-grid">
+        {designs.map(d => (
+          <a href="/custom" class="d-card" data-tag={d.data.tagColor}>
+            <div class="d-thumb">{d.data.image}</div>
+            <div class="d-meta">
+              <div class="d-name">{d.data.name}</div>
+              <div class="d-anime">{d.data.anime}</div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Boutique callout ─────────────────────── -->
+  <section class="band-red section">
+    <div class="wrap callout">
+      <div>
+        <span class="eyebrow" style="color: var(--washi); opacity: 0.9;">Notre boutique</span>
+        <h2 class="display" style="color: var(--white); font-size: clamp(28px, 4vw, 44px); margin-top: var(--s-3);">
+          {site.boutique.name}
+        </h2>
+        <p style="opacity: 0.9; margin-top: var(--s-3); max-width: 50ch;">
+          Tu peux aussi venir voir, toucher, essayer. Et regarder l'imprimante au travail.
+          {site.boutique.address}.
+        </p>
+      </div>
+      <div class="callout-actions">
+        <a href={site.boutique.mapUrl} target="_blank" rel="noreferrer" class="btn btn-sumi">📍 Itinéraire</a>
+        <a href={`https://www.instagram.com/${site.contact.instagram}/`} target="_blank" rel="noreferrer" class="btn btn-ghost">
+          📸 @{site.contact.instagram}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Big CTA ──────────────────────────────── -->
+  <section class="section text-center">
+    <div class="wrap" style="max-width: 700px;">
+      <h2 class="display" style="font-size: clamp(32px, 5vw, 56px);">
+        Prêt à forger ?
+      </h2>
+      <p class="muted lead mt-4">
+        Ou écris-nous directement sur WhatsApp ou Instagram — on répond vite.
+      </p>
+      <div class="hero-cta mt-7" style="justify-content: center;">
+        <a href="/custom" class="btn btn-torii">Personnaliser →</a>
+        <a href={waLink} target="_blank" rel="noreferrer" class="btn btn-wa">💬 WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  .hero {
+    background-color: var(--washi);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: var(--s-9);
+    align-items: center;
+    padding-top: var(--s-12);
+    padding-bottom: var(--s-12);
+  }
+  @media (max-width: 760px) {
+    .hero-grid { grid-template-columns: 1fr; text-align: center; padding-top: var(--s-10); padding-bottom: var(--s-10); }
+    .hero-cta { justify-content: center; }
+  }
+  .hero-title {
+    font-size: clamp(48px, 9vw, 96px);
+    margin-top: var(--s-3);
+  }
+  .hero-title .last { color: var(--torii); }
+  .lead {
+    font-size: clamp(15px, 1.4vw, 17px);
+    max-width: 50ch;
+    margin-top: var(--s-4);
+    line-height: 1.7;
+  }
+  .hero-cta { display: flex; gap: var(--s-3); margin-top: var(--s-7); flex-wrap: wrap; }
+  .mascot-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .mascot-wrap img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.18));
+    animation: bob 5s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+  }
+
+  .row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--s-7);
+    gap: var(--s-4);
+    flex-wrap: wrap;
+  }
+
+  .step-num {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--torii);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--f-display);
+    font-size: 22px;
+    margin: 0 auto var(--s-4);
+  }
+  .step-title {
+    font-family: var(--f-display);
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: var(--s-3);
+  }
+  .small { font-size: 14px; line-height: 1.6; }
+
+  .design-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--s-4);
+  }
+  .d-card {
+    background: var(--washi);
+    border: 1px solid var(--sumi-4);
+    border-radius: var(--r-3);
+    text-decoration: none;
+    color: var(--sumi);
+    overflow: hidden;
+    transition: all 0.24s var(--ease-shuriken);
+  }
+  .d-card:hover {
+    border-color: var(--torii);
+    box-shadow: var(--e-torii);
+    transform: translateY(-2px);
+  }
+  .d-thumb {
+    aspect-ratio: 1 / 1;
+    background: var(--washi-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+  }
+  .d-meta { padding: var(--s-3) var(--s-4); border-top: 1px solid var(--sumi-5); }
+  .d-name {
+    font-family: var(--f-display);
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .d-anime { font-size: 11px; color: var(--sumi-3); margin-top: 2px; letter-spacing: 0.04em; }
+
+  .callout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s-7);
+    flex-wrap: wrap;
+  }
+  .callout-actions { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+</style>

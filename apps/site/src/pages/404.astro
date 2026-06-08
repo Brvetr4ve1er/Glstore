@@ -1,0 +1,21 @@
+---
+import Base from '~/layouts/Base.astro';
+---
+<Base title="Page introuvable" description="Cette page n'existe pas.">
+  <section class="section text-center">
+    <div class="wrap">
+      <img src="/assets/mascot.svg" alt="" width="160" height="160" style="margin: 0 auto var(--s-6);" />
+      <h1 class="display" style="font-size: clamp(48px, 8vw, 80px);">404 <span class="kanji">迷</span></h1>
+      <p class="muted lead" style="max-width: 50ch; margin: var(--s-4) auto;">
+        Cette page n'existe pas (encore). Mais tu peux personnaliser un tee à la place.
+      </p>
+      <div class="hero-cta" style="justify-content: center; display: flex; gap: var(--s-3); margin-top: var(--s-7);">
+        <a href="/" class="btn btn-outline">Retour à l'accueil</a>
+        <a href="/custom" class="btn btn-torii">Personnaliser →</a>
+      </div>
+    </div>
+  </section>
+</Base>
+<style>
+  .lead { font-size: 17px; line-height: 1.7; }
+</style>

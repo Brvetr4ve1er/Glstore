@@ -1,0 +1,9 @@
+{
+  "id": "pull",
+  "name": "Pull oversize",
+  "price": 2800,
+  "doubleSideAllowed": true,
+  "extraDoubleSide": 500,
+  "icon": "🥷",
+  "order": 3
+}

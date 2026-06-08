@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SHINOBI · chibi-ninja mascot badge.
+  A circular emblem that pairs with the wordmark in nav and OG art.
+  Inspired by the brand description (red/white/black, ninja mascot).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Shinobi mascot">
+  <!-- Outer disc — torii red. -->
+  <circle cx="60" cy="60" r="58" fill="#CC0000" stroke="#0E0E0E" stroke-width="3"/>
+  <!-- Inner disc — sumi black. -->
+  <circle cx="60" cy="68" r="42" fill="#0E0E0E"/>
+  <!-- Headband knot / cherry leaf accent. -->
+  <path d="M22 56 L40 50 L40 62 Z" fill="#FAFAF7"/>
+  <path d="M98 56 L80 50 L80 62 Z" fill="#FAFAF7"/>
+  <!-- Mask band -->
+  <rect x="22" y="56" width="76" height="14" fill="#CC0000"/>
+  <!-- Eyes — almond, white -->
+  <path d="M44 65 Q52 60 60 65 Q52 70 44 65 Z" fill="#FAFAF7"/>
+  <path d="M76 65 Q68 60 60 65 Q68 70 76 65 Z" fill="#FAFAF7"/>
+  <circle cx="52" cy="65" r="2.4" fill="#0E0E0E"/>
+  <circle cx="68" cy="65" r="2.4" fill="#0E0E0E"/>
+  <!-- Hidden mouth — short white slash under the mask -->
+  <rect x="55" y="82" width="10" height="2" fill="#FAFAF7" opacity="0.65"/>
+  <!-- Small katana hilt poking out from behind -->
+  <rect x="84" y="34" width="6" height="22" fill="#0E0E0E" transform="rotate(20 87 45)"/>
+  <rect x="83" y="32" width="8" height="4" fill="#D7A33A" transform="rotate(20 87 34)"/>
+</svg>

@@ -1,0 +1,38 @@
+---
+import '~/styles/tokens.css';
+import Header from '~/components/Header.astro';
+import Footer from '~/components/Footer.astro';
+import site from '~/content/site.json';
+
+interface Props { title: string; description?: string; }
+const { title, description } = Astro.props;
+const fullTitle = `${title} · ${site.brand.name}`;
+const desc = description ?? site.hero.subtitle;
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#CC0000" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={desc} />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={desc} />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="/assets/mascot.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <Header />
+  <main>
+    <slot />
+  </main>
+  <Footer />
+</body>
+</html>

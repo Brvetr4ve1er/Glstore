@@ -1,0 +1,9 @@
+{
+  "id": "tshirt",
+  "name": "T-shirt oversize",
+  "price": 2200,
+  "doubleSideAllowed": true,
+  "extraDoubleSide": 500,
+  "icon": "👕",
+  "order": 1
+}

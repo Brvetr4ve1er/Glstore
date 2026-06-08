@@ -1,0 +1,141 @@
+---
+import Base from '~/layouts/Base.astro';
+import site from '~/content/site.json';
+
+const waLink = `https://wa.me/${site.contact.whatsappNumber}?text=${encodeURIComponent(
+  `Salut ${site.brand.name} 👋\nJe voudrais passer en boutique.`
+)}`;
+
+// LocalBusiness JSON-LD for Google Knowledge Panel.
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'ClothingStore',
+  name: `${site.brand.name} — ${site.brand.tagline}`,
+  description: site.hero.subtitle,
+  url: 'https://shinobishop.dz/boutique',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: site.boutique.name,
+    addressLocality: 'Alger',
+    addressCountry: 'DZ',
+  },
+  telephone: site.contact.phone,
+  openingHours: ['Mo-Sa 10:00-20:00', 'Su 14:00-20:00'],
+  priceRange: '1 000 – 9 500 DA',
+  sameAs: [`https://www.instagram.com/${site.contact.instagram}/`],
+};
+---
+<Base title="Notre boutique" description={`Trouve-nous au ${site.boutique.name}, ${site.boutique.address}.`}>
+
+  <section class="section">
+    <div class="wrap">
+      <span class="eyebrow">Notre boutique</span>
+      <h1 class="display" style="font-size: clamp(36px, 6vw, 64px); margin-top: var(--s-3);">
+        {site.boutique.name}
+      </h1>
+      <p class="muted lead">{site.boutique.address}</p>
+
+      <div class="grid mt-9">
+        <div class="card info">
+          <h3>Horaires</h3>
+          <ul>
+            {site.boutique.hours.map(h => (
+              <li><b>{h.day}</b><span>{h.open}</span></li>
+            ))}
+          </ul>
+          <h3 class="mt-7">Contact</h3>
+          <ul>
+            <li><b>Téléphone</b><span>{site.contact.phone}</span></li>
+            <li><b>Email</b><span>{site.contact.email}</span></li>
+            <li><b>Instagram</b><a href={`https://www.instagram.com/${site.contact.instagram}/`} target="_blank" rel="noreferrer">@{site.contact.instagram}</a></li>
+          </ul>
+          <h3 class="mt-7">Commander</h3>
+          <p class="muted small">Lead-time : <b>{site.boutique.leadTimeDays} jours</b> · livraison ou retrait gratuit en boutique.</p>
+          <div class="cta-row mt-4">
+            <a href={waLink} target="_blank" rel="noreferrer" class="btn btn-wa">💬 WhatsApp</a>
+            <a href="/custom" class="btn btn-torii">Personnaliser →</a>
+          </div>
+        </div>
+
+        <a href={site.boutique.mapUrl} target="_blank" rel="noreferrer" class="map-card band-dark">
+          <div class="map-icon">🗺️</div>
+          <div class="map-text">
+            <span class="eyebrow" style="color: var(--w70);">Voir sur la carte</span>
+            <h3 style="color: var(--white);">Itinéraire Google Maps</h3>
+            <p style="color: var(--w70);">{site.boutique.address}</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="band-red section">
+    <div class="wrap text-center">
+      <h2 class="display" style="color: var(--white); font-size: clamp(28px, 4vw, 44px);">
+        Viens essayer en boutique
+      </h2>
+      <p style="opacity: 0.9; margin-top: var(--s-4); max-width: 50ch; margin-left: auto; margin-right: auto;">
+        Tous les designs, toutes les tailles, l'imprimante en direct. {site.policies.delivery}
+      </p>
+    </div>
+  </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
+</Base>
+
+<style>
+  .lead { font-size: 17px; max-width: 60ch; margin-top: var(--s-3); }
+  .grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--s-7);
+    align-items: stretch;
+  }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+  .info { padding: var(--s-9); }
+  .info h3 {
+    font-family: var(--f-display);
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--torii);
+    margin-bottom: var(--s-3);
+  }
+  .info ul { list-style: none; }
+  .info li {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--sumi-5);
+    font-size: 14px;
+  }
+  .info li b { font-weight: 600; }
+  .info li:last-child { border-bottom: none; }
+  .info .small { font-size: 13px; }
+  .cta-row { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+
+  .map-card {
+    border-radius: var(--r-3);
+    padding: var(--s-9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: var(--s-4);
+    text-decoration: none;
+    transition: transform 0.24s var(--ease-shuriken);
+    min-height: 280px;
+  }
+  .map-card:hover { transform: translateY(-2px); }
+  .map-icon { font-size: 72px; }
+  .map-text { text-align: center; }
+  .map-text h3 {
+    font-family: var(--f-display);
+    font-size: 24px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: var(--s-2);
+  }
+  .map-text p { font-size: 14px; margin-top: var(--s-2); }
+</style>

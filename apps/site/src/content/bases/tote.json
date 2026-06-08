@@ -1,0 +1,9 @@
+{
+  "id": "tote",
+  "name": "Tote bag",
+  "price": 1000,
+  "doubleSideAllowed": false,
+  "extraDoubleSide": 0,
+  "icon": "👜",
+  "order": 4
+}

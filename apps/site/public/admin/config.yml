@@ -1,0 +1,138 @@
+# SHINOBI — Decap CMS configuration.
+#
+# When the site is deployed to Netlify, this file lets the owner edit
+# content through a friendly UI at /admin/ — no code, no git.
+# Edits are committed back to GitHub by Netlify.
+
+backend:
+  name: git-gateway
+  branch: main             # or whatever branch hosts production
+  # For local development, override at the bottom with `local_backend: true`.
+
+# Owners log in with email through Netlify Identity (free tier).
+publish_mode: editorial_workflow
+media_folder: "apps/site/public/images/designs"
+public_folder: "/images/designs"
+
+collections:
+  # ── 1. Bases (T-shirt, sweat, …) ─────────────────────────────
+  - name: bases
+    label: "Bases (prix par produit)"
+    label_singular: "Base"
+    folder: "apps/site/src/content/bases"
+    create: true
+    format: json
+    extension: json
+    identifier_field: id
+    summary: "{{name}} — {{price}} DA"
+    fields:
+      - { name: id, label: "Identifiant (sans espace)", widget: string, hint: "ex: tshirt, sweat, mug" }
+      - { name: name, label: "Nom affiché", widget: string }
+      - { name: price, label: "Prix (DA)", widget: number, value_type: int, min: 0 }
+      - { name: doubleSideAllowed, label: "Recto + verso autorisé ?", widget: boolean, default: true }
+      - { name: extraDoubleSide, label: "Supplément recto+verso (DA)", widget: number, value_type: int, min: 0, default: 500 }
+      - { name: icon, label: "Emoji (preview)", widget: string, default: "👕" }
+      - { name: order, label: "Ordre (1 = en premier)", widget: number, value_type: int, default: 1 }
+
+  # ── 2. Designs (anime artworks) ──────────────────────────────
+  - name: designs
+    label: "Designs (catalogue anime)"
+    label_singular: "Design"
+    folder: "apps/site/src/content/designs"
+    create: true
+    format: json
+    extension: json
+    identifier_field: id
+    summary: "{{name}} — {{anime}}"
+    fields:
+      - { name: id, label: "Identifiant (sans espace)", widget: string, hint: "ex: gojo, sukuna" }
+      - { name: name, label: "Nom du design", widget: string }
+      - { name: anime, label: "Anime / franchise", widget: string }
+      - {
+          name: image,
+          label: "Image (URL ou emoji)",
+          widget: string,
+          hint: "Pour une image, mets /images/designs/gojo.png. Pour un emoji, mets 🥷 et coche 'C'est un emoji' ci-dessous."
+        }
+      - { name: isEmoji, label: "C'est un emoji", widget: boolean, default: true }
+      - {
+          name: tagColor,
+          label: "Couleur du tag",
+          widget: select,
+          options: [naruto, jjk, onepiece, dbz, bleach, aot, deathnote, bluelock, original],
+          default: original
+        }
+      - { name: featured, label: "Mettre en avant sur la page d'accueil ?", widget: boolean, default: false }
+      - { name: order, label: "Ordre", widget: number, value_type: int, default: 1 }
+
+  # ── 3. Site settings (singleton) ────────────────────────────
+  - name: site
+    label: "Paramètres du site"
+    files:
+      - name: site
+        label: "Réglages"
+        file: "apps/site/src/content/site.json"
+        format: json
+        fields:
+          - label: "Marque"
+            name: brand
+            widget: object
+            fields:
+              - { name: name, label: "Nom", widget: string }
+              - { name: tagline, label: "Slogan", widget: string }
+              - { name: kanji, label: "Kanji décoratif", widget: string, default: "忍者" }
+
+          - label: "Hero (page d'accueil)"
+            name: hero
+            widget: object
+            fields:
+              - { name: eyebrow, label: "Sur-titre", widget: string }
+              - { name: title, label: "Titre principal", widget: string }
+              - { name: subtitle, label: "Sous-titre", widget: text }
+              - { name: primaryCta, label: "Bouton principal — texte", widget: string }
+              - { name: primaryCtaHref, label: "Bouton principal — lien", widget: string, default: "/custom" }
+              - { name: secondaryCta, label: "Bouton secondaire — texte", widget: string }
+              - { name: secondaryCtaHref, label: "Bouton secondaire — lien", widget: string, default: "/boutique" }
+
+          - label: "Contact"
+            name: contact
+            widget: object
+            fields:
+              - {
+                  name: whatsappNumber,
+                  label: "WhatsApp (format international SANS le +)",
+                  widget: string,
+                  hint: "ex: 213555000000 pour +213 5 55 00 00 00",
+                  pattern: ['^[0-9]{8,15}$', 'Chiffres uniquement']
+                }
+              - { name: instagram, label: "Pseudo Instagram (sans @)", widget: string }
+              - { name: phone, label: "Téléphone affiché", widget: string }
+              - { name: email, label: "Email", widget: string }
+
+          - label: "Boutique physique"
+            name: boutique
+            widget: object
+            fields:
+              - { name: name, label: "Nom", widget: string }
+              - { name: address, label: "Adresse", widget: string }
+              - { name: mapUrl, label: "Lien Google Maps", widget: string }
+              - name: hours
+                label: "Horaires"
+                widget: list
+                fields:
+                  - { name: day, label: "Jour(s)", widget: string }
+                  - { name: open, label: "Plage horaire", widget: string }
+              - { name: leadTimeDays, label: "Délai d'impression (jours)", widget: string, default: "3 à 4" }
+
+          - label: "Politique de livraison"
+            name: policies
+            widget: object
+            fields:
+              - { name: delivery, label: "Phrase livraison", widget: text }
+              - { name: deliveryPriceDZD, label: "Prix livraison (DA)", widget: number, value_type: int, min: 0 }
+              - { name: pickupPriceDZD, label: "Prix retrait en boutique (DA)", widget: number, value_type: int, default: 0 }
+              - { name: returnDays, label: "Délai de retour (jours)", widget: number, value_type: int, default: 14 }
+
+# Set this to `true` when running Decap locally with `npx decap-server`.
+# In production, leave it commented out.
+# local_backend: true

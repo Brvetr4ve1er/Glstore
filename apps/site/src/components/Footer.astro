@@ -1,0 +1,89 @@
+---
+import site from '~/content/site.json';
+const waLink = `https://wa.me/${site.contact.whatsappNumber}`;
+const igLink = `https://www.instagram.com/${site.contact.instagram}/`;
+---
+<footer>
+  <div class="wrap inner">
+    <div class="cols">
+      <div>
+        <div class="brand-row">
+          <img src="/assets/mascot.svg" alt="" width="36" height="36" />
+          <span class="word">{site.brand.name}<span class="k">{site.brand.kanji}</span></span>
+        </div>
+        <p class="muted small">{site.brand.tagline}</p>
+        <p class="muted small">{site.hero.subtitle}</p>
+      </div>
+      <div>
+        <h4>Notre boutique</h4>
+        <p class="small">{site.boutique.name}</p>
+        <p class="muted small">{site.boutique.address}</p>
+        {site.boutique.hours.map(h => (
+          <p class="small"><b>{h.day}</b> · {h.open}</p>
+        ))}
+      </div>
+      <div>
+        <h4>Commander</h4>
+        <a class="btn btn-wa" href={waLink} target="_blank" rel="noreferrer">
+          <span>💬</span> WhatsApp
+        </a>
+        <a class="btn btn-ig" href={igLink} target="_blank" rel="noreferrer" style="margin-top: var(--s-3);">
+          <span>📸</span> @{site.contact.instagram}
+        </a>
+        <p class="muted small" style="margin-top: var(--s-4);">{site.policies.delivery}</p>
+      </div>
+    </div>
+    <div class="legal">
+      © {new Date().getFullYear()} {site.brand.name} · {site.brand.tagline} · Alger
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    background: var(--sumi);
+    color: var(--white);
+    margin-top: var(--s-12);
+  }
+  .inner { padding: var(--s-10) var(--s-6); }
+  .cols {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: var(--s-9);
+  }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; gap: var(--s-7); } }
+  .brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--s-3); }
+  .word {
+    font-family: var(--f-display);
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+  .k {
+    font-family: var(--f-kanji);
+    color: var(--torii);
+    font-size: 14px;
+    margin-left: 4px;
+  }
+  h4 {
+    font-family: var(--f-display);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--torii);
+    margin-bottom: var(--s-3);
+  }
+  .small { font-size: 13px; margin-bottom: 4px; }
+  .muted { color: var(--w70); }
+  .btn { display: inline-flex; }
+  .legal {
+    border-top: 1px solid var(--w10);
+    padding-top: var(--s-4);
+    margin-top: var(--s-7);
+    font-size: 11px;
+    color: var(--w50);
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+</style>

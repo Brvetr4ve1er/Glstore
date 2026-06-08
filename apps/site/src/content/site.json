@@ -1,0 +1,38 @@
+{
+  "brand": {
+    "name": "SHINOBI",
+    "tagline": "La Boutique du Guerrier",
+    "kanji": "忍者"
+  },
+  "hero": {
+    "eyebrow": "Drop · Nouvelle Saison",
+    "title": "Forge ton univers otaku",
+    "subtitle": "Anime streetwear oversize imprimé en boutique à Alger. Personnalise ton tee, sweat ou mug en 60 secondes — commande en un clic sur WhatsApp.",
+    "primaryCta": "Personnaliser",
+    "primaryCtaHref": "/custom",
+    "secondaryCta": "Voir la boutique",
+    "secondaryCtaHref": "/boutique"
+  },
+  "contact": {
+    "whatsappNumber": "213555000000",
+    "instagram": "shinobishopdz",
+    "phone": "023 925 014",
+    "email": "ccwdz.contact@gmail.com"
+  },
+  "boutique": {
+    "name": "Centre Commercial Bab Ezzouar",
+    "address": "Bab Ezzouar, Alger, Algérie",
+    "mapUrl": "https://www.google.com/maps/search/Centre+Commercial+Bab+Ezzouar+Alger",
+    "hours": [
+      { "day": "Lun – Sam", "open": "10h – 20h" },
+      { "day": "Dim",       "open": "14h – 20h" }
+    ],
+    "leadTimeDays": "3 à 4"
+  },
+  "policies": {
+    "delivery": "Livraison dans les 58 wilayas. Paiement à la livraison.",
+    "deliveryPriceDZD": 690,
+    "pickupPriceDZD": 0,
+    "returnDays": 14
+  }
+}

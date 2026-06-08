@@ -1,0 +1,185 @@
+/* ════════════════════════════════════════════════════════════
+   SHINOBI — design tokens
+   Source: docs/shinobi-rebuild/06-design-system.md
+   ════════════════════════════════════════════════════════════ */
+:root {
+  /* Brand reds */
+  --torii:        #CC0000;
+  --torii-bright: #E00000;
+  --torii-deep:   #A30000;
+  --torii-glow:   rgba(204, 0, 0, 0.30);
+
+  /* Ink + paper */
+  --sumi:    #0E0E0E;
+  --sumi-2:  rgba(14, 14, 14, 0.72);
+  --sumi-3:  rgba(14, 14, 14, 0.50);
+  --sumi-4:  rgba(14, 14, 14, 0.18);
+  --sumi-5:  rgba(14, 14, 14, 0.08);
+  --washi:   #FAFAF7;
+  --washi-2: #F2F0EA;
+  --washi-3: #E6E3DA;
+
+  /* Night */
+  --indigo:   #0F1A2A;
+  --indigo-2: #16243A;
+  --indigo-3: #1F2F47;
+
+  /* Inks on dark */
+  --white: #FFFFFF;
+  --w70:   rgba(255, 255, 255, 0.70);
+  --w50:   rgba(255, 255, 255, 0.50);
+  --w20:   rgba(255, 255, 255, 0.20);
+  --w10:   rgba(255, 255, 255, 0.10);
+
+  /* Accents */
+  --gold:   #D7A33A;
+  --jade:   #2E8B57;
+
+  /* Spacing (4 px) */
+  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-6: 24px;
+  --s-7: 32px; --s-9: 48px; --s-10: 64px; --s-12: 96px;
+
+  /* Radii */
+  --r-2: 8px; --r-3: 12px; --r-4: 16px; --r-pill: 9999px;
+
+  /* Shadows */
+  --e-1: 0 1px 2px rgba(14, 14, 14, 0.06);
+  --e-2: 0 4px 12px rgba(14, 14, 14, 0.10);
+  --e-torii: 0 0 24px var(--torii-glow);
+
+  /* Motion */
+  --ease-shuriken: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-koi:      cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Fonts */
+  --f-display: "Bebas Neue", "Anton", Impact, system-ui, sans-serif;
+  --f-body:    "Inter", system-ui, sans-serif;
+  --f-kanji:   "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+}
+
+/* Base */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--f-body);
+  color: var(--sumi);
+  background-color: var(--washi);
+  background-image: url("/assets/seigaiha-light.svg");
+  background-size: 96px 48px;
+  background-attachment: fixed;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+a { color: var(--torii); text-decoration: none; }
+a:hover { color: var(--torii-bright); }
+img { max-width: 100%; display: block; }
+
+/* Layout */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--s-6); }
+@media (min-width: 768px) { .wrap { padding: 0 var(--s-7); } }
+
+.section { padding: var(--s-12) 0; }
+.section-sm { padding: var(--s-10) 0; }
+
+/* Typography */
+.eyebrow {
+  display: inline-block;
+  font-family: var(--f-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--torii);
+  font-size: 13px;
+}
+.display {
+  font-family: var(--f-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 0.92;
+  color: var(--sumi);
+}
+.kanji { font-family: var(--f-kanji); color: var(--torii); font-weight: 700; }
+.muted { color: var(--sumi-2); }
+
+/* Buttons */
+.btn {
+  font-family: var(--f-display);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: all 0.24s var(--ease-shuriken);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.96); }
+.btn-torii { background: var(--torii); color: var(--white); }
+.btn-torii:hover { background: var(--torii-bright); box-shadow: var(--e-torii); transform: translateY(-1px); color: var(--white); }
+.btn-sumi  { background: var(--sumi); color: var(--white); }
+.btn-sumi:hover  { background: var(--black); transform: translateY(-1px); color: var(--white); }
+.btn-outline { background: transparent; color: var(--sumi); border: 2px solid var(--sumi); }
+.btn-outline:hover { background: var(--sumi); color: var(--white); }
+.btn-ghost { background: var(--washi-2); color: var(--sumi); border: 1px solid var(--sumi-4); }
+.btn-ghost:hover { background: var(--washi-3); }
+.btn-wa { background: #25D366; color: var(--white); }
+.btn-wa:hover { background: #1FB755; color: var(--white); }
+.btn-ig { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF); color: var(--white); }
+
+/* Seigaiha bands */
+.band { padding: var(--s-12) 0; background-size: 96px 48px; }
+.band-red   { background-color: var(--torii); background-image: url("/assets/seigaiha-red.svg");  color: var(--white); }
+.band-dark  { background-color: var(--indigo); background-image: url("/assets/seigaiha-dark.svg"); color: var(--white); }
+.band-light { background-color: var(--washi-2); background-image: url("/assets/seigaiha-light.svg"); }
+
+/* Cards */
+.card {
+  background: var(--washi);
+  border: 1px solid var(--sumi-4);
+  border-radius: var(--r-3);
+  padding: var(--s-6);
+  box-shadow: var(--e-1);
+  transition: all 0.24s var(--ease-shuriken);
+}
+.card:hover { border-color: var(--torii); box-shadow: var(--e-torii); transform: translateY(-2px); }
+
+/* Chip / pill / badge */
+.chip {
+  font-family: var(--f-body);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--washi-2);
+  color: var(--sumi-2);
+  font-weight: 600;
+  display: inline-block;
+}
+.chip-red  { background: var(--torii); color: var(--white); }
+.chip-gold { background: var(--gold); color: var(--sumi); }
+.chip-dark { background: var(--sumi); color: var(--white); }
+
+/* Helpers */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-6); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-6); }
+@media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+.text-center { text-align: center; }
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.gap-4 { gap: var(--s-4); }
+.gap-6 { gap: var(--s-6); }
+.mt-4 { margin-top: var(--s-4); }
+.mt-6 { margin-top: var(--s-6); }
+.mt-7 { margin-top: var(--s-7); }
