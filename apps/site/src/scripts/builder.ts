@@ -53,6 +53,10 @@ export function initBuilder() {
     eyedropper: false,
     curVb: 1000,
     curPrintArea: { x: 0, y: 0, w: 0, h: 0 } as Rect,
+    // Try-on mode: when stageMode is 'photo' the stage shows the
+    // customer's photo; placement coords still live in the same viewBox.
+    stageMode: 'mockup' as 'mockup' | 'photo',
+    customerPhoto: null as { url: string; vb: number; pa: Rect } | null,
   };
   const cur = () => state.sides[state.activeSide];
   const mk = (): Mockup => getMockup(state.mockupKind);
@@ -79,10 +83,26 @@ export function initBuilder() {
     return { url, pa };
   }
   function drawMockup() {
-    const m = mk();
-    const r = rasterFor(state.activeSide);
-    if (r) { mockupImg.src = r.url; state.curPrintArea = r.pa; state.curVb = 1000; }
-    else { mockupImg.src = svgDataUrl(svgForSide(state.activeSide)); state.curPrintArea = m.printArea; state.curVb = m.vb; }
+    if (state.stageMode === 'photo') {
+      if (state.customerPhoto) {
+        mockupImg.src = state.customerPhoto.url;
+        state.curPrintArea = state.customerPhoto.pa;
+        state.curVb = state.customerPhoto.vb;
+        $('#photo-prompt').style.display = 'none';
+        $('#print-box-label').textContent = 'zone du design';
+      } else {
+        mockupImg.removeAttribute('src');
+        $('#photo-prompt').style.display = 'flex';
+        return;
+      }
+    } else {
+      $('#photo-prompt').style.display = 'none';
+      $('#print-box-label').textContent = "zone d'impression";
+      const m = mk();
+      const r = rasterFor(state.activeSide);
+      if (r) { mockupImg.src = r.url; state.curPrintArea = r.pa; state.curVb = 1000; }
+      else { mockupImg.src = svgDataUrl(svgForSide(state.activeSide)); state.curPrintArea = m.printArea; state.curVb = m.vb; }
+    }
     layoutPrintBox();
   }
   async function mockupImageForExport(side: Side): Promise<{ img: HTMLImageElement; vb: number; pa: Rect }> {
@@ -383,9 +403,19 @@ export function initBuilder() {
   function sideInfo(side: Side, label: string): SideInfo {
     return { label, designLabel: state.sides[side].label, placementNote: placementNote(state.sides[side]) };
   }
+  async function buildPhotoPreviewFile(): Promise<NamedBlob | null> {
+    if (state.stageMode !== 'photo' || !state.customerPhoto) return null;
+    const s = state.sides.recto;
+    if (!s.design) return null;
+    const img = await loadImage(state.customerPhoto.url, state.customerPhoto.vb);
+    const c = await renderPreview(img, state.customerPhoto.vb, state.customerPhoto.pa, s.design, s.placement, 1200);
+    return { name: 'shinobi-essai-photo.png', blob: await canvasToBlob(c) };
+  }
   async function buildOrder(): Promise<{ details: OrderDetails; files: NamedBlob[] } | null> {
     if (!state.sides.recto.design) return null;
     const files = [...await buildSideFiles('recto'), ...await buildSideFiles('verso')];
+    const tryon = await buildPhotoPreviewFile();
+    if (tryon) files.push(tryon);
     const details: OrderDetails = {
       brand: cat.brand.name, whatsappNumber: cat.contact.whatsappNumber,
       product: state.base.name, basePrice: state.base.price,
@@ -462,6 +492,69 @@ export function initBuilder() {
     });
   }
 
+  // ── Deep-link: /custom/?design=<id> ──────────────────────
+  function applyDeepLinkDesign() {
+    try {
+      const id = new URLSearchParams(location.search).get('design');
+      if (!id) return;
+      const d = cat.designs.find(x => x.id === id);
+      if (!d) return;
+      // Highlight + select as if the user clicked it
+      $$('[data-design]').forEach(x => x.classList.toggle('on', x.getAttribute('data-design') === id));
+      setFromGallery(d);
+    } catch { /* SSR or non-browser env */ }
+  }
+
+  // ── Try-on mode (photo) ───────────────────────────────────
+  function setStageMode(mode: 'mockup' | 'photo') {
+    state.stageMode = mode;
+    $('#mode-mockup').classList.toggle('on', mode === 'mockup');
+    $('#mode-photo').classList.toggle('on', mode === 'photo');
+    // disable side switcher / colour swatches in photo mode — they don't
+    // affect the photo preview anyway
+    $('#side-switch').style.opacity = mode === 'photo' ? '0.4' : '1';
+    $('#side-switch').style.pointerEvents = mode === 'photo' ? 'none' : '';
+    $('#colors').style.opacity = mode === 'photo' ? '0.4' : '1';
+    $('#colors').style.pointerEvents = mode === 'photo' ? 'none' : '';
+    drawMockup();
+  }
+  async function loadCustomerPhoto(file: File) {
+    showProcessing(true, 'Lecture de la photo…');
+    try {
+      const src = await imageToCanvas(file);
+      // Letterbox onto a 1000×1000 canvas with a soft washi background
+      // so the stage maths (square viewBox) keep working unchanged.
+      const VB = 1000;
+      const sq = document.createElement('canvas');
+      sq.width = VB; sq.height = VB;
+      const ctx = sq.getContext('2d')!;
+      ctx.fillStyle = '#F2F0EA'; ctx.fillRect(0, 0, VB, VB);
+      const sc = Math.min(VB / src.width, VB / src.height);
+      const dw = src.width * sc, dh = src.height * sc;
+      const dx = (VB - dw) / 2, dy = (VB - dh) / 2;
+      ctx.drawImage(src, dx, dy, dw, dh);
+      // print area = centred 55% × 55% of the photo's drawn rect
+      const pa: Rect = { x: dx + dw * 0.225, y: dy + dh * 0.20, w: dw * 0.55, h: dh * 0.55 };
+      state.customerPhoto = { url: sq.toDataURL('image/jpeg', 0.92), vb: VB, pa };
+      cur().placement = { ...DEFAULT_PLACEMENT };
+      ($('#scale') as HTMLInputElement).value = '85'; ($('#rot') as HTMLInputElement).value = '0';
+      drawMockup();
+      commitDesignDisplay();
+    } catch (e) { alert((e as Error).message); }
+    finally { showProcessing(false); }
+  }
+  function wireStageMode() {
+    $('#mode-mockup').addEventListener('click', () => setStageMode('mockup'));
+    $('#mode-photo').addEventListener('click', () => setStageMode('photo'));
+    ($('#photo-file') as HTMLInputElement).addEventListener('change', (e) => {
+      const f = (e.target as HTMLInputElement).files?.[0];
+      if (f) loadCustomerPhoto(f);
+    });
+  }
+  // override drawMockup for the photo case where vb may be non-square
+  // — see the implementation above; the photo viewBox uses max(w,h) and
+  // we centre by adjusting the print area.
+
   // ── Size guide modal ──────────────────────────────────────
   function wireSizeGuide() {
     const modal = $('#size-guide');
@@ -494,6 +587,9 @@ export function initBuilder() {
       }
     }
 
+    const applyBtn = $<HTMLButtonElement>('#sg-apply');
+    let recommendedSize: string | null = null;
+
     function recompute() {
       const fam = familyFor(state.mockupKind);
       if (!fam) return;
@@ -502,12 +598,30 @@ export function initBuilder() {
       if (!h || !w) {
         recOut.textContent = 'Entre ta taille et ton poids — on te recommande une taille.';
         paint(null);
+        applyBtn.style.display = 'none';
+        recommendedSize = null;
         return;
       }
       const size = SIZE_GUIDES[fam].recommend(h, w);
       recOut.innerHTML = `Pour <b>${h} cm</b> · <b>${w} kg</b> → on recommande la taille <b>${size}</b>.`;
       paint(size);
+      recommendedSize = size;
+      applyBtn.textContent = `Choisir la taille ${size} →`;
+      applyBtn.style.display = '';
     }
+
+    applyBtn.addEventListener('click', () => {
+      if (!recommendedSize) return;
+      const sizeBtn = document.querySelector<HTMLElement>(`[data-size="${recommendedSize}"]`);
+      if (sizeBtn) {
+        $$('[data-size]').forEach(x => x.classList.remove('on'));
+        sizeBtn.classList.add('on');
+        state.size = recommendedSize;
+        updatePrice();
+      }
+      close();
+      showToast(`Taille ${recommendedSize} sélectionnée 👍`);
+    });
 
     function open() {
       const fam = familyFor(state.mockupKind);
@@ -536,6 +650,8 @@ export function initBuilder() {
   updateConditionalSteps(); updatePrice(); updateOrderEnabled();
   wireBases(); wireSides(); wireSourceTabs(); wireGallery();
   wireUploadTools(); wireInteraction(); wireOptions(); wireOrder(); wireSizeGuide();
+  wireStageMode();
+  applyDeepLinkDesign();
   mockupImg.addEventListener('load', layoutPrintBox);
   window.addEventListener('resize', layoutPrintBox);
 }

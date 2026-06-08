@@ -78,6 +78,7 @@ apps/site/
    └─ pages/
       ├─ index.astro         # Home
       ├─ custom.astro        # ◆ the Designer (Printify-style mockup studio)
+      ├─ galerie.astro       # browseable gallery (deep-links to /custom?design=)
       ├─ boutique.astro      # shop page + LocalBusiness JSON-LD
       └─ 404.astro           # branded 404
 

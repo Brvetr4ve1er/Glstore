@@ -33,15 +33,27 @@ const catalog = {
 
       <!-- ── LEFT: live mockup stage ─────────────────────── -->
       <div class="stage-col">
+        <!-- Mockup vs photo (try-on) mode toggle -->
+        <div class="stage-modes">
+          <button id="mode-mockup" class="stage-mode on" type="button">🥷 Sur le produit</button>
+          <button id="mode-photo"  class="stage-mode" type="button">📸 Sur ma photo</button>
+        </div>
+
         <div class="stage-frame">
           <div id="stage" class="stage">
             <img id="mockup-img" alt="Aperçu du produit" />
-            <div id="print-box" class="print-box"><span>zone d'impression</span></div>
+            <div id="print-box" class="print-box"><span id="print-box-label">zone d'impression</span></div>
             <img id="design-el" class="design-el" alt="Ton design" />
             <div id="stage-hint" class="stage-hint">
               <div class="hint-emoji">🎨</div>
               <p>Choisis ou importe un design pour le voir ici</p>
             </div>
+            <!-- Photo upload prompt (shown in photo mode without a photo) -->
+            <label id="photo-prompt" class="photo-prompt" for="photo-file" style="display:none;">
+              <div class="hint-emoji">📸</div>
+              <p><b>Importe ta photo</b><br><span class="muted">vois le design sur toi avant de commander</span></p>
+              <input id="photo-file" type="file" accept="image/*" hidden />
+            </label>
             <div id="processing" class="processing">
               <div class="spinner"></div>
               <p id="processing-label">Traitement…</p>
@@ -194,6 +206,7 @@ const catalog = {
           <label>Poids (kg)<input type="number" id="sg-weight" min="35" max="160" placeholder="70" /></label>
         </div>
         <p class="sg-rec-out muted" id="sg-rec-out">Entre ta taille et ton poids — on te recommande une taille.</p>
+        <button type="button" id="sg-apply" class="btn btn-torii sg-apply" style="display:none;">Choisir la taille —</button>
       </div>
 
       <!-- Table -->
@@ -230,6 +243,25 @@ const catalog = {
   /* ── Stage ─────────────────────────────── */
   .stage-col { position: sticky; top: 90px; }
   @media (max-width: 920px) { .stage-col { position: static; } }
+  .stage-modes { display: flex; gap: 8px; margin-bottom: var(--s-3); }
+  .stage-mode {
+    flex: 1; padding: 10px 12px; border: 1px solid var(--sumi-4); background: var(--washi);
+    border-radius: var(--r-2); cursor: pointer; font-family: var(--f-body); font-size: 12px;
+    font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sumi-2);
+    transition: all 0.18s var(--ease-koi);
+  }
+  .stage-mode:hover { border-color: var(--sumi-3); }
+  .stage-mode.on { background: var(--sumi); color: #fff; border-color: var(--sumi); }
+  .photo-prompt {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: var(--s-3);
+    border: 2px dashed var(--sumi-4); border-radius: var(--r-3);
+    background: var(--washi-2); margin: var(--s-4); cursor: pointer;
+    text-align: center; padding: var(--s-6);
+  }
+  .photo-prompt:hover { border-color: var(--torii); background: rgba(204,0,0,0.04); }
+  .photo-prompt p { font-size: 14px; line-height: 1.5; }
+  .photo-prompt b { font-family: var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; font-size: 18px; color: var(--sumi); }
   .stage-frame {
     background:
       radial-gradient(circle at 50% 35%, rgba(204,0,0,0.06), transparent 60%),
@@ -451,6 +483,7 @@ const catalog = {
   .sg-rec input:focus { outline: none; border-color: var(--torii); }
   .sg-rec-out { margin-top: var(--s-3); font-size: 13px; }
   .sg-rec-out b { color: var(--torii); font-family: var(--f-display); letter-spacing: 0.04em; font-size: 16px; }
+  .sg-apply { width: 100%; justify-content: center; margin-top: var(--s-3); }
   .sg-tablewrap { margin-top: var(--s-5); overflow-x: auto; }
   .sg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .sg-table th { font-family: var(--f-display); letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: var(--sumi-3); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sumi-4); }

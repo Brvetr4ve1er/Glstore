@@ -1,0 +1,125 @@
+---
+import Base from '~/layouts/Base.astro';
+import site from '~/content/site.json';
+import { getCollection } from 'astro:content';
+
+const designs = (await getCollection('designs')).sort((a, b) => a.data.order - b.data.order);
+
+// group by anime franchise for visual organisation
+const grouped = new Map<string, typeof designs>();
+for (const d of designs) {
+  const k = d.data.anime || 'Original';
+  if (!grouped.has(k)) grouped.set(k, []);
+  grouped.get(k)!.push(d);
+}
+---
+<Base title="Galerie de designs" description="Tous les designs anime prêts à appliquer sur un t-shirt, sweat, mug ou tote.">
+
+  <section class="band-light" style="padding: var(--s-9) 0;">
+    <div class="wrap text-center">
+      <span class="eyebrow">Galerie · {designs.length} designs</span>
+      <h1 class="display" style="font-size: clamp(36px, 6vw, 64px); margin-top: var(--s-3);">
+        Tous les designs <span class="kanji">{site.brand.kanji}</span>
+      </h1>
+      <p class="muted" style="max-width: 56ch; margin: var(--s-4) auto 0;">
+        Clique sur un design pour l'ouvrir dans le designer.
+        Ou importe le tien — on enlève le fond automatiquement.
+      </p>
+      <div class="hero-cta" style="justify-content: center; margin-top: var(--s-6);">
+        <a href="/custom/" class="btn btn-torii">Importe ton design →</a>
+      </div>
+    </div>
+  </section>
+
+  {Array.from(grouped.entries()).map(([anime, items]) => (
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="anime-head">
+          <span class="eyebrow">{anime}</span>
+          <h2 class="display" style="font-size: clamp(22px, 3vw, 32px); margin-top: 6px;">
+            {items.length} design{items.length > 1 ? 's' : ''}
+          </h2>
+        </div>
+        <div class="gallery-grid">
+          {items.map(d => (
+            <a class="g-card" href={`/custom/?design=${d.data.id}`}>
+              <div class="g-thumb">{d.data.image}</div>
+              <div class="g-meta">
+                <div class="g-name">{d.data.name}</div>
+                <div class="g-anime">{d.data.anime}</div>
+              </div>
+              <div class="g-cta">Personnaliser →</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section class="band-red section">
+    <div class="wrap text-center">
+      <h2 class="display" style="color: var(--white); font-size: clamp(28px, 4vw, 44px);">
+        Tu ne trouves pas ?
+      </h2>
+      <p style="opacity: 0.92; margin-top: var(--s-4); max-width: 50ch; margin-left: auto; margin-right: auto;">
+        Importe ton image dans le designer — on s'occupe du reste.
+      </p>
+      <div class="hero-cta" style="justify-content: center; margin-top: var(--s-6);">
+        <a href="/custom/" class="btn btn-sumi">Ouvrir le designer →</a>
+      </div>
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  .hero-cta { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+  .anime-head { margin-bottom: var(--s-6); }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--s-4);
+  }
+  .g-card {
+    background: var(--washi);
+    border: 1px solid var(--sumi-4);
+    border-radius: var(--r-3);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--sumi);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.24s var(--ease-shuriken);
+  }
+  .g-card:hover {
+    border-color: var(--torii);
+    box-shadow: var(--e-torii);
+    transform: translateY(-3px);
+  }
+  .g-thumb {
+    aspect-ratio: 1 / 1;
+    background: var(--washi-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    transition: transform 0.5s var(--ease-shuriken);
+  }
+  .g-card:hover .g-thumb { transform: scale(1.06); }
+  .g-meta { padding: var(--s-4); border-top: 1px solid var(--sumi-5); flex: 1; }
+  .g-name {
+    font-family: var(--f-display);
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .g-anime { font-size: 11px; color: var(--sumi-3); margin-top: 4px; letter-spacing: 0.06em; }
+  .g-cta {
+    padding: 10px var(--s-4) var(--s-4);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--torii);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+</style>

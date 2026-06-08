@@ -35,8 +35,16 @@ aucun serveur, aucune API payante.
    message WhatsApp.
 5b. **Guide des tailles** intégré à la page : tableau de mensurations
    (poitrine, longueur, épaules, manche) en cm + un mini-recommendeur
-   (taille + poids → on suggère la taille). Source des données :
-   `src/lib/size-guide.ts` (éditable).
+   (taille + poids → on suggère la taille → un bouton **Choisir cette
+   taille** applique la sélection dans le designer). Source des
+   données : `src/lib/size-guide.ts` (éditable).
+5c. **Mode "Sur ma photo"** : un toggle au-dessus de l'aperçu remplace
+   le mockup produit par une photo de toi (uploadée) — le design se
+   superpose. Quand tu commandes, la photo essayée est jointe en plus
+   des fichiers d'impression habituels.
+5d. **Galerie de designs** (`/galerie`) : tous les designs groupés par
+   anime, avec deep-link vers le designer (`/custom/?design=<id>`).
+   Clique un design → il s'ouvre directement dans le studio.
 6. **Commande.** Sur **mobile**, chaque visuel + fichier d'impression
    (recto et verso) part directement dans WhatsApp via le partage
    natif (`navigator.share` avec fichiers). Sur **ordinateur**, ils se
