@@ -26,11 +26,24 @@ aucun serveur, aucune API payante.
      de fond à enlever) · **garder l'original**.
 3. **Place le design** sur la zone d'impression : glisse pour déplacer,
    curseurs taille + rotation, boutons Centrer / Ajuster.
-4. **Commande.** Sur **mobile**, le visuel + le fichier d'impression
-   partent directement dans WhatsApp via le partage natif
-   (`navigator.share` avec fichiers). Sur **ordinateur**, ils se
+4. **Recto + Verso.** Le sélecteur sous l'aperçu permet de mettre un
+   design différent à l'avant et à l'arrière (sur t-shirt / sweat /
+   pull). Ajouter un design au verso ajoute automatiquement +500 DA.
+   Mug et tote bag restent à une seule face.
+5. **Note pour la boutique** (optionnel) : un champ libre pour les
+   instructions (couleur d'encre, taille du logo…), inclus dans le
+   message WhatsApp.
+6. **Commande.** Sur **mobile**, chaque visuel + fichier d'impression
+   (recto et verso) part directement dans WhatsApp via le partage
+   natif (`navigator.share` avec fichiers). Sur **ordinateur**, ils se
    téléchargent et WhatsApp s'ouvre pré-rempli — il suffit de les
    joindre au message.
+
+> **Mockups photo réels** : par défaut les mockups sont des dessins
+> vectoriels recolorables. Pour utiliser de vraies photos produit,
+> dépose-les dans `public/images/mockups/` et ajoute un bloc `raster`
+> au mockup concerné — voir les instructions en bas de
+> `src/lib/mockups.ts`.
 
 Le code du designer vit dans `src/lib/` (logique pure, testable) et
 `src/scripts/builder.ts` (le contrôleur DOM).

@@ -49,6 +49,13 @@ const catalog = {
           </div>
         </div>
 
+        <!-- recto / verso switcher -->
+        <div id="side-switch" class="side-switch">
+          <button data-edit-side="recto" class="side-tab on">Recto <span class="dot"></span></button>
+          <button data-edit-side="verso" class="side-tab">Verso <span class="plus">+500 DA</span><span class="dot"></span></button>
+          <button id="btn-clear-verso" class="clear-verso" style="display:none;" title="Retirer le design verso">✕</button>
+        </div>
+
         <!-- placement controls -->
         <div class="place-controls">
           <label>Taille
@@ -131,18 +138,9 @@ const catalog = {
           </div>
         </div>
 
-        <!-- 4. Sides -->
-        <div class="step" id="step-side">
-          <h2 class="step-label"><span class="num">4</span> Côté(s)</h2>
-          <div class="opts">
-            <button class="opt on" data-side="single"><b>Recto</b><span>+ 0 DA</span></button>
-            <button class="opt" data-side="double"><b>Recto + Verso</b><span>+ 500 DA</span></button>
-          </div>
-        </div>
-
-        <!-- 5. Size -->
+        <!-- 4. Size -->
         <div class="step" id="step-size">
-          <h2 class="step-label"><span class="num">5</span> Taille</h2>
+          <h2 class="step-label"><span class="num">4</span> Taille</h2>
           <div class="opts" id="sizes">
             <button class="opt size" data-size="S">S</button>
             <button class="opt size on" data-size="M">M</button>
@@ -157,6 +155,8 @@ const catalog = {
           <span class="eyebrow" style="color: var(--w70);">Total</span>
           <div class="total" id="total">—</div>
           <div class="brk" id="brk"></div>
+          <textarea id="note" class="note-input" rows="2"
+            placeholder="Note pour la boutique (optionnel) — couleur d'encre, taille du logo, instructions…"></textarea>
           <div class="actions">
             <button id="btn-order" class="btn btn-wa" disabled>💬 Commander sur WhatsApp</button>
             <button id="btn-download" class="btn btn-ghost" disabled>⬇️ Télécharger le visuel</button>
@@ -270,6 +270,35 @@ const catalog = {
   .mini:hover { border-color: var(--sumi-3); }
   .mini.on { background: var(--torii); color: #fff; border-color: var(--torii); }
   .place-tip { font-size: 12px; margin-top: var(--s-3); text-align: center; }
+
+  /* ── Side switcher ─────────────────────── */
+  .side-switch { display: flex; gap: 8px; margin-top: var(--s-5); align-items: stretch; }
+  .side-tab {
+    flex: 1; padding: 10px 8px; border: 2px solid var(--sumi-4); background: var(--washi);
+    border-radius: var(--r-2); cursor: pointer; font-family: var(--f-display);
+    letter-spacing: 0.06em; text-transform: uppercase; font-size: 14px; color: var(--sumi-2);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.18s var(--ease-koi);
+  }
+  .side-tab:hover { border-color: var(--sumi-3); }
+  .side-tab.on { border-color: var(--torii); color: var(--torii); background: rgba(204,0,0,0.05); }
+  .side-tab .plus { font-size: 10px; color: var(--sumi-3); font-family: var(--f-body); letter-spacing: 0; }
+  .side-tab.on .plus { color: var(--torii); }
+  .side-tab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--jade); display: none; }
+  .clear-verso {
+    width: 40px; border: 1px solid var(--sumi-4); background: var(--washi);
+    border-radius: var(--r-2); cursor: pointer; color: var(--err); font-weight: 700; font-size: 14px;
+  }
+  .clear-verso:hover { border-color: var(--err); background: rgba(192,39,59,0.05); }
+
+  /* ── Note input ────────────────────────── */
+  .note-input {
+    width: 100%; margin-top: var(--s-4); background: rgba(255,255,255,0.06);
+    border: 1px solid var(--w20); border-radius: var(--r-2); color: #fff;
+    padding: 10px 12px; font-family: var(--f-body); font-size: 13px; resize: vertical; line-height: 1.5;
+  }
+  .note-input::placeholder { color: var(--w50); }
+  .note-input:focus { outline: none; border-color: var(--w50); }
 
   /* ── Controls ──────────────────────────── */
   .controls { display: flex; flex-direction: column; gap: var(--s-5); }

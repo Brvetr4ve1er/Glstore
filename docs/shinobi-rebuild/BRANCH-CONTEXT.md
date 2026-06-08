@@ -96,9 +96,18 @@ no paid API):
    loads `@imgly/background-removal` (ONNX, ~40 MB, on demand) for
    complex photos. Tools: tolerance slider, eyedropper, keep-original.
 3. Place the design on the print area (drag / scale / rotate).
-4. Order: on mobile the composited preview + the print-ready
-   transparent PNG share straight to WhatsApp via the Web Share API
-   (`order.ts`); desktop downloads them + opens WhatsApp pre-filled.
+4. **Front + back**: a recto/verso switcher gives each side its own
+   independent design; adding a verso design adds +500 DA. Mug/tote
+   stay single-sided.
+5. **Customer note**: a free-text field is included in the WhatsApp
+   message.
+6. Order: on mobile every side's preview + print-ready transparent PNG
+   share straight to WhatsApp via the Web Share API (`order.ts`);
+   desktop downloads them + opens WhatsApp pre-filled.
+
+Photographic mockups are supported via an optional `raster` field on a
+mockup (one product photo per colour/side) — see the note at the
+bottom of `mockups.ts`; the default vector mockups need no assets.
 
 The four `lib/*.ts` modules are pure logic (no framework). The only
 optional external dependency is the AI model, fetched at runtime only
