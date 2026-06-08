@@ -9,6 +9,13 @@
 > Instagram (@shinobishopdz), in a physical shop at Centre Commercial
 > Bab Ezzouar, Algiers — but does not have its own online store yet.
 
+> **📦 Grabbing this to move into its own repo?**
+> Read **[BRANCH-CONTEXT.md](./BRANCH-CONTEXT.md)** — it's the full
+> inventory of what's on this branch plus step-by-step instructions to
+> extract `apps/site/` into a standalone repo and remove it from
+> Glstore. The actual shippable website is the **`apps/site/`** folder
+> (Astro static site); these docs are design/planning reference.
+
 ## How to read this folder
 
 | # | File | Maps to brief output |
