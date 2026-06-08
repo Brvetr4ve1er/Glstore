@@ -62,6 +62,13 @@ apps/site/
    ├─ components/
    │  ├─ Header.astro        # sticky nav + mascot
    │  └─ Footer.astro        # dark footer + WhatsApp/IG buttons
+   ├─ lib/                   # the designer engine (pure, no DOM, testable)
+   │  ├─ mockups.ts          # SVG product mockups + print-area rects
+   │  ├─ bg-remove.ts        # background removal (chroma flood-fill + AI)
+   │  ├─ compositor.ts       # placement maths + canvas render + PNG export
+   │  └─ order.ts            # WhatsApp hand-off (Web Share API + fallback)
+   ├─ scripts/
+   │  └─ builder.ts          # the designer's DOM controller
    ├─ content/
    │  ├─ config.ts           # content-collection schemas (validation)
    │  ├─ site.json           # ◆ brand, contact, boutique, policies
@@ -69,12 +76,33 @@ apps/site/
    │  └─ designs/*.json      # ◆ 8 anime designs
    └─ pages/
       ├─ index.astro         # Home
-      ├─ custom.astro        # ◆ the Custom Builder (the moat)
+      ├─ custom.astro        # ◆ the Designer (Printify-style mockup studio)
       ├─ boutique.astro      # shop page + LocalBusiness JSON-LD
       └─ 404.astro           # branded 404
 
 ◆ = content the owner edits (directly or via /admin/)
 ```
+
+### The Designer (`/custom`) — how it works
+
+A Redbubble/Printify-style studio, **100% client-side** (no server,
+no paid API):
+
+1. Pick a product → a recolourable SVG mockup renders (t-shirt,
+   hoodie, mug, tote), each with a defined print area.
+2. Upload an image (or pick a gallery design). The **background is
+   removed automatically** by an edge flood-fill chroma key
+   (`bg-remove.ts`) — instant, offline. A "Découpe IA" button lazily
+   loads `@imgly/background-removal` (ONNX, ~40 MB, on demand) for
+   complex photos. Tools: tolerance slider, eyedropper, keep-original.
+3. Place the design on the print area (drag / scale / rotate).
+4. Order: on mobile the composited preview + the print-ready
+   transparent PNG share straight to WhatsApp via the Web Share API
+   (`order.ts`); desktop downloads them + opens WhatsApp pre-filled.
+
+The four `lib/*.ts` modules are pure logic (no framework). The only
+optional external dependency is the AI model, fetched at runtime only
+if the user taps "Découpe IA".
 
 ### 2b. THE REFERENCE — `docs/shinobi-rebuild/` (planning + design)
 

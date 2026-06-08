@@ -4,18 +4,52 @@
 > boutique d'anime streetwear personnalisé à Bab Ezzouar, Alger.
 >
 > Les commandes arrivent sur WhatsApp ou Instagram — pas de
-> e-commerce, pas de compte à gérer, pas de paiement en ligne. Juste
-> un beau catalogue, un builder pour personnaliser, et un bouton qui
-> ouvre WhatsApp avec la commande pré-remplie.
+> e-commerce, pas de compte à gérer, pas de paiement en ligne. Un beau
+> catalogue, un **designer façon Printify** (importe ton image → le
+> fond est enlevé → tu l'appliques sur un mockup produit), et un bouton
+> qui envoie la commande + le visuel + le fichier d'impression sur
+> WhatsApp.
+
+## Le designer (page `/custom`)
+
+C'est le cœur du site. Fonctionne **entièrement dans le navigateur** —
+aucun serveur, aucune API payante.
+
+1. **Choisis un produit** → un mockup vectoriel s'affiche (t-shirt,
+   sweat/pull à capuche, mug, tote), recolorable.
+2. **Importe ton image** (ou prends un design de la galerie). Le **fond
+   est enlevé automatiquement** par un découpage chroma (remplissage
+   depuis les bords) — instantané, sans réseau. Pour les photos
+   complexes, un bouton « Découpe IA » charge un modèle ONNX
+   (`@imgly/background-removal`, ≈40 Mo) à la demande.
+   - Réglages : curseur de sensibilité · **pipette** (clique la couleur
+     de fond à enlever) · **garder l'original**.
+3. **Place le design** sur la zone d'impression : glisse pour déplacer,
+   curseurs taille + rotation, boutons Centrer / Ajuster.
+4. **Commande.** Sur **mobile**, le visuel + le fichier d'impression
+   partent directement dans WhatsApp via le partage natif
+   (`navigator.share` avec fichiers). Sur **ordinateur**, ils se
+   téléchargent et WhatsApp s'ouvre pré-rempli — il suffit de les
+   joindre au message.
+
+Le code du designer vit dans `src/lib/` (logique pure, testable) et
+`src/scripts/builder.ts` (le contrôleur DOM).
 
 ## Ce qu'il y a dans la boîte
 
 ```
 apps/site/
 ├─ src/
-│  ├─ pages/            # Accueil · Personnaliser · Boutique
+│  ├─ pages/            # Accueil · Designer (/custom) · Boutique
 │  ├─ components/       # Header · Footer
 │  ├─ layouts/Base.astro
+│  ├─ lib/              # ◆ le moteur du designer (pur, sans DOM)
+│  │  ├─ mockups.ts     #   mockups SVG produits + zones d'impression
+│  │  ├─ bg-remove.ts   #   découpe de fond (chroma + IA)
+│  │  ├─ compositor.ts  #   placement + rendu canvas + export PNG
+│  │  └─ order.ts       #   partage WhatsApp (Web Share API + repli)
+│  ├─ scripts/
+│  │  └─ builder.ts     #   contrôleur DOM du designer
 │  ├─ content/          # Données éditables par l'admin (JSON)
 │  │  ├─ bases/         # T-shirt, sweat, pull, mug, tote
 │  │  ├─ designs/       # Gojo, Sukuna, Luffy, Naruto, …
@@ -30,6 +64,11 @@ apps/site/
 ├─ netlify.toml         # Config de déploiement
 └─ package.json
 ```
+
+> **Mockups & zones d'impression** sont définis dans
+> `src/lib/mockups.ts` (config développeur — géométrie SVG + rectangle
+> de la zone imprimable par produit). Les prix/noms restent éditables
+> par l'owner dans `content/bases/*.json`.
 
 ## Démarrer en local
 
