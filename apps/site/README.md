@@ -33,6 +33,10 @@ aucun serveur, aucune API payante.
 5. **Note pour la boutique** (optionnel) : un champ libre pour les
    instructions (couleur d'encre, taille du logo…), inclus dans le
    message WhatsApp.
+5b. **Guide des tailles** intégré à la page : tableau de mensurations
+   (poitrine, longueur, épaules, manche) en cm + un mini-recommendeur
+   (taille + poids → on suggère la taille). Source des données :
+   `src/lib/size-guide.ts` (éditable).
 6. **Commande.** Sur **mobile**, chaque visuel + fichier d'impression
    (recto et verso) part directement dans WhatsApp via le partage
    natif (`navigator.share` avec fichiers). Sur **ordinateur**, ils se

@@ -13,6 +13,7 @@ import {
   clampPlacement, svgDataUrl, loadImage, type Placement,
 } from '../lib/compositor';
 import { sendOrder, type OrderDetails, type SideInfo, type NamedBlob } from '../lib/order';
+import { SIZE_GUIDES } from '../lib/size-guide';
 
 interface Base { id: string; name: string; price: number; doubleSideAllowed: boolean; extraDoubleSide: number; icon: string; order: number; }
 interface Design { id: string; name: string; anime: string; image: string; isEmoji: boolean; }
@@ -461,11 +462,80 @@ export function initBuilder() {
     });
   }
 
+  // ── Size guide modal ──────────────────────────────────────
+  function wireSizeGuide() {
+    const modal = $('#size-guide');
+    const btn = $('#btn-size-guide');
+    const tableBody = modal.querySelector<HTMLTableSectionElement>('#sg-table tbody')!;
+    const familyEl = $('#sg-family');
+    const noteEl = $('#sg-note');
+    const recOut = $('#sg-rec-out');
+    const hIn = $<HTMLInputElement>('#sg-height');
+    const wIn = $<HTMLInputElement>('#sg-weight');
+
+    function familyFor(kind: MockupKind): 'tshirt' | 'hoodie' | null {
+      if (kind === 'tshirt') return 'tshirt';
+      if (kind === 'hoodie') return 'hoodie';
+      return null; // mug/tote have no size
+    }
+
+    function paint(highlight: string | null) {
+      const fam = familyFor(state.mockupKind);
+      if (!fam) return;
+      const g = SIZE_GUIDES[fam];
+      familyEl.textContent = g.label;
+      noteEl.textContent = g.fitNote;
+      tableBody.innerHTML = '';
+      for (const r of g.rows) {
+        const tr = document.createElement('tr');
+        if (highlight === r.size) tr.classList.add('match');
+        tr.innerHTML = `<td>${r.size}</td><td>${r.chest}</td><td>${r.length}</td><td>${r.shoulder}</td><td>${r.sleeve}</td>`;
+        tableBody.appendChild(tr);
+      }
+    }
+
+    function recompute() {
+      const fam = familyFor(state.mockupKind);
+      if (!fam) return;
+      const h = parseInt(hIn.value, 10);
+      const w = parseInt(wIn.value, 10);
+      if (!h || !w) {
+        recOut.textContent = 'Entre ta taille et ton poids — on te recommande une taille.';
+        paint(null);
+        return;
+      }
+      const size = SIZE_GUIDES[fam].recommend(h, w);
+      recOut.innerHTML = `Pour <b>${h} cm</b> · <b>${w} kg</b> → on recommande la taille <b>${size}</b>.`;
+      paint(size);
+    }
+
+    function open() {
+      const fam = familyFor(state.mockupKind);
+      if (!fam) return;
+      paint(null);
+      modal.style.display = 'flex';
+      // pre-fill current selected size as a baseline highlight
+      paint(state.size);
+      setTimeout(() => hIn.focus(), 50);
+    }
+    function close() { modal.style.display = 'none'; }
+
+    btn.addEventListener('click', open);
+    modal.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).hasAttribute('data-close')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') close();
+    });
+    hIn.addEventListener('input', recompute);
+    wIn.addEventListener('input', recompute);
+  }
+
   // ── Boot ──────────────────────────────────────────────────
   renderColors(); renderSideSwitch(); drawMockup();
   updateConditionalSteps(); updatePrice(); updateOrderEnabled();
   wireBases(); wireSides(); wireSourceTabs(); wireGallery();
-  wireUploadTools(); wireInteraction(); wireOptions(); wireOrder();
+  wireUploadTools(); wireInteraction(); wireOptions(); wireOrder(); wireSizeGuide();
   mockupImg.addEventListener('load', layoutPrintBox);
   window.addEventListener('resize', layoutPrintBox);
 }

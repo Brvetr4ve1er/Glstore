@@ -140,7 +140,10 @@ const catalog = {
 
         <!-- 4. Size -->
         <div class="step" id="step-size">
-          <h2 class="step-label"><span class="num">4</span> Taille</h2>
+          <h2 class="step-label">
+            <span class="num">4</span> Taille
+            <button type="button" id="btn-size-guide" class="size-guide-link">Guide des tailles ↗</button>
+          </h2>
           <div class="opts" id="sizes">
             <button class="opt size" data-size="S">S</button>
             <button class="opt size on" data-size="M">M</button>
@@ -172,6 +175,40 @@ const catalog = {
   </section>
 
   <div id="toast" class="toast"></div>
+
+  <!-- ── Size-guide modal ──────────────────────────────────── -->
+  <div id="size-guide" class="modal" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="display:none;">
+    <div class="modal-back" data-close></div>
+    <div class="modal-card">
+      <button type="button" class="modal-close" data-close aria-label="Fermer">✕</button>
+      <h2 id="sg-title" class="display" style="font-size:24px;letter-spacing:0.04em;text-transform:uppercase;">
+        Guide des tailles <span class="kanji">忍</span>
+      </h2>
+      <p class="muted sg-family" id="sg-family">—</p>
+
+      <!-- Recommender -->
+      <div class="sg-rec">
+        <div class="eyebrow" style="color:var(--torii);">Trouve ta taille</div>
+        <div class="sg-rec-row">
+          <label>Taille (cm)<input type="number" id="sg-height" min="140" max="220" placeholder="175" /></label>
+          <label>Poids (kg)<input type="number" id="sg-weight" min="35" max="160" placeholder="70" /></label>
+        </div>
+        <p class="sg-rec-out muted" id="sg-rec-out">Entre ta taille et ton poids — on te recommande une taille.</p>
+      </div>
+
+      <!-- Table -->
+      <div class="sg-tablewrap">
+        <table class="sg-table" id="sg-table" aria-label="Mensurations">
+          <thead>
+            <tr><th>Taille</th><th>Poitrine (cm)</th><th>Longueur (cm)</th><th>Épaules (cm)</th><th>Manche (cm)</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted sg-note" id="sg-note">—</p>
+      <p class="muted tiny">Mesures à plat ±1 cm. En cas de doute, écris-nous sur WhatsApp.</p>
+    </div>
+  </div>
 
   <script type="application/json" id="catalog" set:html={JSON.stringify(catalog)}></script>
   <script>
@@ -384,6 +421,45 @@ const catalog = {
   .actions .btn { justify-content: center; }
   .actions .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .hint { font-size: 12px; color: var(--w50); margin-top: var(--s-4); line-height: 1.5; }
+
+  /* ── Size-guide button + modal ─────────── */
+  .size-guide-link {
+    margin-left: auto; font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--torii); background: none; border: none;
+    cursor: pointer; padding: 4px 6px; font-weight: 600;
+  }
+  .size-guide-link:hover { text-decoration: underline; }
+
+  .modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: var(--s-4); }
+  .modal[style*="display:flex"], .modal.open { display: flex !important; }
+  .modal-back { position: absolute; inset: 0; background: rgba(14,14,14,0.55); backdrop-filter: blur(2px); }
+  .modal-card {
+    position: relative; background: var(--washi); border-radius: var(--r-4);
+    width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+    padding: var(--s-7) var(--s-6); box-shadow: var(--e-3);
+    animation: modalIn 0.24s var(--ease-shuriken);
+  }
+  @keyframes modalIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--sumi-4); background: var(--washi); cursor: pointer; font-size: 14px; color: var(--sumi-2); }
+  .modal-close:hover { border-color: var(--sumi); color: var(--sumi); }
+  .sg-family { font-size: 13px; letter-spacing: 0.04em; margin-top: 6px; }
+  .sg-rec { background: var(--washi-2); border-radius: var(--r-3); padding: var(--s-4); margin-top: var(--s-5); }
+  .sg-rec-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: 8px; }
+  .sg-rec label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sumi-3); }
+  .sg-rec input { padding: 10px; border: 1px solid var(--sumi-4); border-radius: var(--r-2); font-size: 16px; font-family: var(--f-body); }
+  .sg-rec input:focus { outline: none; border-color: var(--torii); }
+  .sg-rec-out { margin-top: var(--s-3); font-size: 13px; }
+  .sg-rec-out b { color: var(--torii); font-family: var(--f-display); letter-spacing: 0.04em; font-size: 16px; }
+  .sg-tablewrap { margin-top: var(--s-5); overflow-x: auto; }
+  .sg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .sg-table th { font-family: var(--f-display); letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: var(--sumi-3); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sumi-4); }
+  /* table rows are created by JS, so styles must be :global to escape Astro scoping */
+  .sg-table :global(td) { padding: 10px; border-bottom: 1px solid var(--sumi-5); font-family: var(--f-mono); font-size: 13px; color: var(--sumi); }
+  .sg-table :global(tr:hover) { background: var(--washi-2); }
+  .sg-table :global(tr.match) { background: rgba(204,0,0,0.10); box-shadow: inset 3px 0 0 var(--torii); }
+  .sg-table :global(tr.match td:first-child) { color: var(--torii); font-family: var(--f-display); letter-spacing: 0.06em; font-weight: 700; }
+  .sg-note { margin-top: var(--s-4); font-size: 13px; line-height: 1.6; }
 
   /* ── Toast ─────────────────────────────── */
   .toast {

@@ -63,10 +63,11 @@ apps/site/
    │  ├─ Header.astro        # sticky nav + mascot
    │  └─ Footer.astro        # dark footer + WhatsApp/IG buttons
    ├─ lib/                   # the designer engine (pure, no DOM, testable)
-   │  ├─ mockups.ts          # SVG product mockups + print-area rects
+   │  ├─ mockups.ts          # SVG product mockups (front+back) + print-area rects
    │  ├─ bg-remove.ts        # background removal (chroma flood-fill + AI)
    │  ├─ compositor.ts       # placement maths + canvas render + PNG export
-   │  └─ order.ts            # WhatsApp hand-off (Web Share API + fallback)
+   │  ├─ order.ts            # WhatsApp hand-off (Web Share API + fallback)
+   │  └─ size-guide.ts       # cm tables per family + size recommender
    ├─ scripts/
    │  └─ builder.ts          # the designer's DOM controller
    ├─ content/

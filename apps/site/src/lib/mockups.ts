@@ -70,96 +70,225 @@ function isLight(hex: string): boolean {
   return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150;
 }
 const SHADOW = `<ellipse cx="500" cy="905" rx="250" ry="24" fill="rgba(0,0,0,0.10)"/>`;
-function open(extra = '') { return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">${SHADOW}${extra}`; }
+
+/** Per-garment realism kit: stroke colour, fold shade, deep shade, highlight. */
+function tones(g: string) {
+  const light = isLight(g);
+  return {
+    fold:      shade(g, light ? -22 : 28),     // shadow folds
+    deep:      shade(g, light ? -45 : 50),     // deep shadow / collar rib
+    highlight: light ? 'rgba(255,255,255,0.40)' : 'rgba(255,255,255,0.06)',
+    seam:      light ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.10)',
+    stitch:    light ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.30)',
+  };
+}
+
+/** Shared SVG defs: vignette + side-light gradient for body shaping. */
+function defs(g: string): string {
+  const t = tones(g);
+  return `<defs>
+    <linearGradient id="bodyLight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="${t.fold}" stop-opacity="0.55"/>
+      <stop offset="0.18" stop-color="${g}" stop-opacity="0"/>
+      <stop offset="0.82" stop-color="${g}" stop-opacity="0"/>
+      <stop offset="1" stop-color="${t.fold}" stop-opacity="0.55"/>
+    </linearGradient>
+    <radialGradient id="centerHi" cx="0.5" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="${t.highlight}" stop-opacity="${isLight(g) ? 0.0 : 1}"/>
+      <stop offset="1" stop-color="${t.highlight}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hemShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${t.fold}" stop-opacity="0"/>
+      <stop offset="1" stop-color="${t.deep}" stop-opacity="0.45"/>
+    </linearGradient>
+  </defs>`;
+}
+function open(g: string, extra = '') {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">${defs(g)}${SHADOW}${extra}`;
+}
 
 // ── T-SHIRT ─────────────────────────────────────────────────────────
+// Oversize-tee silhouette: relaxed shoulder, dropped sleeve, wide hem.
+const TSHIRT_BODY = `M300,215 L360,205
+  C420,250 580,250 640,205 L700,215
+  L860,300 L770,460 L700,425
+  L705,860 L295,860 L300,425 L230,460 L140,300 Z`;
+const TSHIRT_BACK_BODY = `M300,215 L360,200
+  C470,232 530,232 640,200 L700,215
+  L860,300 L770,460 L700,425
+  L705,860 L295,860 L300,425 L230,460 L140,300 Z`;
+
 function tshirtFront(g: string): string {
-  const fold = shade(g, isLight(g) ? -18 : 22);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)';
-  return open() + `
-    <path d="M300,215 L360,205 C420,250 580,250 640,205 L700,215 L860,300 L770,455 L700,420 L705,860 L295,860 L300,420 L230,455 L140,300 L300,215 Z"
-      fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <path d="M360,205 C420,250 580,250 640,205 C600,250 400,250 360,205 Z" fill="${fold}" opacity="0.6"/>
-    <path d="M300,420 L230,455 L255,470 L312,445 Z" fill="${fold}" opacity="0.5"/>
-    <path d="M700,420 L770,455 L745,470 L688,445 Z" fill="${fold}" opacity="0.5"/>
-    <path d="M310,840 L705,840 L705,860 L295,860 Z" fill="${fold}" opacity="0.35"/>
+  const t = tones(g);
+  return open(g) + `
+    <!-- body -->
+    <path d="${TSHIRT_BODY}" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <!-- side-light gradient + centre highlight + hem shade -->
+    <path d="${TSHIRT_BODY}" fill="url(#bodyLight)"/>
+    <path d="${TSHIRT_BODY}" fill="url(#centerHi)" opacity="0.7"/>
+    <path d="${TSHIRT_BODY}" fill="url(#hemShade)"/>
+    <!-- collar V ribbing -->
+    <path d="M362,206 C420,250 580,250 638,206 C600,260 400,260 362,206 Z" fill="${t.deep}" opacity="0.85"/>
+    <path d="M380,222 C430,256 570,256 620,222" stroke="${t.highlight}" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <!-- sleeve seams -->
+    <path d="M230,460 C260,430 290,400 312,392" stroke="${t.seam}" stroke-width="2" fill="none"/>
+    <path d="M770,460 C740,430 710,400 688,392" stroke="${t.seam}" stroke-width="2" fill="none"/>
+    <!-- sleeve cuff shade -->
+    <path d="M300,425 L230,460 L260,478 L312,448 Z" fill="${t.deep}" opacity="0.40"/>
+    <path d="M700,425 L770,460 L740,478 L688,448 Z" fill="${t.deep}" opacity="0.40"/>
+    <!-- top-stitches around collar + cuffs + hem -->
+    <path d="M370,219 C425,255 575,255 630,219" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" fill="none" opacity="0.7"/>
+    <path d="M270,453 L308,433" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+    <path d="M730,453 L692,433" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+    <path d="M306,838 L700,838" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+    <!-- subtle vertical fold down the middle -->
+    <path d="M500,260 L500,840" stroke="${t.fold}" stroke-width="1.5" opacity="0.18"/>
   </svg>`;
 }
 function tshirtBack(g: string): string {
-  const fold = shade(g, isLight(g) ? -18 : 22);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)';
-  return open() + `
-    <path d="M300,215 L360,200 C470,228 530,228 640,200 L700,215 L860,300 L770,455 L700,420 L705,860 L295,860 L300,420 L230,455 L140,300 L300,215 Z"
-      fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <!-- back collar rib -->
-    <path d="M380,205 C460,236 540,236 620,205 C540,224 460,224 380,205 Z" fill="${fold}" opacity="0.75"/>
-    <path d="M300,420 L230,455 L255,470 L312,445 Z" fill="${fold}" opacity="0.5"/>
-    <path d="M700,420 L770,455 L745,470 L688,445 Z" fill="${fold}" opacity="0.5"/>
-    <path d="M310,840 L705,840 L705,860 L295,860 Z" fill="${fold}" opacity="0.35"/>
+  const t = tones(g);
+  return open(g) + `
+    <path d="${TSHIRT_BACK_BODY}" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="${TSHIRT_BACK_BODY}" fill="url(#bodyLight)"/>
+    <path d="${TSHIRT_BACK_BODY}" fill="url(#centerHi)" opacity="0.7"/>
+    <path d="${TSHIRT_BACK_BODY}" fill="url(#hemShade)"/>
+    <!-- back collar rib (solid, no V dip) -->
+    <path d="M378,205 C470,238 530,238 622,205 C540,228 460,228 378,205 Z" fill="${t.deep}" opacity="0.85"/>
+    <path d="M390,218 C470,246 530,246 610,218" stroke="${t.highlight}" stroke-width="1.5" fill="none" opacity="0.55"/>
+    <!-- yoke seam -->
+    <path d="M310,260 C400,290 600,290 690,260" stroke="${t.seam}" stroke-width="2" fill="none" opacity="0.7"/>
+    <path d="M310,260 C400,290 600,290 690,260" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" fill="none" opacity="0.6"/>
+    <!-- sleeve detail -->
+    <path d="M230,460 C260,430 290,400 312,392" stroke="${t.seam}" stroke-width="2" fill="none"/>
+    <path d="M770,460 C740,430 710,400 688,392" stroke="${t.seam}" stroke-width="2" fill="none"/>
+    <path d="M300,425 L230,460 L260,478 L312,448 Z" fill="${t.deep}" opacity="0.40"/>
+    <path d="M700,425 L770,460 L740,478 L688,448 Z" fill="${t.deep}" opacity="0.40"/>
+    <path d="M306,838 L700,838" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+    <path d="M500,290 L500,840" stroke="${t.fold}" stroke-width="1.5" opacity="0.18"/>
   </svg>`;
 }
 
 // ── HOODIE ──────────────────────────────────────────────────────────
+const HOODIE_BODY = `M300,250 L355,235
+  C400,300 600,300 645,235 L700,250
+  L870,330 L775,500 L700,455
+  L705,865 L295,865 L300,455 L225,500 L130,330 Z`;
+const HOODIE_BACK_BODY = `M300,250 L355,250
+  C400,300 600,300 645,250 L700,250
+  L870,330 L775,500 L700,455
+  L705,865 L295,865 L300,455 L225,500 L130,330 Z`;
+
 function hoodieFront(g: string): string {
-  const fold = shade(g, isLight(g) ? -22 : 26);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.12)';
-  return open() + `
-    <path d="M345,235 C380,120 620,120 655,235 C600,210 400,210 345,235 Z" fill="${fold}" opacity="0.9"/>
-    <path d="M345,235 C380,140 620,140 655,235 C610,300 390,300 345,235 Z" fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <path d="M300,250 L355,235 C400,300 600,300 645,235 L700,250 L870,330 L775,500 L700,455 L705,865 L295,865 L300,455 L225,500 L130,330 L300,250 Z"
-      fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <path d="M360,640 L640,640 L610,790 L390,790 Z" fill="${fold}" opacity="0.55"/>
-    <path d="M360,640 L640,640 L610,790 L390,790 Z" fill="none" stroke="${seam}" stroke-width="3"/>
-    <rect x="455" y="270" width="10" height="150" rx="5" fill="${fold}"/>
-    <rect x="535" y="270" width="10" height="150" rx="5" fill="${fold}"/>
-    <circle cx="460" cy="425" r="9" fill="${fold}"/>
-    <circle cx="540" cy="425" r="9" fill="${fold}"/>
-    <rect x="300" y="838" width="405" height="27" fill="${fold}" opacity="0.45"/>
+  const t = tones(g);
+  return open(g) + `
+    <!-- hood back layer (slightly darker) -->
+    <path d="M345,238 C380,108 620,108 655,238 C600,212 400,212 345,238 Z" fill="${t.deep}" opacity="0.95"/>
+    <!-- hood front -->
+    <path d="M345,238 C380,138 620,138 655,238 C610,300 390,300 345,238 Z" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M345,238 C380,138 620,138 655,238 C610,300 390,300 345,238 Z" fill="url(#bodyLight)"/>
+    <!-- body -->
+    <path d="${HOODIE_BODY}" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="${HOODIE_BODY}" fill="url(#bodyLight)"/>
+    <path d="${HOODIE_BODY}" fill="url(#centerHi)" opacity="0.8"/>
+    <path d="${HOODIE_BODY}" fill="url(#hemShade)"/>
+    <!-- kangaroo pocket -->
+    <path d="M360,640 L640,640 L612,790 L388,790 Z" fill="${t.fold}" opacity="0.55"/>
+    <path d="M360,640 L640,640 L612,790 L388,790 Z" fill="none" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M360,640 L640,640" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.65"/>
+    <!-- pocket opening shadows (hands enter here) -->
+    <path d="M412,672 C420,680 420,720 412,728" stroke="${t.deep}" stroke-width="3" fill="none" opacity="0.55"/>
+    <path d="M588,672 C580,680 580,720 588,728" stroke="${t.deep}" stroke-width="3" fill="none" opacity="0.55"/>
+    <!-- drawstrings -->
+    <rect x="455" y="270" width="10" height="160" rx="5" fill="${t.deep}"/>
+    <rect x="535" y="270" width="10" height="160" rx="5" fill="${t.deep}"/>
+    <circle cx="460" cy="438" r="10" fill="${t.deep}"/>
+    <circle cx="540" cy="438" r="10" fill="${t.deep}"/>
+    <!-- cuffs (ribbed) -->
+    <rect x="225" y="498" width="92" height="22" rx="8" fill="${t.deep}" opacity="0.65" transform="rotate(24 270 509)"/>
+    <rect x="683" y="498" width="92" height="22" rx="8" fill="${t.deep}" opacity="0.65" transform="rotate(-24 730 509)"/>
+    <!-- hem rib -->
+    <rect x="298" y="838" width="408" height="28" fill="${t.deep}" opacity="0.55"/>
+    <path d="M305,855 L700,855" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
   </svg>`;
 }
 function hoodieBack(g: string): string {
-  const fold = shade(g, isLight(g) ? -22 : 26);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.12)';
-  return open() + `
-    <!-- hood seen from behind (fuller) -->
-    <path d="M335,250 C370,110 630,110 665,250 C610,300 390,300 335,250 Z" fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <path d="M380,250 C440,290 560,290 620,250 C560,270 440,270 380,250 Z" fill="${fold}" opacity="0.7"/>
+  const t = tones(g);
+  return open(g) + `
+    <!-- hood seen from behind -->
+    <path d="M335,255 C370,108 630,108 665,255 C610,302 390,302 335,255 Z" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M335,255 C370,108 630,108 665,255 C610,302 390,302 335,255 Z" fill="url(#bodyLight)"/>
+    <!-- hood centre fold -->
+    <path d="M500,130 L500,295" stroke="${t.deep}" stroke-width="2" opacity="0.45"/>
     <!-- body -->
-    <path d="M300,250 L355,250 C400,300 600,300 645,250 L700,250 L870,330 L775,500 L700,455 L705,865 L295,865 L300,455 L225,500 L130,330 L300,250 Z"
-      fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <!-- centre seam -->
-    <path d="M500,310 L500,840" stroke="${seam}" stroke-width="2" opacity="0.5"/>
-    <rect x="300" y="838" width="405" height="27" fill="${fold}" opacity="0.45"/>
+    <path d="${HOODIE_BACK_BODY}" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="${HOODIE_BACK_BODY}" fill="url(#bodyLight)"/>
+    <path d="${HOODIE_BACK_BODY}" fill="url(#centerHi)" opacity="0.8"/>
+    <path d="${HOODIE_BACK_BODY}" fill="url(#hemShade)"/>
+    <!-- centre back seam -->
+    <path d="M500,310 L500,840" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.45"/>
+    <!-- cuffs + hem -->
+    <rect x="225" y="498" width="92" height="22" rx="8" fill="${t.deep}" opacity="0.65" transform="rotate(24 270 509)"/>
+    <rect x="683" y="498" width="92" height="22" rx="8" fill="${t.deep}" opacity="0.65" transform="rotate(-24 730 509)"/>
+    <rect x="298" y="838" width="408" height="28" fill="${t.deep}" opacity="0.55"/>
   </svg>`;
 }
 
 // ── MUG ─────────────────────────────────────────────────────────────
 function mugSvg(g: string): string {
-  const fold = shade(g, isLight(g) ? -16 : 24);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)';
-  const rim = shade(g, isLight(g) ? -28 : 36);
-  return open() + `
-    <path d="M690,360 C820,360 820,640 690,640 L690,580 C740,580 740,420 690,420 Z" fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <path d="M250,330 L690,330 L690,690 C690,720 660,740 470,740 C280,740 250,720 250,690 Z" fill="${g}" stroke="${seam}" stroke-width="3"/>
+  const t = tones(g);
+  const rim = shade(g, isLight(g) ? -34 : 42);
+  return open(g) + `
+    <!-- handle -->
+    <path d="M690,360 C840,360 840,640 690,640 L690,580 C752,580 752,420 690,420 Z" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M690,360 C840,360 840,640 690,640 L690,580 C752,580 752,420 690,420 Z" fill="url(#bodyLight)"/>
+    <!-- body -->
+    <path d="M250,330 L690,330 L690,690 C690,720 660,742 470,742 C280,742 250,720 250,690 Z" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M250,330 L690,330 L690,690 C690,720 660,742 470,742 C280,742 250,720 250,690 Z" fill="url(#bodyLight)"/>
+    <path d="M250,330 L690,330 L690,690 C690,720 660,742 470,742 C280,742 250,720 250,690 Z" fill="url(#centerHi)" opacity="0.85"/>
+    <!-- top rim ellipse -->
     <ellipse cx="470" cy="330" rx="220" ry="42" fill="${rim}"/>
-    <ellipse cx="470" cy="324" rx="220" ry="42" fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <ellipse cx="470" cy="324" rx="186" ry="32" fill="${fold}" opacity="0.55"/>
-    <path d="M285,345 C275,470 275,600 300,720" stroke="rgba(255,255,255,0.18)" stroke-width="14" fill="none" stroke-linecap="round"/>
-    <path d="M650,345 C662,470 662,600 640,720" stroke="${fold}" stroke-width="18" fill="none" opacity="0.5" stroke-linecap="round"/>
+    <ellipse cx="470" cy="324" rx="220" ry="42" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <ellipse cx="470" cy="324" rx="186" ry="32" fill="${t.fold}" opacity="0.55"/>
+    <ellipse cx="470" cy="320" rx="160" ry="22" fill="${t.deep}" opacity="0.30"/>
+    <!-- left specular highlight -->
+    <path d="M278,348 C268,470 268,600 296,720" stroke="rgba(255,255,255,0.28)" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <path d="M286,360 C278,470 278,600 302,710" stroke="rgba(255,255,255,0.12)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <!-- right shadow -->
+    <path d="M652,348 C664,470 664,600 638,720" stroke="${t.deep}" stroke-width="20" fill="none" opacity="0.45" stroke-linecap="round"/>
+    <!-- bottom contact shadow on body -->
+    <path d="M270,720 C320,738 620,738 670,720" stroke="${t.deep}" stroke-width="6" fill="none" opacity="0.45"/>
   </svg>`;
 }
 
 // ── TOTE ────────────────────────────────────────────────────────────
 function toteSvg(g: string): string {
-  const fold = shade(g, isLight(g) ? -16 : 22);
-  const seam = isLight(g) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)';
-  return open() + `
-    <path d="M380,300 C380,150 470,150 470,300" fill="none" stroke="${fold}" stroke-width="22" stroke-linecap="round"/>
-    <path d="M530,300 C530,150 620,150 620,300" fill="none" stroke="${fold}" stroke-width="22" stroke-linecap="round"/>
-    <path d="M270,300 L730,300 L710,840 L290,840 Z" fill="${g}" stroke="${seam}" stroke-width="3"/>
-    <rect x="270" y="300" width="460" height="26" fill="${fold}" opacity="0.5"/>
-    <path d="M330,360 L330,820 M430,350 L430,830 M530,350 L530,830 M630,360 L630,820" stroke="${seam}" stroke-width="1.5" opacity="0.4"/>
-    <path d="M300,440 L700,440 M295,560 L705,560 M292,680 L708,680" stroke="${seam}" stroke-width="1.5" opacity="0.4"/>
+  const t = tones(g);
+  return open(g) + `
+    <!-- handles (with shading) -->
+    <path d="M380,300 C380,150 470,150 470,300" fill="none" stroke="${t.deep}" stroke-width="24" stroke-linecap="round"/>
+    <path d="M380,290 C380,160 470,160 470,290" fill="none" stroke="${t.fold}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M530,300 C530,150 620,150 620,300" fill="none" stroke="${t.deep}" stroke-width="24" stroke-linecap="round"/>
+    <path d="M530,290 C530,160 620,160 620,290" fill="none" stroke="${t.fold}" stroke-width="16" stroke-linecap="round"/>
+    <!-- bag body -->
+    <path d="M270,300 L730,300 L710,860 L290,860 Z" fill="${g}" stroke="${t.seam}" stroke-width="3"/>
+    <path d="M270,300 L730,300 L710,860 L290,860 Z" fill="url(#bodyLight)"/>
+    <path d="M270,300 L730,300 L710,860 L290,860 Z" fill="url(#centerHi)" opacity="0.7"/>
+    <path d="M270,300 L730,300 L710,860 L290,860 Z" fill="url(#hemShade)"/>
+    <!-- top hem -->
+    <rect x="270" y="300" width="460" height="28" fill="${t.deep}" opacity="0.55"/>
+    <path d="M278,322 L722,322" stroke="${t.stitch}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+    <!-- handle attachment stitches -->
+    <circle cx="425" cy="304" r="4" fill="${t.deep}"/>
+    <circle cx="425" cy="318" r="4" fill="${t.deep}"/>
+    <circle cx="575" cy="304" r="4" fill="${t.deep}"/>
+    <circle cx="575" cy="318" r="4" fill="${t.deep}"/>
+    <!-- canvas weave hint -->
+    <path d="M330,360 L330,820 M430,350 L430,830 M530,350 L530,830 M630,360 L630,820"
+      stroke="${t.seam}" stroke-width="1.2" opacity="0.35"/>
+    <path d="M300,440 L700,440 M295,560 L705,560 M292,680 L708,680"
+      stroke="${t.seam}" stroke-width="1.2" opacity="0.35"/>
+    <!-- bottom contact shadow band -->
+    <rect x="290" y="848" width="420" height="14" fill="${t.deep}" opacity="0.35"/>
   </svg>`;
 }
 
