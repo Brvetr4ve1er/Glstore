@@ -1,11 +1,14 @@
 ---
 import site from '~/content/site.json';
-const path = Astro.url.pathname;
+// Normalise: Astro yields '/galerie/' while hrefs are '/galerie' — strip
+// the trailing slash so the active-nav comparison actually matches.
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+/* shortLabel kicks in below 480px viewports to avoid the nav overflowing. */
 const links = [
-  { href: '/',         label: 'Accueil' },
-  { href: '/custom',   label: 'Personnaliser' },
-  { href: '/galerie',  label: 'Galerie' },
-  { href: '/boutique', label: 'Notre shop' },
+  { href: '/',         label: 'Accueil',       shortLabel: 'Home' },
+  { href: '/custom',   label: 'Personnaliser', shortLabel: 'Design' },
+  { href: '/galerie',  label: 'Galerie',       shortLabel: 'Galerie' },
+  { href: '/boutique', label: 'Notre shop',    shortLabel: 'Shop' },
 ];
 ---
 <header>
@@ -16,7 +19,10 @@ const links = [
     </a>
     <nav>
       {links.map(l => (
-        <a href={l.href} class={path === l.href ? 'on' : ''}>{l.label}</a>
+        <a href={l.href} class={path === l.href ? 'on' : ''}>
+          <span class="nav-long">{l.label}</span>
+          <span class="nav-short">{l.shortLabel}</span>
+        </a>
       ))}
     </nav>
   </div>
@@ -74,8 +80,28 @@ const links = [
   }
   nav a:hover { background: var(--washi-2); color: var(--sumi); }
   nav a.on { background: var(--torii); color: var(--white); }
+  .nav-short { display: none; }
+  /* Tablet: tighten the nav so it never overflows */
   @media (max-width: 600px) {
     .word { font-size: 20px; }
-    nav a { padding: 8px 10px; font-size: 12px; }
+    .kanji-small { display: none; }
+    nav { gap: 2px; }
+    nav a { padding: 6px 8px; font-size: 11px; letter-spacing: 0.06em; }
+  }
+  /* Mobile ≤480: use the short labels so we fit on a 360-wide phone */
+  @media (max-width: 480px) {
+    .nav { gap: 8px; padding-left: 4px; padding-right: 4px; }
+    .nav .brand { gap: 6px; }
+    .nav .brand img { width: 28px; height: 28px; }
+    .word { font-size: 15px; letter-spacing: 0.04em; }
+    nav { gap: 1px; }
+    nav a { padding: 5px 6px; font-size: 10px; letter-spacing: 0.03em; }
+    nav a.on { padding: 5px 8px; }
+    .nav-long { display: none; }
+    .nav-short { display: inline; }
+  }
+  /* Very narrow (≤360 — small Androids in landscape mode): drop the wordmark, keep mascot */
+  @media (max-width: 360px) {
+    .word { display: none; }
   }
 </style>
