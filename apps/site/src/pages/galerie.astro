@@ -77,8 +77,14 @@ for (const d of designs) {
   .anime-head { margin-bottom: var(--s-6); }
   .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--s-4);
+  }
+  /* enforce ≥2 columns on small phones */
+  @media (max-width: 480px) {
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: var(--s-3); }
+    .g-thumb { font-size: 48px; }
+    .g-name { font-size: 14px; }
   }
   .g-card {
     background: var(--washi);
