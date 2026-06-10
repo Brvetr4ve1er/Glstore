@@ -1,0 +1,22 @@
+[build]
+  base    = "apps/site"
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Decap CMS at /admin/ — Netlify Identity handles login, git-gateway
+# proxies commits to GitHub. Enable both in the Netlify dashboard:
+# Site settings → Identity → Enable Identity; Identity → Services →
+# Git Gateway → Enable.
+[[redirects]]
+  from   = "/admin"
+  to     = "/admin/index.html"
+  status = 200
+
+# Pretty 404 — Astro emits 404.html in the dist root.
+[[redirects]]
+  from   = "/*"
+  to     = "/404.html"
+  status = 404
