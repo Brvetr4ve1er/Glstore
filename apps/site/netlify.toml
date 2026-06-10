@@ -1,31 +1,23 @@
-# SHINOBI — Netlify deploy config.
-#
-# When connecting the GitHub repo on Netlify, point at this branch
-# (e.g. claude/shinobi-shop-rebuild or main after merge). Netlify
-# reads this file from apps/site/netlify.toml and infers everything.
+# SHINOBI — Netlify deploy config (subdirectory version).
+# Used when Netlify UI base directory is set to "apps/site", or for
+# drag-and-drop deploys of the pre-built dist/ folder.
+# For full-repo deploys, the root-level netlify.toml takes precedence.
 
 [build]
-  # When base = "apps/site", every other path is RELATIVE to that.
-  # So publish is "dist" (apps/site/dist on disk), not "apps/site/dist".
-  base    = "apps/site"
-  publish = "dist"
   command = "npm install && npm run build"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# Decap CMS lives at /admin/ — Netlify Identity handles login,
-# git-gateway proxies commits to GitHub. Enable both in the dashboard:
-#   Site settings → Identity → Enable Identity
-#   Identity → Registration preferences → Invite only
-#   Identity → Services → Git Gateway → Enable
-# Then invite the owner by email.
-
-# /admin → /admin/index.html (so the editor URL is pretty)
+# Decap CMS at /admin/
 [[redirects]]
   from   = "/admin"
   to     = "/admin/index.html"
   status = 200
 
-# Astro emits a top-level 404.html that Netlify serves automatically
-# when no route matches — no catch-all redirect needed.
+# Pretty 404
+[[redirects]]
+  from   = "/*"
+  to     = "/404.html"
+  status = 404
