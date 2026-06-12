@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SHINOBI · 1200×630 OpenGraph/Twitter share card.
+  Seigaiha-pattern background, brand mark, kanji, tagline.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="wave" x="0" y="0" width="96" height="48" patternUnits="userSpaceOnUse">
+      <rect width="96" height="48" fill="#CC0000"/>
+      <path d="M0 48 Q24 24 48 48 T96 48" fill="none" stroke="#A30000" stroke-width="2"/>
+      <path d="M0 36 Q24 12 48 36 T96 36" fill="none" stroke="#E00000" stroke-width="1.6" opacity="0.55"/>
+      <path d="M0 24 Q24 0 48 24 T96 24" fill="none" stroke="#A30000" stroke-width="1.4" opacity="0.45"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CC0000"/>
+      <stop offset="1" stop-color="#7A0000"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#fade)"/>
+  <rect width="1200" height="630" fill="url(#wave)" opacity="0.55"/>
+  <!-- Sumi card -->
+  <rect x="60" y="60" width="1080" height="510" rx="24" fill="#0E0E0E"/>
+  <!-- Eyebrow -->
+  <text x="110" y="160" font-family="Bebas Neue, Anton, Impact, sans-serif"
+        font-size="28" letter-spacing="6" fill="#CC0000">SHINOBI · LA BOUTIQUE DU GUERRIER</text>
+  <!-- Wordmark -->
+  <text x="110" y="320" font-family="Bebas Neue, Anton, Impact, sans-serif"
+        font-size="200" letter-spacing="6" fill="#FAFAF7">SHINOBI</text>
+  <text x="850" y="320" font-family="Noto Sans JP, Yu Gothic, sans-serif"
+        font-size="120" font-weight="700" fill="#CC0000">忍者</text>
+  <!-- Tagline -->
+  <text x="110" y="400" font-family="Inter, system-ui, sans-serif"
+        font-size="32" fill="rgba(255,255,255,0.8)">Anime streetwear · Personnalisé en boutique à Alger</text>
+  <!-- Pricing strip -->
+  <text x="110" y="500" font-family="Bebas Neue, Anton, sans-serif"
+        font-size="36" letter-spacing="4" fill="#FAFAF7">T-SHIRT 2 200 DA · SWEAT 3 300 DA · MUG 1 000 DA</text>
+  <text x="110" y="540" font-family="Inter, system-ui, sans-serif"
+        font-size="22" fill="rgba(255,255,255,0.55)">Commande sur WhatsApp · Livraison 58 wilayas</text>
+  <!-- Mascot disc -->
+  <g transform="translate(960 420) scale(2.2)">
+    <circle cx="0" cy="0" r="58" fill="#CC0000" stroke="#FAFAF7" stroke-width="3"/>
+    <circle cx="0" cy="8" r="42" fill="#0E0E0E"/>
+    <rect x="-38" y="-4" width="76" height="14" fill="#CC0000"/>
+    <path d="M-16 5 Q-8 0 0 5 Q-8 10 -16 5 Z" fill="#FAFAF7"/>
+    <path d="M16 5 Q8 0 0 5 Q8 10 16 5 Z" fill="#FAFAF7"/>
+    <circle cx="-8" cy="5" r="2.4" fill="#0E0E0E"/>
+    <circle cx="8" cy="5" r="2.4" fill="#0E0E0E"/>
+  </g>
+</svg>

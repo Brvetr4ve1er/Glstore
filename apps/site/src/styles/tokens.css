@@ -79,6 +79,14 @@ a { color: var(--torii); text-decoration: none; }
 a:hover { color: var(--torii-bright); }
 img { max-width: 100%; display: block; }
 
+/* Keyboard-only focus ring — kept off for mouse to avoid ugly outlines. */
+:focus-visible {
+  outline: 2px solid var(--torii);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button { font-family: inherit; }
+
 /* Layout */
 .wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--s-6); }
 @media (min-width: 768px) { .wrap { padding: 0 var(--s-7); } }

@@ -157,7 +157,9 @@ export function initBuilder() {
     if (!mk().twoSided) return;
     wrap.querySelectorAll<HTMLElement>('[data-edit-side]').forEach(b => {
       const side = b.getAttribute('data-edit-side') as Side;
-      b.classList.toggle('on', side === state.activeSide);
+      const on = side === state.activeSide;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
       const dot = b.querySelector('.dot') as HTMLElement | null;
       if (dot) dot.style.display = state.sides[side].design ? 'inline-block' : 'none';
     });
@@ -256,9 +258,12 @@ export function initBuilder() {
 
   // ── Background-removal tools (active side, upload only) ────
   function wireUploadTools() {
+    let tolRaf = 0;
     ($('#tolerance') as HTMLInputElement).oninput = (e) => {
       const s = cur(); s.tolerance = Number((e.target as HTMLInputElement).value);
-      if (s.source && s.fromUpload) { s.design = runChroma(s); commitDesignDisplay(); }
+      if (!s.source || !s.fromUpload) return;
+      if (tolRaf) cancelAnimationFrame(tolRaf);
+      tolRaf = requestAnimationFrame(() => { s.design = runChroma(s); commitDesignDisplay(); tolRaf = 0; });
     };
     $('#btn-keep').onclick = () => {
       const s = cur(); if (!s.source) return;
@@ -377,10 +382,18 @@ export function initBuilder() {
     $('#processing').style.display = on ? 'flex' : 'none';
     if (label) $('#processing-label').textContent = label;
   }
+  let toastHideT: number | undefined, toastDoneT: number | undefined;
   function showToast(msg: string) {
     const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+    // force reflow so the 'show' transition replays on rapid successive toasts
+    void t.offsetWidth;
     t.classList.add('show');
-    setTimeout(() => { t.classList.remove('show'); setTimeout(() => (t.style.display = 'none'), 300); }, 4000);
+    if (toastHideT) clearTimeout(toastHideT);
+    if (toastDoneT) clearTimeout(toastDoneT);
+    toastHideT = window.setTimeout(() => {
+      t.classList.remove('show');
+      toastDoneT = window.setTimeout(() => (t.style.display = 'none'), 300);
+    }, 4000);
   }
 
   // ── Order ─────────────────────────────────────────────────
@@ -508,8 +521,9 @@ export function initBuilder() {
   // ── Try-on mode (photo) ───────────────────────────────────
   function setStageMode(mode: 'mockup' | 'photo') {
     state.stageMode = mode;
-    $('#mode-mockup').classList.toggle('on', mode === 'mockup');
-    $('#mode-photo').classList.toggle('on', mode === 'photo');
+    const m = $('#mode-mockup'), p = $('#mode-photo');
+    m.classList.toggle('on', mode === 'mockup'); m.setAttribute('aria-selected', mode === 'mockup' ? 'true' : 'false');
+    p.classList.toggle('on', mode === 'photo'); p.setAttribute('aria-selected', mode === 'photo' ? 'true' : 'false');
     // disable side switcher / colour swatches in photo mode — they don't
     // affect the photo preview anyway
     $('#side-switch').style.opacity = mode === 'photo' ? '0.4' : '1';
@@ -551,9 +565,6 @@ export function initBuilder() {
       if (f) loadCustomerPhoto(f);
     });
   }
-  // override drawMockup for the photo case where vb may be non-square
-  // — see the implementation above; the photo viewBox uses max(w,h) and
-  // we centre by adjusting the print area.
 
   // ── Size guide modal ──────────────────────────────────────
   function wireSizeGuide() {

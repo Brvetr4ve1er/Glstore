@@ -34,9 +34,9 @@ const catalog = {
       <!-- ── LEFT: live mockup stage ─────────────────────── -->
       <div class="stage-col">
         <!-- Mockup vs photo (try-on) mode toggle -->
-        <div class="stage-modes">
-          <button id="mode-mockup" class="stage-mode on" type="button">🥷 Sur le produit</button>
-          <button id="mode-photo"  class="stage-mode" type="button">📸 Sur ma photo</button>
+        <div class="stage-modes" role="tablist" aria-label="Aperçu">
+          <button id="mode-mockup" class="stage-mode on" type="button" role="tab" aria-selected="true">🥷 Sur le produit</button>
+          <button id="mode-photo"  class="stage-mode" type="button" role="tab" aria-selected="false">📸 Sur ma photo</button>
         </div>
 
         <div class="stage-frame">
@@ -62,10 +62,10 @@ const catalog = {
         </div>
 
         <!-- recto / verso switcher -->
-        <div id="side-switch" class="side-switch">
-          <button data-edit-side="recto" class="side-tab on">Recto <span class="dot"></span></button>
-          <button data-edit-side="verso" class="side-tab">Verso <span class="plus">+500 DA</span><span class="dot"></span></button>
-          <button id="btn-clear-verso" class="clear-verso" style="display:none;" title="Retirer le design verso">✕</button>
+        <div id="side-switch" class="side-switch" role="tablist" aria-label="Face">
+          <button data-edit-side="recto" class="side-tab on" role="tab" aria-selected="true">Recto <span class="dot" aria-hidden="true"></span></button>
+          <button data-edit-side="verso" class="side-tab" role="tab" aria-selected="false">Verso <span class="plus">+500 DA</span><span class="dot" aria-hidden="true"></span></button>
+          <button id="btn-clear-verso" class="clear-verso" style="display:none;" title="Retirer le design verso" aria-label="Retirer le design verso">✕</button>
         </div>
 
         <!-- placement controls -->
@@ -186,7 +186,22 @@ const catalog = {
     </div>
   </section>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <noscript>
+    <div class="noscript">
+      <div class="wrap">
+        <h2>JavaScript requis</h2>
+        <p>Le designer utilise ton navigateur pour enlever le fond de l'image,
+        placer le design et générer le fichier d'impression — pas de serveur,
+        pas d'attente. Active JavaScript ou écris-nous directement :</p>
+        <p>
+          <a class="btn btn-wa" href={`https://wa.me/${site.contact.whatsappNumber}`} target="_blank" rel="noreferrer">💬 WhatsApp</a>
+          <a class="btn btn-ghost" href={`https://www.instagram.com/${site.contact.instagram}/`} target="_blank" rel="noreferrer">📸 Instagram</a>
+        </p>
+      </div>
+    </div>
+  </noscript>
 
   <!-- ── Size-guide modal ──────────────────────────────────── -->
   <div id="size-guide" class="modal" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="display:none;">
@@ -503,6 +518,16 @@ const catalog = {
     background: var(--sumi); color: #fff; padding: 12px 20px; border-radius: var(--r-pill);
     font-size: 14px; font-weight: 600; box-shadow: var(--e-2); z-index: 9999;
     display: none; opacity: 0; transition: all 0.3s var(--ease-shuriken);
+    max-width: calc(100vw - 32px); text-align: center;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ── No-JS fallback ────────────────────── */
+  .noscript {
+    background: var(--washi-2); padding: var(--s-9) 0; text-align: center;
+    border-top: 1px solid var(--sumi-4); border-bottom: 1px solid var(--sumi-4);
+  }
+  .noscript h2 { font-family: var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; font-size: 24px; margin-bottom: var(--s-3); }
+  .noscript p { max-width: 50ch; margin: 0 auto var(--s-4); }
+  .noscript .btn { margin: 4px; }
 </style>
