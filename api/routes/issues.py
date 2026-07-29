@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 from api.services import validator
 from api.services.enrichment import KNOWN_BRANDS, BRAND_DESCRIPTIONS
 
@@ -27,7 +28,7 @@ READ_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
 
 # ── Helpers ──────────────────────────────────────────────────
 
-async def _facts_for_product(db: AsyncSession, product_id: UUID) -> validator.ProductFacts | None:
+async def _facts_for_product(db: AsyncSession, product_id: UUID, store_id) -> validator.ProductFacts | None:
     row = await db.execute(text("""
         SELECT
             p.name, p.brand, p.category, p.description,
@@ -40,8 +41,8 @@ async def _facts_for_product(db: AsyncSession, product_id: UUID) -> validator.Pr
             (SELECT COUNT(*) FROM product_media m
               WHERE m.product_id = p.id AND m.is_primary AND m.status = 'STORED') AS img_count
           FROM products p
-         WHERE p.id = :id
-    """), {"id": product_id})
+         WHERE p.id = :id AND p.store_id = :sid
+    """), {"id": product_id, "sid": store_id})
     r = row.first()
     if not r:
         return None
@@ -66,13 +67,13 @@ async def _facts_for_product(db: AsyncSession, product_id: UUID) -> validator.Pr
 
 # ── GET /products/{id}/issues ────────────────────────────────
 
-@router.get("/products/{product_id}/issues",
-            dependencies=[Depends(require_role(*READ_ROLES))])
+@router.get("/products/{product_id}/issues")
 async def product_issues(
     product_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
-    facts = await _facts_for_product(db, product_id)
+    facts = await _facts_for_product(db, product_id, store.id)
     if not facts:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
@@ -87,14 +88,14 @@ async def product_issues(
 
 # ── GET /products/issues/summary ─────────────────────────────
 
-@router.get("/products/issues/summary",
-            dependencies=[Depends(require_role(*READ_ROLES))])
+@router.get("/products/issues/summary")
 async def issues_summary(
     db: AsyncSession = Depends(get_db),
     exclude_archived: bool = Query(True),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
-    """Returns counts of products affected by each issue code, catalog-wide."""
-    where = "p.status <> 'ARCHIVED'" if exclude_archived else "TRUE"
+    """Returns counts of products affected by each issue code, for this store."""
+    where = ("p.status <> 'ARCHIVED'" if exclude_archived else "TRUE") + " AND p.store_id = :sid"
 
     rows = await db.execute(text(f"""
         SELECT
@@ -139,7 +140,7 @@ async def issues_summary(
             COUNT(*) AS total
           FROM products p
          WHERE {where}
-    """))
+    """), {"sid": store.id})
     r = rows.first()
     if not r:
         return {"total": 0, "by_issue": {}}
@@ -185,20 +186,20 @@ _ISSUE_WHERE_FRAGMENTS: dict[str, str] = {
 }
 
 
-@router.get("/products/issues/list",
-            dependencies=[Depends(require_role(*READ_ROLES))])
+@router.get("/products/issues/list")
 async def issues_list(
     code: str = Query(..., description="Issue code to filter on"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     fragment = _ISSUE_WHERE_FRAGMENTS.get(code)
     if not fragment:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unknown issue code: {code}")
 
     offset = (page - 1) * page_size
-    where = f"p.status <> 'ARCHIVED' AND {fragment}"
+    where = f"p.store_id = :sid AND p.status <> 'ARCHIVED' AND {fragment}"
 
     rows = await db.execute(text(f"""
         SELECT p.id, p.sku, p.name, p.brand, p.category,
@@ -212,7 +213,7 @@ async def issues_list(
          WHERE {where}
          ORDER BY p.completeness_score ASC, p.updated_at DESC
          LIMIT :lim OFFSET :off
-    """), {"lim": page_size, "off": offset})
+    """), {"sid": store.id, "lim": page_size, "off": offset})
 
     items = [{
         "id": r[0], "sku": r[1], "name": r[2],
@@ -223,7 +224,8 @@ async def issues_list(
         "primary_image": r[8],
     } for r in rows.all()]
 
-    total_row = await db.execute(text(f"SELECT COUNT(*) FROM products p WHERE {where}"))
+    total_row = await db.execute(text(f"SELECT COUNT(*) FROM products p WHERE {where}"),
+                                 {"sid": store.id})
     total = int(total_row.scalar_one())
 
     return {
@@ -235,16 +237,19 @@ async def issues_list(
 
 # ── GET /brands (catalog autocomplete) ───────────────────────
 
-@router.get("/brands", dependencies=[Depends(require_role(*READ_ROLES))])
-async def list_brands(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
-    """Canonical brand catalog + counts of products per brand currently in DB."""
+@router.get("/brands")
+async def list_brands(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
+    """Canonical brand catalog + counts of products per brand in this store."""
     rows = await db.execute(text("""
         SELECT UPPER(COALESCE(NULLIF(brand, ''), 'INCONNU')) AS b, COUNT(*)
           FROM products
-         WHERE status <> 'ARCHIVED'
+         WHERE status <> 'ARCHIVED' AND store_id = :sid
          GROUP BY b
          ORDER BY b ASC
-    """))
+    """), {"sid": store.id})
     in_use = {r[0]: int(r[1]) for r in rows.all()}
 
     catalog: list[dict[str, Any]] = []

@@ -84,12 +84,16 @@ async def _add_observation(
     source: str,
     confidence: float,
 ) -> None:
+    # observations.store_id is NOT NULL (migration 005). Derive it from the
+    # product being observed rather than threading store_id through every
+    # caller — an observation always belongs to the same store as its entity.
     await db.execute(text("""
         INSERT INTO observations (
-            entity_type, entity_id, field, value, source, confidence
-        ) VALUES (
-            :etype, :eid, :field, CAST(:val AS JSONB), :src, :conf
+            store_id, entity_type, entity_id, field, value, source, confidence
         )
+        SELECT p.store_id, :etype, :eid, :field, CAST(:val AS JSONB), :src, :conf
+          FROM products p
+         WHERE p.id = :eid
     """), {
         "etype": entity_type, "eid": entity_id, "field": field,
         "val": json.dumps({"v": value}),
@@ -237,14 +241,20 @@ async def enrich_many(
     *,
     only_status: tuple[str, ...] = ("RAW", "NORMALIZED", "NEEDS_FIX"),
     limit: int = 5000,
+    store_id: UUID | None = None,
 ) -> BulkEnrichmentReport:
-    """Bulk-enrich every product matching the given status set."""
+    """Bulk-enrich every product matching the given status set. When `store_id`
+    is given the pass is confined to that store's catalog."""
+    store_filter = " AND store_id = :sid" if store_id is not None else ""
+    params: dict[str, Any] = {"statuses": list(only_status), "lim": limit}
+    if store_id is not None:
+        params["sid"] = store_id
     rows = await db.execute(text(f"""
         SELECT id FROM products
-         WHERE status = ANY(:statuses)
+         WHERE status = ANY(:statuses){store_filter}
          ORDER BY updated_at ASC
          LIMIT :lim
-    """), {"statuses": list(only_status), "lim": limit})
+    """), params)
 
     ids = [r[0] for r in rows.all()]
     enriched = 0

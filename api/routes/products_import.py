@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 from api.services import csv_import, csv_parser, enrichment_runner
 
 router = APIRouter(prefix="/products/import", tags=["products-import"])
@@ -47,10 +48,11 @@ async def _read_csv(file: UploadFile) -> str:
     return _decode(raw)
 
 
-@router.post("/preview", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/preview")
 async def preview(
     file: UploadFile = File(..., description="CSV file (any delimiter / encoding)"),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     text = await _read_csv(file)
     rows, diag = csv_parser.parse(text)
@@ -64,28 +66,29 @@ async def preview(
                 "issues": [], "sample_preview": [],
             },
         }
-    report = await csv_import.preview_import(db, rows, sample_size=20)
+    report = await csv_import.preview_import(db, rows, store.id, sample_size=20)
     return {"diagnostic": diag.to_dict(), "report": report.to_dict()}
 
 
-@router.post("/commit", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/commit")
 async def commit(
     file: UploadFile = File(...),
     auto_enrich: bool = Form(default=True, description="Run rule-based enrichment on imported rows"),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     text = await _read_csv(file)
     rows, diag = csv_parser.parse(text)
     if not rows:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "no rows extracted from CSV")
 
-    report = await csv_import.commit_import(db, rows)
+    report = await csv_import.commit_import(db, rows, store.id)
     await db.commit()
 
     enrichment_payload: dict[str, Any] | None = None
     if auto_enrich and (report.products_created + report.products_updated) > 0:
         enr = await enrichment_runner.enrich_many(
-            db, only_status=("RAW", "NORMALIZED", "NEEDS_FIX"), limit=20000,
+            db, only_status=("RAW", "NORMALIZED", "NEEDS_FIX"), limit=20000, store_id=store.id,
         )
         await db.commit()
         enrichment_payload = enr.to_dict()

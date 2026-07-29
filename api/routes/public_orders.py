@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
+from api.core.store_context import Store, require_store
 
 router = APIRouter(tags=["storefront-public"])
 
@@ -30,10 +31,15 @@ class OfferAvailabilityRequest(BaseModel):
 async def offers_availability(
     body: OfferAvailabilityRequest,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
 ) -> dict[str, Any]:
     """Returns live (price, available, is_active) for each offer id, plus the
     parent product's slug + name + primary image so the cart can refresh its
     snapshot in one call.
+
+    Scoped to the current store: an offer id from another brand's catalog is
+    treated as unknown (returned as a stub with is_active=false), so a stale
+    or cross-brand cart can never resolve to another store's stock/price.
 
     Unknown / inactive offer ids are returned with `is_active=false` and
     `available=0` — the cart should drop them.
@@ -51,8 +57,8 @@ async def offers_availability(
                  LIMIT 1) AS primary_image
           FROM offers o
           JOIN products p ON p.id = o.product_id
-         WHERE o.id::text = ANY(:ids)
-    """), {"ids": body.offer_ids})
+         WHERE o.id::text = ANY(:ids) AND o.store_id = :sid
+    """), {"ids": body.offer_ids, "sid": store.id})
 
     by_id: dict[str, dict[str, Any]] = {}
     for r in rows.all():
@@ -123,9 +129,14 @@ _NOT_FOUND = HTTPException(
 async def track_order(
     body: OrderTrackRequest,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
 ) -> dict[str, Any]:
     """Public lookup: returns order details only if both order_number AND
-    phone match. Same 404 either way to prevent enumeration."""
+    phone match, WITHIN this store. Same 404 either way to prevent enumeration.
+
+    Store scoping is essential now that order numbers are unique per store —
+    GLAIVE-2026-000042 and GHIR-2026-000042 can both exist, and a customer
+    must only ever see their own brand's order."""
     norm_phone = _normalize_phone(body.phone)
     if len(norm_phone) < 6:
         raise _NOT_FOUND
@@ -139,9 +150,10 @@ async def track_order(
                c.full_name
           FROM orders o
           JOIN customers c ON c.id = o.customer_id
-         WHERE o.order_number = :ord
+         WHERE o.store_id = :sid
+           AND o.order_number = :ord
            AND c.phone_normalized = :ph
-    """), {"ord": body.order_number.strip(), "ph": norm_phone})
+    """), {"sid": store.id, "ord": body.order_number.strip(), "ph": norm_phone})
     o = row.first()
     if not o:
         raise _NOT_FOUND

@@ -139,40 +139,41 @@ def _validate_row(row: RawProductRow) -> list[RowIssue]:
 
 # ── Lookup helpers ───────────────────────────────────────────────────────────
 
-async def _existing_product_skus(db: AsyncSession, skus: list[str]) -> dict[str, UUID]:
+async def _existing_product_skus(db: AsyncSession, skus: list[str], store_id: UUID) -> dict[str, UUID]:
     if not skus:
         return {}
     rows = await db.execute(
-        text("SELECT sku, id FROM products WHERE sku = ANY(:skus)"),
-        {"skus": skus},
+        text("SELECT sku, id FROM products WHERE sku = ANY(:skus) AND store_id = :sid"),
+        {"skus": skus, "sid": store_id},
     )
     return {r[0]: r[1] for r in rows.all()}
 
 
-async def _existing_offer_skus(db: AsyncSession, skus: list[str]) -> dict[str, tuple[UUID, UUID]]:
-    """variant_sku → (offer_id, product_id)"""
+async def _existing_offer_skus(db: AsyncSession, skus: list[str], store_id: UUID) -> dict[str, tuple[UUID, UUID]]:
+    """variant_sku → (offer_id, product_id), scoped to one store."""
     if not skus:
         return {}
     rows = await db.execute(
-        text("SELECT variant_sku, id, product_id FROM offers WHERE variant_sku = ANY(:skus)"),
-        {"skus": skus},
+        text("SELECT variant_sku, id, product_id FROM offers "
+             "WHERE variant_sku = ANY(:skus) AND store_id = :sid"),
+        {"skus": skus, "sid": store_id},
     )
     return {r[0]: (r[1], r[2]) for r in rows.all()}
 
 
-async def _existing_slugs(db: AsyncSession, slugs: list[str]) -> set[str]:
+async def _existing_slugs(db: AsyncSession, slugs: list[str], store_id: UUID) -> set[str]:
     if not slugs:
         return set()
     rows = await db.execute(
-        text("SELECT slug FROM products WHERE slug = ANY(:slugs)"),
-        {"slugs": slugs},
+        text("SELECT slug FROM products WHERE slug = ANY(:slugs) AND store_id = :sid"),
+        {"slugs": slugs, "sid": store_id},
     )
     return {r[0] for r in rows.all()}
 
 
 # ── Preview (no writes) ──────────────────────────────────────────────────────
 
-async def preview_import(db: AsyncSession, rows: list[RawProductRow], sample_size: int = 20) -> PreviewReport:
+async def preview_import(db: AsyncSession, rows: list[RawProductRow], store_id: UUID, sample_size: int = 20) -> PreviewReport:
     issues: list[RowIssue] = []
     valid_rows: list[RawProductRow] = []
 
@@ -184,8 +185,8 @@ async def preview_import(db: AsyncSession, rows: list[RawProductRow], sample_siz
         valid_rows.append(r)
 
     skus = [r.sku for r in valid_rows]
-    existing_products = await _existing_product_skus(db, skus)
-    existing_offers = await _existing_offer_skus(db, skus)
+    existing_products = await _existing_product_skus(db, skus, store_id)
+    existing_offers = await _existing_offer_skus(db, skus, store_id)
 
     products_to_create = sum(1 for s in skus if s not in existing_products)
     products_to_update = sum(1 for s in skus if s in existing_products)
@@ -220,8 +221,8 @@ async def preview_import(db: AsyncSession, rows: list[RawProductRow], sample_siz
 
 # ── Commit (writes) ─────────────────────────────────────────────────────────
 
-async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitReport:
-    """Idempotent batch upsert. Caller is responsible for the transaction commit."""
+async def commit_import(db: AsyncSession, rows: list[RawProductRow], store_id: UUID) -> CommitReport:
+    """Idempotent batch upsert into ONE store. Caller commits the transaction."""
     issues: list[RowIssue] = []
     valid: list[RawProductRow] = []
     for r in rows:
@@ -234,11 +235,11 @@ async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitRe
         valid.append(r)
 
     skus = [r.sku for r in valid]
-    existing_products = await _existing_product_skus(db, skus)
-    existing_offers   = await _existing_offer_skus(db, skus)
+    existing_products = await _existing_product_skus(db, skus, store_id)
+    existing_offers   = await _existing_offer_skus(db, skus, store_id)
 
     # Pre-compute slugs and resolve collisions
-    used_slugs = await _existing_slugs(db, [_slugify(r.name, r.id) for r in valid])
+    used_slugs = await _existing_slugs(db, [_slugify(r.name, r.id) for r in valid], store_id)
 
     products_created = products_updated = 0
     offers_created = offers_updated = 0
@@ -253,16 +254,16 @@ async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitRe
             used_slugs.add(slug)
             await db.execute(text("""
                 INSERT INTO products (
-                    id, sku, slug, name, brand, model, category,
+                    id, store_id, sku, slug, name, brand, model, category,
                     description, specs, barcode, mpn, ean,
                     status, completeness_score
                 ) VALUES (
-                    :id, :sku, :slug, :name, :brand, :mpn, :category,
+                    :id, :sid, :sku, :slug, :name, :brand, :mpn, :category,
                     NULL, CAST(:specs AS JSONB), :barcode, :mpn, :ean,
                     'RAW', 0.300
                 )
             """), {
-                "id": product_id, "sku": r.sku, "slug": slug, "name": r.name,
+                "id": product_id, "sid": store_id, "sku": r.sku, "slug": slug, "name": r.name,
                 "brand": r.brand or None, "mpn": r.mpn or None,
                 "category": r.category or None,
                 "specs": json.dumps(r.raw),
@@ -282,9 +283,9 @@ async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitRe
                     ean       = COALESCE(NULLIF(:ean, ''), ean),
                     updated_at = NOW(),
                     version    = version + 1
-                WHERE id = :id
+                WHERE id = :id AND store_id = :sid
             """), {
-                "id": product_id, "name": r.name,
+                "id": product_id, "sid": store_id, "name": r.name,
                 "brand": r.brand or "", "category": r.category or "",
                 "barcode": r.barcode or "", "mpn": r.mpn or "",
                 "ean": r.barcode or "",
@@ -299,16 +300,16 @@ async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitRe
         if r.sku not in existing_offers:
             await db.execute(text("""
                 INSERT INTO offers (
-                    id, product_id, variant_sku, variant_attrs,
+                    id, store_id, product_id, variant_sku, variant_attrs,
                     purchase_price, retail_price, currency,
                     stock_quantity, low_stock_threshold, is_active
                 ) VALUES (
-                    :id, :pid, :sku, '{}'::jsonb,
+                    :id, :sid, :pid, :sku, '{}'::jsonb,
                     :pp, :rp, 'DZD',
                     :stk, 5, true
                 )
             """), {
-                "id": uuid4(), "pid": product_id, "sku": r.sku,
+                "id": uuid4(), "sid": store_id, "pid": product_id, "sku": r.sku,
                 "pp": purchase, "rp": retail, "stk": stock,
             })
             offers_created += 1
@@ -322,9 +323,9 @@ async def commit_import(db: AsyncSession, rows: list[RawProductRow]) -> CommitRe
                     is_active      = true,
                     updated_at     = NOW(),
                     version        = version + 1
-                WHERE id = :id AND reserved_quantity <= :stk
+                WHERE id = :id AND store_id = :sid AND reserved_quantity <= :stk
             """), {
-                "id": offer_id, "pp": purchase, "rp": retail, "stk": stock,
+                "id": offer_id, "sid": store_id, "pp": purchase, "rp": retail, "stk": stock,
             })
             offers_updated += 1
 

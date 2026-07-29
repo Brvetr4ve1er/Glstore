@@ -126,9 +126,13 @@ async def _add_observation(
     db: AsyncSession, *, product_id: UUID, field_name: str, value: Any,
     source: str, confidence: float,
 ) -> None:
+    # store_id (NOT NULL after migration 005) is derived from the product so
+    # this writer needs no store threading — an observation belongs to the
+    # same store as the product it describes.
     await db.execute(text("""
-        INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-        VALUES ('product', :pid, :field, CAST(:val AS JSONB), :src, :conf)
+        INSERT INTO observations (store_id, entity_type, entity_id, field, value, source, confidence)
+        SELECT p.store_id, 'product', :pid, :field, CAST(:val AS JSONB), :src, :conf
+          FROM products p WHERE p.id = :pid
     """), {
         "pid": product_id, "field": field_name,
         "val": json.dumps({"v": value}),

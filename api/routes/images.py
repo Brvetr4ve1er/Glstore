@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 from api.services.full_intel import _recompute_status_and_completeness
 
 router = APIRouter(tags=["images"])
@@ -45,19 +46,17 @@ class ApproveImage(BaseModel):
 
 # ── Per-product list ────────────────────────────────────────────────────────
 
-@router.get(
-    "/products/{product_id}/images",
-    dependencies=[Depends(require_role(*READ_ROLES))],
-)
+@router.get("/products/{product_id}/images")
 async def list_product_images(
     product_id: UUID,
     status:     str | None = Query(None, description="Filter by media_status_enum (default: all)"),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     """List all images for a product. By default returns every status so the
     UI can show a 'Confirmed' tab next to the 'Pending' queue."""
-    where = "product_id = :pid AND kind = 'image'"
-    params: dict[str, Any] = {"pid": product_id}
+    where = "product_id = :pid AND store_id = :sid AND kind = 'image'"
+    params: dict[str, Any] = {"pid": product_id, "sid": store.id}
     if status:
         norm = status.upper()
         if norm not in _ALLOWED_STATUS:
@@ -103,22 +102,20 @@ async def list_product_images(
 
 # ── Approve ─────────────────────────────────────────────────────────────────
 
-@router.post(
-    "/products/{product_id}/images/{image_id}/approve",
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
-)
+@router.post("/products/{product_id}/images/{image_id}/approve")
 async def approve_image(
     product_id: UUID,
     image_id:   UUID,
     dto:        ApproveImage,
     db:         AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     """Promote a PENDING image to STORED. Optionally mark it as the primary
     image (in which case the previous primary is demoted)."""
     row = await db.execute(text("""
         SELECT id, status::text, is_primary FROM product_media
-         WHERE id = :id AND product_id = :pid AND kind = 'image'
-    """), {"id": image_id, "pid": product_id})
+         WHERE id = :id AND product_id = :pid AND store_id = :sid AND kind = 'image'
+    """), {"id": image_id, "pid": product_id, "sid": store.id})
     r = row.first()
     if not r:
         raise HTTPException(http.HTTP_404_NOT_FOUND, "image not found")
@@ -133,8 +130,8 @@ async def approve_image(
         await db.execute(text("""
             UPDATE product_media
                SET is_primary = false, updated_at = NOW()
-             WHERE product_id = :pid AND is_primary = true AND id <> :id
-        """), {"pid": product_id, "id": image_id})
+             WHERE product_id = :pid AND store_id = :sid AND is_primary = true AND id <> :id
+        """), {"pid": product_id, "sid": store.id, "id": image_id})
 
     await db.execute(text("""
         UPDATE product_media
@@ -142,10 +139,11 @@ async def approve_image(
                is_primary = COALESCE(:is_primary, is_primary),
                alt_text   = COALESCE(:alt, alt_text),
                updated_at = NOW()
-         WHERE id = :id AND product_id = :pid
+         WHERE id = :id AND product_id = :pid AND store_id = :sid
     """), {
         "id":         image_id,
         "pid":        product_id,
+        "sid":        store.id,
         "is_primary": dto.is_primary,
         "alt":        dto.alt_text,
     })
@@ -154,11 +152,12 @@ async def approve_image(
     # (weights mirror api/services/enrichment.compute_completeness)
     await _recompute_status_and_completeness(db, product_id)
 
-    # Audit
+    # Audit (observations.store_id is NOT NULL after migration 005)
     await db.execute(text("""
-        INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-        VALUES ('product', :pid, 'image_approved', CAST(:v AS JSONB), 'admin_review', 1.0)
+        INSERT INTO observations (store_id, entity_type, entity_id, field, value, source, confidence)
+        VALUES (:sid, 'product', :pid, 'image_approved', CAST(:v AS JSONB), 'admin_review', 1.0)
     """), {
+        "sid": store.id,
         "pid": product_id,
         "v": f'{{"image_id":"{image_id}","is_primary":{str(bool(dto.is_primary)).lower()}}}',
     })
@@ -169,22 +168,20 @@ async def approve_image(
 
 # ── Reject ──────────────────────────────────────────────────────────────────
 
-@router.post(
-    "/products/{product_id}/images/{image_id}/reject",
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
-)
+@router.post("/products/{product_id}/images/{image_id}/reject")
 async def reject_image(
     product_id: UUID,
     image_id:   UUID,
     db:         AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     """Mark a PENDING image as DELETED. Idempotent. The row is kept for audit
     so the same URL won't be re-suggested by the next intel run (full_intel
     dedupes on `existing_urls`)."""
     row = await db.execute(text("""
         SELECT id, status::text FROM product_media
-         WHERE id = :id AND product_id = :pid AND kind = 'image'
-    """), {"id": image_id, "pid": product_id})
+         WHERE id = :id AND product_id = :pid AND store_id = :sid AND kind = 'image'
+    """), {"id": image_id, "pid": product_id, "sid": store.id})
     r = row.first()
     if not r:
         raise HTTPException(http.HTTP_404_NOT_FOUND, "image not found")
@@ -192,16 +189,17 @@ async def reject_image(
     await db.execute(text("""
         UPDATE product_media
            SET status = 'DELETED', is_primary = false, updated_at = NOW()
-         WHERE id = :id AND product_id = :pid
-    """), {"id": image_id, "pid": product_id})
+         WHERE id = :id AND product_id = :pid AND store_id = :sid
+    """), {"id": image_id, "pid": product_id, "sid": store.id})
 
     # Recompute since rejecting the primary image drops the 10pt media credit
     await _recompute_status_and_completeness(db, product_id)
 
     await db.execute(text("""
-        INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-        VALUES ('product', :pid, 'image_rejected', CAST(:v AS JSONB), 'admin_review', 1.0)
+        INSERT INTO observations (store_id, entity_type, entity_id, field, value, source, confidence)
+        VALUES (:sid, 'product', :pid, 'image_rejected', CAST(:v AS JSONB), 'admin_review', 1.0)
     """), {
+        "sid": store.id,
         "pid": product_id,
         "v": f'{{"image_id":"{image_id}"}}',
     })
@@ -212,19 +210,18 @@ async def reject_image(
 
 # ── Global queue (cross-product) ────────────────────────────────────────────
 
-@router.get(
-    "/images/pending",
-    dependencies=[Depends(require_role(*READ_ROLES))],
-)
+@router.get("/images/pending")
 async def pending_queue(
     page:      int = Query(1, ge=1),
     page_size: int = Query(40, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
-    """Cross-catalog queue of images awaiting human review."""
+    """Cross-catalog queue of images awaiting human review (this store only)."""
     total_row = await db.execute(text(
-        "SELECT COUNT(*) FROM product_media WHERE status = 'PENDING' AND kind = 'image'"
-    ))
+        "SELECT COUNT(*) FROM product_media "
+        "WHERE status = 'PENDING' AND kind = 'image' AND store_id = :sid"
+    ), {"sid": store.id})
     total = int(total_row.scalar() or 0)
 
     rows = await db.execute(text("""
@@ -232,10 +229,10 @@ async def pending_queue(
                p.sku, p.name, p.brand, p.category
           FROM product_media m
           JOIN products p ON p.id = m.product_id
-         WHERE m.status = 'PENDING' AND m.kind = 'image'
+         WHERE m.status = 'PENDING' AND m.kind = 'image' AND m.store_id = :sid
          ORDER BY m.created_at DESC
          LIMIT :lim OFFSET :off
-    """), {"lim": page_size, "off": (page - 1) * page_size})
+    """), {"sid": store.id, "lim": page_size, "off": (page - 1) * page_size})
 
     items = [{
         "id":         r[0],
@@ -258,28 +255,28 @@ async def pending_queue(
     }
 
 
-@router.get(
-    "/images/pending/summary",
-    dependencies=[Depends(require_role(*READ_ROLES))],
-)
-async def pending_summary(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.get("/images/pending/summary")
+async def pending_summary(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
     row = await db.execute(text("""
         SELECT COUNT(*) FILTER (WHERE m.status = 'PENDING') AS pending,
                COUNT(*) FILTER (WHERE m.status = 'STORED' AND m.created_at > NOW() - INTERVAL '24 hours') AS approved_24h,
                COUNT(*) FILTER (WHERE m.status = 'DELETED' AND m.updated_at > NOW() - INTERVAL '24 hours') AS rejected_24h
           FROM product_media m
-         WHERE m.kind = 'image'
-    """))
+         WHERE m.kind = 'image' AND m.store_id = :sid
+    """), {"sid": store.id})
     r = row.first()
     by_product_rows = await db.execute(text("""
         SELECT p.id, p.sku, p.name, COUNT(*) AS n
           FROM product_media m
           JOIN products p ON p.id = m.product_id
-         WHERE m.status = 'PENDING' AND m.kind = 'image'
+         WHERE m.status = 'PENDING' AND m.kind = 'image' AND m.store_id = :sid
          GROUP BY p.id, p.sku, p.name
          ORDER BY n DESC
          LIMIT 20
-    """))
+    """), {"sid": store.id})
     return {
         "pending":      int(r[0] or 0) if r else 0,
         "approved_24h": int(r[1] or 0) if r else 0,

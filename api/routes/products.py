@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for, require_store
 from api.models.schemas import (
     OfferCreate,
     OfferPatch,
@@ -35,9 +36,18 @@ def _slugify(value: str) -> str:
     return base or f"product-{uuid4().hex[:8]}"
 
 
-async def _ensure_unique(db: AsyncSession, table: str, field: str, value: str, exclude_id: UUID | None = None) -> None:
-    sql = f"SELECT 1 FROM {table} WHERE {field} = :v"
-    params: dict[str, Any] = {"v": value}
+async def _ensure_unique(
+    db: AsyncSession,
+    table: str,
+    field: str,
+    value: str,
+    store_id: UUID,
+    exclude_id: UUID | None = None,
+) -> None:
+    # Scoped to one store on purpose — SKUs and slugs are unique per store, so
+    # a value already taken by a different brand must not block this one.
+    sql = f"SELECT 1 FROM {table} WHERE {field} = :v AND store_id = :store_id"
+    params: dict[str, Any] = {"v": value, "store_id": store_id}
     if exclude_id is not None:
         sql += " AND id <> :id"
         params["id"] = exclude_id
@@ -70,10 +80,11 @@ async def list_products(
     sort: str = Query("recent", description="recent|price_asc|price_desc|completeness|name_asc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=120),
+    store: Store = Depends(require_store),
 ) -> dict[str, Any]:
     offset = (page - 1) * page_size
-    where: list[str] = []
-    params: dict[str, Any] = {"limit": page_size, "offset": offset}
+    where: list[str] = ["p.store_id = :store_id"]
+    params: dict[str, Any] = {"limit": page_size, "offset": offset, "store_id": store.id}
 
     # Default: only show non-archived. Caller can pass status= to override.
     if status_filter:
@@ -168,19 +179,25 @@ async def list_products(
 
 
 @router.get("/{product_id}")
-async def get_product(product_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def get_product(
+    product_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
+) -> dict[str, Any]:
     prod_row = await db.execute(
         text(
             """
             SELECT id, sku, slug, name, brand, model, category, subcategory,
                    description, specs, status, completeness_score, updated_at,
                    barcode, mpn
-              FROM products WHERE id = :id
+              FROM products WHERE id = :id AND store_id = :store_id
             """
         ),
-        {"id": product_id},
+        {"id": product_id, "store_id": store.id},
     )
     p = prod_row.first()
+    # A product belonging to another store is a 404, not a 403 — confirming it
+    # exists elsewhere would leak one brand's catalog to another.
     if not p:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
@@ -237,26 +254,27 @@ async def get_product(product_id: UUID, db: AsyncSession = Depends(get_db)) -> d
 
 # ── Writes (admin) ───────────────────────────────────────────────────────
 
-@router.post("", status_code=201, dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("", status_code=201)
 async def create_product(
     dto: ProductCreate,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     # Auto-derive slug if missing/conflicting
     slug = dto.slug or _slugify(dto.name)
 
-    await _ensure_unique(db, "products", "sku",  dto.sku)
-    await _ensure_unique(db, "products", "slug", slug)
+    await _ensure_unique(db, "products", "sku",  dto.sku, store.id)
+    await _ensure_unique(db, "products", "slug", slug, store.id)
 
     pid = uuid4()
     await db.execute(
         text(
             """
             INSERT INTO products (
-                id, sku, slug, name, brand, model, category, subcategory,
+                id, store_id, sku, slug, name, brand, model, category, subcategory,
                 description, specs, barcode, mpn, ean, status, completeness_score
             ) VALUES (
-                :id, :sku, :slug, :name, :brand, :model, :category, :subcategory,
+                :id, :store_id, :sku, :slug, :name, :brand, :model, :category, :subcategory,
                 :description, CAST(:specs AS JSONB), :barcode, :mpn, :ean,
                 'NORMALIZED', 0.5
             )
@@ -264,6 +282,7 @@ async def create_product(
         ),
         {
             "id": pid,
+            "store_id": store.id,
             "sku": dto.sku,
             "slug": slug,
             "name": dto.name,
@@ -280,34 +299,38 @@ async def create_product(
     )
 
     if dto.initial_offer:
-        await _create_offer_internal(db, pid, dto.initial_offer)
+        await _create_offer_internal(db, pid, dto.initial_offer, store.id)
 
     await db.commit()
-    return await get_product(pid, db)
+    return await get_product(pid, db, store)
 
 
-@router.patch("/{product_id}", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.patch("/{product_id}")
 async def update_product(
     product_id: UUID,
     dto: ProductPatch,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
-    # Make sure product exists
-    exists = await db.execute(text("SELECT 1 FROM products WHERE id = :id"), {"id": product_id})
+    # Scoped existence check — a product in another store reads as absent.
+    exists = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :store_id"),
+        {"id": product_id, "store_id": store.id},
+    )
     if not exists.first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
     updates = dto.model_dump(exclude_unset=True)
     if not updates:
-        return await get_product(product_id, db)
+        return await get_product(product_id, db, store)
 
     if "sku" in updates:
-        await _ensure_unique(db, "products", "sku", updates["sku"], exclude_id=product_id)
+        await _ensure_unique(db, "products", "sku", updates["sku"], store.id, exclude_id=product_id)
     if "slug" in updates:
-        await _ensure_unique(db, "products", "slug", updates["slug"], exclude_id=product_id)
+        await _ensure_unique(db, "products", "slug", updates["slug"], store.id, exclude_id=product_id)
 
     set_parts: list[str] = []
-    params: dict[str, Any] = {"id": product_id}
+    params: dict[str, Any] = {"id": product_id, "store_id": store.id}
     for k, v in updates.items():
         if k == "specs":
             set_parts.append("specs = CAST(:specs AS JSONB)")
@@ -319,19 +342,21 @@ async def update_product(
     set_parts.append("version = version + 1")
 
     await db.execute(
-        text(f"UPDATE products SET {', '.join(set_parts)} WHERE id = :id"),
+        text(f"UPDATE products SET {', '.join(set_parts)} WHERE id = :id AND store_id = :store_id"),
         params,
     )
     await db.commit()
-    return await get_product(product_id, db)
+    return await get_product(product_id, db, store)
 
 
-@router.delete("/{product_id}", status_code=204, dependencies=[Depends(require_role("SUPER_ADMIN", "ADMIN"))])
+@router.delete("/{product_id}", status_code=204)
 async def delete_product(
     product_id: UUID,
     hard: bool = Query(False, description="If true, fully delete (admin only). Default = soft archive."),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role("SUPER_ADMIN", "ADMIN"))),
 ) -> None:
+    scope = {"id": product_id, "store_id": store.id}
     if hard:
         # Block hard delete if there are any order_items referencing this product
         ref = await db.execute(
@@ -343,42 +368,50 @@ async def delete_product(
                 status.HTTP_409_CONFLICT,
                 "Cannot hard-delete: product has order history. Archive instead.",
             )
-        await db.execute(text("DELETE FROM products WHERE id = :id"), {"id": product_id})
+        result = await db.execute(
+            text("DELETE FROM products WHERE id = :id AND store_id = :store_id RETURNING id"),
+            scope,
+        )
+        if not result.first():
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
     else:
         # Soft delete — archive + deactivate offers
         result = await db.execute(
             text(
                 "UPDATE products SET status = 'ARCHIVED', updated_at = NOW(), "
-                "version = version + 1 WHERE id = :id RETURNING id"
+                "version = version + 1 WHERE id = :id AND store_id = :store_id RETURNING id"
             ),
-            {"id": product_id},
+            scope,
         )
         if not result.first():
             raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
         await db.execute(
-            text("UPDATE offers SET is_active = false, updated_at = NOW() WHERE product_id = :id"),
-            {"id": product_id},
+            text("UPDATE offers SET is_active = false, updated_at = NOW() "
+                 "WHERE product_id = :id AND store_id = :store_id"),
+            scope,
         )
     await db.commit()
 
 
 # ── Offers nested CRUD ───────────────────────────────────────────────────
 
-async def _create_offer_internal(db: AsyncSession, product_id: UUID, dto: OfferCreate) -> UUID:
+async def _create_offer_internal(
+    db: AsyncSession, product_id: UUID, dto: OfferCreate, store_id: UUID
+) -> UUID:
     if dto.sale_price is not None and dto.sale_price > dto.retail_price:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "sale_price cannot exceed retail_price")
 
-    await _ensure_unique(db, "offers", "variant_sku", dto.variant_sku)
+    await _ensure_unique(db, "offers", "variant_sku", dto.variant_sku, store_id)
     oid = uuid4()
     await db.execute(
         text(
             """
             INSERT INTO offers (
-                id, product_id, variant_sku, variant_attrs,
+                id, store_id, product_id, variant_sku, variant_attrs,
                 purchase_price, retail_price, sale_price, currency,
                 stock_quantity, low_stock_threshold, is_active
             ) VALUES (
-                :id, :pid, :sku, CAST(:attrs AS JSONB),
+                :id, :store_id, :pid, :sku, CAST(:attrs AS JSONB),
                 :pp, :rp, :sp, :cur,
                 :stock, :low, true
             )
@@ -386,6 +419,7 @@ async def _create_offer_internal(db: AsyncSession, product_id: UUID, dto: OfferC
         ),
         {
             "id": oid,
+            "store_id": store_id,
             "pid": product_id,
             "sku": dto.variant_sku,
             "attrs": json.dumps(dto.variant_attrs),
@@ -400,44 +434,51 @@ async def _create_offer_internal(db: AsyncSession, product_id: UUID, dto: OfferC
     return oid
 
 
-@router.post("/{product_id}/offers", status_code=201, dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/{product_id}/offers", status_code=201)
 async def add_offer(
     product_id: UUID,
     dto: OfferCreate,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
-    exists = await db.execute(text("SELECT 1 FROM products WHERE id = :id"), {"id": product_id})
+    exists = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :store_id"),
+        {"id": product_id, "store_id": store.id},
+    )
     if not exists.first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
-    await _create_offer_internal(db, product_id, dto)
+    await _create_offer_internal(db, product_id, dto, store.id)
     await db.commit()
-    return await get_product(product_id, db)
+    return await get_product(product_id, db, store)
 
 
-@router.patch("/{product_id}/offers/{offer_id}", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.patch("/{product_id}/offers/{offer_id}")
 async def update_offer(
     product_id: UUID,
     offer_id: UUID,
     dto: OfferPatch,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     row = await db.execute(
-        text("SELECT 1 FROM offers WHERE id = :id AND product_id = :pid"),
-        {"id": offer_id, "pid": product_id},
+        text("SELECT 1 FROM offers WHERE id = :id AND product_id = :pid AND store_id = :store_id"),
+        {"id": offer_id, "pid": product_id, "store_id": store.id},
     )
     if not row.first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "offer not found")
 
     updates = dto.model_dump(exclude_unset=True)
     if not updates:
-        return await get_product(product_id, db)
+        return await get_product(product_id, db, store)
 
     if "variant_sku" in updates:
-        await _ensure_unique(db, "offers", "variant_sku", updates["variant_sku"], exclude_id=offer_id)
+        await _ensure_unique(
+            db, "offers", "variant_sku", updates["variant_sku"], store.id, exclude_id=offer_id
+        )
 
     set_parts: list[str] = []
-    params: dict[str, Any] = {"id": offer_id}
+    params: dict[str, Any] = {"id": offer_id, "store_id": store.id}
     for k, v in updates.items():
         if k == "variant_attrs":
             set_parts.append("variant_attrs = CAST(:variant_attrs AS JSONB)")
@@ -449,18 +490,19 @@ async def update_offer(
     set_parts.append("version = version + 1")
 
     await db.execute(
-        text(f"UPDATE offers SET {', '.join(set_parts)} WHERE id = :id"),
+        text(f"UPDATE offers SET {', '.join(set_parts)} WHERE id = :id AND store_id = :store_id"),
         params,
     )
     await db.commit()
-    return await get_product(product_id, db)
+    return await get_product(product_id, db, store)
 
 
-@router.delete("/{product_id}/offers/{offer_id}", status_code=204, dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.delete("/{product_id}/offers/{offer_id}", status_code=204)
 async def delete_offer(
     product_id: UUID,
     offer_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> None:
     # Block delete if reservations exist
     ref = await db.execute(
@@ -473,8 +515,9 @@ async def delete_offer(
             "Cannot delete: offer has active reservations. Deactivate instead.",
         )
     result = await db.execute(
-        text("DELETE FROM offers WHERE id = :id AND product_id = :pid RETURNING id"),
-        {"id": offer_id, "pid": product_id},
+        text("DELETE FROM offers WHERE id = :id AND product_id = :pid "
+             "AND store_id = :store_id RETURNING id"),
+        {"id": offer_id, "pid": product_id, "store_id": store.id},
     )
     if not result.first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "offer not found")

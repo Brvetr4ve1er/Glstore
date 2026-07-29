@@ -6,6 +6,7 @@ import AOS from 'aos'
 import 'aos/dist/aos.css'
 import { queryClient } from '@/lib/query'
 import { AuthProvider, useAuth } from '@/lib/auth'
+import { StoreProvider } from '@/lib/store'
 import Layout from '@/components/Layout'
 import { Spinner } from '@/components/ui'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -59,7 +60,7 @@ function AppRoutes() {
       }>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
+          <Route path="/" element={<RequireAuth><StoreProvider><Layout /></StoreProvider></RequireAuth>}>
             <Route index        element={<Dashboard />} />
             <Route path="products"            element={<Products />} />
             <Route path="products/new"        element={<ProductEditor />} />

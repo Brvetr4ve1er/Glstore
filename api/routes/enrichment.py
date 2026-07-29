@@ -19,18 +19,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 from api.services import enrichment_runner, llm, llm_enrichment
 
 router = APIRouter(prefix="/products", tags=["enrichment"])
 
 WRITE_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR")
+READ_ROLES  = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
 
 
-@router.post("/{product_id}/enrich", dependencies=[Depends(require_role(*WRITE_ROLES))])
+async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
+        {"id": product_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+
+
+@router.post("/{product_id}/enrich")
 async def enrich_product(
     product_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
+    await _assert_product_in_store(db, product_id, store.id)
     applied = await enrichment_runner.enrich_one(db, product_id)
     if not applied:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
@@ -38,27 +51,32 @@ async def enrich_product(
     return applied.to_dict()
 
 
-@router.post("/enrich-all", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/enrich-all")
 async def enrich_all(
     db: AsyncSession = Depends(get_db),
     only_status: list[str] | None = Query(default=None, description="Statuses to enrich. Default: RAW,NORMALIZED,NEEDS_FIX"),
     limit: int = Query(5000, ge=1, le=20000),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     statuses = tuple(only_status) if only_status else ("RAW", "NORMALIZED", "NEEDS_FIX")
-    report = await enrichment_runner.enrich_many(db, only_status=statuses, limit=limit)
+    report = await enrichment_runner.enrich_many(db, only_status=statuses, limit=limit, store_id=store.id)
     await db.commit()
     return report.to_dict()
 
 
 @router.get("/enrichment/stats")
-async def enrichment_stats(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
-    """Status histogram + average completeness — for dashboard chips."""
+async def enrichment_stats(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
+    """Status histogram + average completeness — for dashboard chips (this store)."""
     rows = await db.execute(text("""
         SELECT status, COUNT(*), AVG(completeness_score)
           FROM products
+         WHERE store_id = :sid
          GROUP BY status
          ORDER BY status
-    """))
+    """), {"sid": store.id})
     by_status: dict[str, dict[str, float]] = {}
     total = 0
     weighted = 0.0
@@ -78,11 +96,13 @@ async def enrichment_stats(db: AsyncSession = Depends(get_db)) -> dict[str, Any]
 
 # ── Phase 4 — LLM enrichment ─────────────────────────────────────────────
 
-@router.post("/{product_id}/enrich-llm", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/{product_id}/enrich-llm")
 async def enrich_one_llm(
     product_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
+    await _assert_product_in_store(db, product_id, store.id)
     try:
         result = await llm_enrichment.enrich_one(db, product_id)
     except llm.LLMError as e:
@@ -93,7 +113,7 @@ async def enrich_one_llm(
     return result.to_dict()
 
 
-@router.post("/enrich-llm-bulk", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/enrich-llm-bulk")
 async def enrich_llm_bulk(
     db: AsyncSession = Depends(get_db),
     only_status: list[str] | None = Query(
@@ -101,6 +121,7 @@ async def enrich_llm_bulk(
         description="Statuses to enrich. Default: NEEDS_FIX,CLASSIFIED",
     ),
     limit: int = Query(50, ge=1, le=500, description="Hard cap — LLM calls are expensive."),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     """Bulk LLM enrichment. Sequential, fail-soft. Stops at first config-level
     error so a misconfigured endpoint doesn't burn through the catalog."""
@@ -109,10 +130,10 @@ async def enrich_llm_bulk(
 
     rows = await db.execute(text("""
         SELECT id FROM products
-         WHERE status = ANY(:statuses)
+         WHERE status = ANY(:statuses) AND store_id = :sid
          ORDER BY completeness_score ASC, updated_at ASC
          LIMIT :lim
-    """), {"statuses": list(statuses), "lim": limit})
+    """), {"statuses": list(statuses), "sid": store.id, "lim": limit})
     ids = [r[0] for r in rows.all()]
 
     enriched = 0

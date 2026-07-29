@@ -15,6 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
+from api.core.store_context import Store, require_store
 
 router = APIRouter(tags=["catalog"])
 
@@ -25,45 +26,57 @@ _PRODUCT_NODE_HARD_CAP = 4000
 
 
 @router.get("/categories")
-async def list_categories(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def list_categories(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
+) -> dict[str, Any]:
     rows = await db.execute(text("""
         SELECT category, COUNT(*) AS n
           FROM products
-         WHERE status = 'ACTIVE'
+         WHERE store_id = :store_id
+           AND status = 'ACTIVE'
            AND category IS NOT NULL
            AND length(trim(category)) > 0
          GROUP BY category
          ORDER BY n DESC, category ASC
-    """))
+    """), {"store_id": store.id})
     items = [{"name": r[0], "count": int(r[1])} for r in rows.all()]
     return {"items": items, "total": sum(i["count"] for i in items)}
 
 
 @router.get("/brands/public")
-async def list_public_brands(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def list_public_brands(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
+) -> dict[str, Any]:
     rows = await db.execute(text("""
         SELECT UPPER(brand) AS b, COUNT(*) AS n
           FROM products
-         WHERE status = 'ACTIVE'
+         WHERE store_id = :store_id
+           AND status = 'ACTIVE'
            AND brand IS NOT NULL
            AND UPPER(brand) NOT IN ('INCONNU','UNKNOWN','')
          GROUP BY UPPER(brand)
          ORDER BY n DESC, b ASC
-    """))
+    """), {"store_id": store.id})
     items = [{"name": r[0], "count": int(r[1])} for r in rows.all()]
     return {"items": items}
 
 
 @router.get("/price-bounds")
-async def price_bounds(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def price_bounds(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
+) -> dict[str, Any]:
     row = await db.execute(text("""
         SELECT MIN(COALESCE(o.sale_price, o.retail_price)),
                MAX(COALESCE(o.sale_price, o.retail_price))
           FROM offers o
           JOIN products p ON p.id = o.product_id
-         WHERE o.is_active AND o.retail_price > 0
+         WHERE o.store_id = :store_id
+           AND o.is_active AND o.retail_price > 0
            AND p.status = 'ACTIVE'
-    """))
+    """), {"store_id": store.id})
     r = row.first()
     return {
         "min": float(r[0]) if r and r[0] is not None else 0.0,
@@ -77,6 +90,7 @@ async def catalog_graph(
     product_limit:    int  = Query(800, ge=10, le=_PRODUCT_NODE_HARD_CAP),
     only_status:      list[str] | None = Query(None, description="Restrict product nodes to these statuses."),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
 ) -> dict[str, Any]:
     """Returns the catalog graph used by the admin's Obsidian-style explorer.
 
@@ -108,12 +122,12 @@ async def catalog_graph(
     sub-graph for a hovered/searched node.
     """
     statuses = [s.upper() for s in (only_status or []) if s.strip()]
-    where_status_unqualified = "status <> 'ARCHIVED'"
-    where_status_p           = "p.status <> 'ARCHIVED'"
-    params: dict[str, Any] = {}
+    where_status_unqualified = "store_id = :store_id AND status <> 'ARCHIVED'"
+    where_status_p           = "p.store_id = :store_id AND p.status <> 'ARCHIVED'"
+    params: dict[str, Any] = {"store_id": store.id}
     if statuses:
-        where_status_unqualified = "status = ANY(:statuses)"
-        where_status_p           = "p.status = ANY(:statuses)"
+        where_status_unqualified = "store_id = :store_id AND status = ANY(:statuses)"
+        where_status_p           = "p.store_id = :store_id AND p.status = ANY(:statuses)"
         params["statuses"] = statuses
 
     # ── Brand nodes ──────────────────────────────────────────────────────
@@ -261,6 +275,7 @@ async def catalog_graph(
 async def featured_products(
     limit: int = Query(12, ge=1, le=48),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_store),
 ) -> dict[str, Any]:
     """Public storefront's hero featured: ACTIVE, has primary image, highest completeness."""
     rows = await db.execute(text("""
@@ -274,7 +289,8 @@ async def featured_products(
                (SELECT SUM(o.stock_quantity - o.reserved_quantity) FROM offers o
                  WHERE o.product_id = p.id AND o.is_active) AS available
           FROM products p
-         WHERE p.status = 'ACTIVE'
+         WHERE p.store_id = :store_id
+           AND p.status = 'ACTIVE'
          ORDER BY (
              (CASE WHEN EXISTS (
                  SELECT 1 FROM product_media m
@@ -284,7 +300,7 @@ async def featured_products(
          p.completeness_score DESC,
          p.updated_at DESC
          LIMIT :lim
-    """), {"lim": limit})
+    """), {"lim": limit, "store_id": store.id})
     items = [{
         "id": r[0], "sku": r[1], "slug": r[2], "name": r[3],
         "brand": r[4], "category": r[5],

@@ -16,6 +16,24 @@ class Settings(BaseSettings):
     db_pool_size: int = 10
     db_max_overflow: int = 10
     db_pool_timeout: int = 30
+    # Serverless mode (Vercel/Lambda): each function instance is ephemeral, so a
+    # persistent connection pool is wrong — use NullPool + disable asyncpg's
+    # statement cache so we stay safe behind a pgbouncer-style pooler (Neon).
+    db_serverless: bool = False
+
+    # Deployment behaviour
+    # On a persistent host the app applies pending SQL migrations at startup.
+    # On serverless there is no single startup — migrations are applied once at
+    # setup time (scripts/deploy/init_remote_db.py) — so this is turned off.
+    run_startup_migrations: bool = True
+    # Single-store deployments serve ONE store on ANY hostname. This lets a
+    # first store go live on a platform subdomain (e.g. *.vercel.app, which
+    # changes per deploy) without registering every host in store_domains.
+    # Turn OFF the moment you run more than one brand.
+    single_store_mode: bool = False
+    # Hosts TrustedHostMiddleware accepts in production. Comma-separated.
+    # Use "*" to accept any host (fine for a single store on a platform subdomain).
+    allowed_hosts: str = "*.glstore.dz,glstore.dz"
 
     # Auth
     jwt_secret: str

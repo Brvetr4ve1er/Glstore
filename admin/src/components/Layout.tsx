@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  LayoutDashboard, Package, ShoppingCart, LogOut, Sparkles, Stethoscope, Settings as SettingsIcon, Activity, Network, Images,
+  LayoutDashboard, Package, ShoppingCart, LogOut, Sparkles, Stethoscope, Settings as SettingsIcon, Activity, Network, Images, Store as StoreIcon, ChevronsUpDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
+import { useStore } from '@/lib/store'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 
@@ -59,6 +60,49 @@ function NavItem({ to, label, icon: Icon }: { to: string; label: string; icon: R
   )
 }
 
+/** Store switcher. Interactive for platform operators managing multiple
+ *  brands; a fixed label for a store-scoped operator or a single-store setup. */
+function StorePicker() {
+  const { stores, currentId, setCurrent, isPlatformOperator } = useStore()
+
+  if (stores.length === 0) return null
+
+  const canSwitch = isPlatformOperator && stores.length > 1
+  const current = stores.find(s => s.id === currentId) ?? stores[0]
+
+  return (
+    <div className="px-3 pt-3">
+      <div className="px-1 mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-text-3)]">
+        Store
+      </div>
+      <div className="relative">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-surface-4)]">
+          <StoreIcon size={15} className="text-[var(--color-electric-blue)] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-[var(--color-text-1)] truncate">{current.name}</div>
+            <div className="text-[10px] text-[var(--color-text-3)] uppercase tracking-wider truncate">
+              {current.order_prefix} · {current.currency}
+            </div>
+          </div>
+          {canSwitch && <ChevronsUpDown size={13} className="text-[var(--color-text-3)] shrink-0" />}
+        </div>
+        {canSwitch && (
+          <select
+            aria-label="Switch store"
+            value={currentId ?? ''}
+            onChange={e => setCurrent(e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          >
+            {stores.map(s => (
+              <option key={s.id} value={s.id}>{s.name} ({s.order_prefix})</option>
+            ))}
+          </select>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Layout() {
   const { email, role, logout } = useAuth()
   const navigate = useNavigate()
@@ -79,6 +123,9 @@ export default function Layout() {
         <div className="flex items-center px-5 py-5 border-b border-[var(--color-surface-4)]">
           <BrandLogo size={34} showTagline />
         </div>
+
+        {/* Store switcher */}
+        <StorePicker />
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">

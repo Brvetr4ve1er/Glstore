@@ -115,7 +115,8 @@ async def login(
 
     row = await db.execute(
         text("""
-            SELECT id, email, password_hash, role, is_active, locked_until, failed_attempts
+            SELECT id, email, password_hash, role, is_active, locked_until,
+                   failed_attempts, store_id
               FROM admin_users WHERE email = :e
         """),
         {"e": str(dto.email)},
@@ -160,10 +161,12 @@ async def login(
     )
     await db.commit()
 
+    # store_id rides in the token so admin requests skip a user lookup.
+    # NULL here means a platform operator who may act on any store.
     token = create_access_token(
         subject=str(u[0]),
         role=u[3],
-        extra={"email": u[1]},
+        extra={"email": u[1], "store_id": str(u[7]) if u[7] else None},
     )
     return TokenOut(
         access_token=token,

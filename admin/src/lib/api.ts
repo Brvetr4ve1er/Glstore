@@ -1,9 +1,25 @@
 /* Typed API client — all requests go through fetch() with JWT injection */
 
-const BASE = '/api/v1'
+// Defaults to the dev-proxy relative base. Set VITE_API_URL to the deployed
+// API (e.g. https://<project>.vercel.app/api/v1) to run admin locally against
+// the live store. Requires that origin in the API's CORS_ORIGINS.
+const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 function getToken() {
   return localStorage.getItem('gl_token')
+}
+
+// Which store the operator is currently working on. Sent as `x-store-id` on
+// every request so store-scoped admin routes act on the right brand. Persisted
+// by the StoreProvider (src/lib/store.tsx); read here so the plain fetch client
+// stays decoupled from React.
+export const STORE_ID_KEY = 'gl.admin.store_id'
+export function getSelectedStoreId(): string | null {
+  return localStorage.getItem(STORE_ID_KEY)
+}
+export function setSelectedStoreId(id: string | null): void {
+  if (id) localStorage.setItem(STORE_ID_KEY, id)
+  else localStorage.removeItem(STORE_ID_KEY)
 }
 
 async function req<T>(
@@ -18,6 +34,8 @@ async function req<T>(
     'x-request-id': crypto.randomUUID(),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
+  const storeId = getSelectedStoreId()
+  if (storeId) headers['x-store-id'] = storeId
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -53,6 +71,8 @@ async function reqMultipart<T>(
     'x-request-id': crypto.randomUUID(),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
+  const storeId = getSelectedStoreId()
+  if (storeId) headers['x-store-id'] = storeId
 
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
@@ -784,3 +804,24 @@ export const saveTheme = (cfg: ThemeConfig, scope: ThemeScope = 'admin') =>
 // public site can render in the admin's chosen palette.
 export const fetchPublicStorefrontTheme = () =>
   req<ThemeConfig>('GET', '/storefront/theme')
+
+// ── Stores (multi-store admin) ─────────────────────────────────────────
+export interface Store {
+  id: string
+  slug: string
+  name: string
+  status: string
+  order_prefix: string
+  currency: string
+  support_email: string | null
+  support_phone: string | null
+  theme: Record<string, unknown>
+}
+export interface StoreListResult {
+  items: Store[]
+  is_platform_operator: boolean
+  scoped_store_id: string | null
+}
+
+export const fetchStores = () =>
+  req<StoreListResult>('GET', '/stores')

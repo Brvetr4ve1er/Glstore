@@ -51,10 +51,17 @@ def decode_token(token: str) -> dict[str, Any]:
 
 
 class CurrentAdmin:
-    def __init__(self, id: UUID, email: str, role: str):
+    # store_id None => platform operator, may act on any store but must name
+    # which one per request. Set => permanently scoped to that one store.
+    def __init__(self, id: UUID, email: str, role: str, store_id: UUID | None = None):
         self.id = id
         self.email = email
         self.role = role
+        self.store_id = store_id
+
+    @property
+    def is_platform_operator(self) -> bool:
+        return self.store_id is None
 
 
 async def get_current_admin(token: str = Depends(_oauth)) -> CurrentAdmin:
@@ -62,10 +69,15 @@ async def get_current_admin(token: str = Depends(_oauth)) -> CurrentAdmin:
     if payload.get("type") != "access":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Wrong token type")
     try:
+        # Carried in the token so admin requests don't need a user lookup.
+        # Trade-off: reassigning a user to a different store takes effect on
+        # their next login, not immediately.
+        raw_store = payload.get("store_id")
         return CurrentAdmin(
             id=UUID(payload["sub"]),
             email=payload.get("email", ""),
             role=payload["role"],
+            store_id=UUID(raw_store) if raw_store else None,
         )
     except (KeyError, ValueError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Malformed token")
