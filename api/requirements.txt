@@ -1,0 +1,21 @@
+# Serverless (Vercel) dependency set for the FastAPI function.
+#
+# Deliberately SLIM — the public API never imports Playwright/BeautifulSoup/lxml
+# at load time (those live in the workers, which don't run on Vercel), and the
+# ASGI server is provided by Vercel's runtime, so uvicorn/pytest are excluded.
+# Keeping this list minimal = smaller bundle + faster cold starts.
+#
+# The full dependency list for the Docker/worker images stays in the root
+# requirements.txt — this file is used only by @vercel/python (it sits next to
+# the entrypoint api/index.py, which Vercel prefers over the root file).
+fastapi==0.115.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+email-validator==2.2.0
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+bcrypt==4.2.0
+pyjwt==2.9.0
+python-multipart==0.0.12
+httpx[http2]==0.27.2
+boto3==1.35.40

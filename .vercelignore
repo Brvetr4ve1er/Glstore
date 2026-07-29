@@ -1,0 +1,21 @@
+# Keep the Vercel deployment lean: only storefront/ (static build) and
+# api/ (serverless function) are needed. Everything below is either a
+# different runtime (workers), local-only, or a separate app.
+
+admin/
+workers/
+tests/
+docker/
+monitoring/
+gaming-store/
+docs/
+scripts/
+db/
+.git/
+.github/
+.pytest_cache/
+.obsidian/
+.claude/
+docker-compose.yml
+docker-compose.observability.yml
+*.md

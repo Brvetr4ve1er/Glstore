@@ -1,6 +1,9 @@
 /* Public storefront API client — no auth required for browse endpoints. */
 
-const BASE = '/api/v1'
+// Same-origin by default: on the all-Vercel deploy the storefront and the API
+// share a domain, so "/api/v1" is rewritten to the Python function — no config
+// needed. Set VITE_API_URL to an absolute base only if you split them apart.
+const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 async function req<T>(
   method: string,

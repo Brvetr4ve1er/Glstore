@@ -6,25 +6,37 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from api.core.config import get_settings
 
 _settings = get_settings()
 
-engine = create_async_engine(
-    _settings.database_url,
-    pool_size=_settings.db_pool_size,
-    max_overflow=_settings.db_max_overflow,
-    pool_timeout=_settings.db_pool_timeout,
-    pool_pre_ping=True,
-    # `echo=True` writes raw SQL to stdout via print() — bypasses our
-    # JSON formatter and produces double-logged lines (raw text + JSON
-    # wrapper from the sqlalchemy.engine.Engine logger). We rely on the
-    # logger path exclusively so output stays one canonical shape.
-    # To trace SQL during debugging, set GL_LOG_LEVEL=DEBUG (which lifts
-    # the WARNING clamp on sqlalchemy.engine in setup_logging).
-    echo=False,
-)
+# `echo=True` writes raw SQL to stdout via print() — bypasses our JSON
+# formatter and double-logs. We rely on the logger path exclusively; trace
+# SQL with GL_LOG_LEVEL=DEBUG instead.
+if _settings.db_serverless:
+    # Serverless (Vercel/Lambda): each function instance is ephemeral and may
+    # freeze mid-life, so a persistent pool would strand Neon connections.
+    # NullPool opens/closes a connection per checkout; statement_cache_size=0
+    # keeps asyncpg safe behind Neon's pgbouncer-style pooler (prepared
+    # statements don't survive transaction-level pooling).
+    engine = create_async_engine(
+        _settings.database_url,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args={"statement_cache_size": 0},
+        echo=False,
+    )
+else:
+    engine = create_async_engine(
+        _settings.database_url,
+        pool_size=_settings.db_pool_size,
+        max_overflow=_settings.db_max_overflow,
+        pool_timeout=_settings.db_pool_timeout,
+        pool_pre_ping=True,
+        echo=False,
+    )
 
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
