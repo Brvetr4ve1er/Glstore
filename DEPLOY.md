@@ -144,6 +144,29 @@ If the order comes back with a `GLV-…` number, **checkout works end to end** �
 store resolution, per-store order numbering, stock reservation and the order
 event are all wired.
 
+## Verify checkout end to end (automated)
+
+The manual curl steps above are also wrapped in one script that does the same
+four checks and prints PASS/FAIL for each — useful for a quick post-deploy
+check or to run from CI against a staging environment:
+
+```bash
+python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app
+# or, if GLSTORE_BASE_URL is already set in the shell:
+python scripts/deploy/smoke_test_checkout.py
+```
+
+It performs, in order: `GET /healthz`, `GET /api/v1/products` (grabs a real
+product id), `GET /api/v1/products/{id}` (grabs a real offer id), then
+`POST /api/v1/orders/create` with a COD test order for that offer. It exits
+`0` only if every step passed, and exits `1` — printing which step failed and
+the response body — otherwise.
+
+**This creates a real order** (customer `Smoke Test`, phone `0555000111`) in
+whatever database the target URL is wired to. Point it at a test/staging
+deployment, not production, unless you're fine seeing that order in the
+ledger. This is standard-library-only Python — no `pip install` needed.
+
 ---
 
 ## 🔒 Before you share the link: rotate the admin password

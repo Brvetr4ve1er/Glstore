@@ -1,0 +1,62 @@
+# Ghir Laffaire — Observability stack (Phase 10)
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#
+# After startup:
+#   Prometheus:  http://localhost:9090
+#   Grafana:     http://localhost:3000  (admin / admin — change on first login)
+#   /metrics:    http://localhost:8000/metrics
+#
+# The "glstore-ops" dashboard is auto-provisioned from
+# monitoring/grafana/dashboards/glstore.json on first Grafana start.
+#
+# This file is intentionally separate from docker-compose.yml so the
+# base stack can be deployed to cheap VPS / Docker-on-ARM without the
+# extra 200 MB of Prometheus + Grafana images.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"       # allow hot-reload via /-/reload
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana-oss:10.4.2
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_INSTALL_PLUGINS: ""
+      # Serve Grafana under a subpath if you reverse-proxy it:
+      # GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      # GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - default
+
+volumes:
+  prometheus_data:
+  grafana_data:

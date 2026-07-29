@@ -235,11 +235,14 @@
   function wireChrome() {
     $$('.nav-item[data-mega]').forEach((item) => {
       const btn = $('button', item);
-      const open = () => { closeMegas(); item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); };
-      const close = () => { item.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+      let closeTimer = null;
+      const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
+      const open = () => { cancelClose(); closeMegas(); item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); };
+      const closeNow = () => { item.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+      const close = () => { cancelClose(); closeTimer = setTimeout(closeNow, 140); };
       item.addEventListener('mouseenter', open);
       item.addEventListener('mouseleave', close);
-      btn.addEventListener('click', (e) => { e.preventDefault(); item.classList.contains('open') ? close() : open(); });
+      btn.addEventListener('click', (e) => { e.preventDefault(); item.classList.contains('open') ? closeNow() : open(); });
     });
     function closeMegas() { $$('.nav-item.open').forEach((i) => i.classList.remove('open')); }
 
