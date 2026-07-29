@@ -1,1 +1,21 @@
-﻿node_modules
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Build output
+admin/dist/
+storefront/dist/
+
+# Environment
+.env
+
+# Local tooling / scratch
+.superpowers/
+.vercel/
