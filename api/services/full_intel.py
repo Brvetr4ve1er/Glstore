@@ -305,15 +305,21 @@ async def _apply_payload(
                 continue
             if url in existing_urls:
                 continue
-            # Insert as PENDING — admin reviews before STORED
+            # Insert as PENDING — admin reviews before STORED.
+            # product_media.store_id is NOT NULL (migration 005). Derive it
+            # from the product being enriched rather than threading store_id
+            # through this whole pipeline — media always belongs to the same
+            # store as its product (same derive-from-parent pattern as the
+            # observations writers in enrichment_runner.py / llm_enrichment.py).
             await db.execute(text("""
                 INSERT INTO product_media (
-                    id, product_id, url, kind, position, is_primary,
+                    id, store_id, product_id, url, kind, position, is_primary,
                     status, source, alt_text
-                ) VALUES (
-                    :id, :pid, :url, 'image', 0, false,
-                    'PENDING', 'SCRAPED', :alt
                 )
+                SELECT :id, p.store_id, :pid, :url, 'image', 0, false,
+                       'PENDING', 'SCRAPED', :alt
+                  FROM products p
+                 WHERE p.id = :pid
             """), {
                 "id": uuid4(),
                 "pid": product_id,

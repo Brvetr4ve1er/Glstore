@@ -40,11 +40,15 @@ async def handle_order_created(db: AsyncSession, event: dict) -> None:
         text(
             """
             INSERT INTO sync_queue (
-                target_system, entity_type, entity_id, action, payload, status
-            ) VALUES ('n8n', 'order', :eid, 'create', CAST(:p AS JSONB), 'PENDING')
+                store_id, target_system, entity_type, entity_id, action, payload, status
+            ) VALUES (:store_id, 'n8n', 'order', :eid, 'create', CAST(:p AS JSONB), 'PENDING')
             """
         ),
-        {"eid": event["entity_id"], "p": json.dumps(event.get("payload") or {})},
+        {
+            "store_id": event["store_id"],
+            "eid": event["entity_id"],
+            "p": json.dumps(event.get("payload") or {}),
+        },
     )
 
 
@@ -53,11 +57,12 @@ async def handle_order_confirmed(db: AsyncSession, event: dict) -> None:
         text(
             """
             INSERT INTO sync_queue (
-                target_system, entity_type, entity_id, action, payload, status
-            ) VALUES ('n8n', 'order', :eid, 'update', CAST(:p AS JSONB), 'PENDING')
+                store_id, target_system, entity_type, entity_id, action, payload, status
+            ) VALUES (:store_id, 'n8n', 'order', :eid, 'update', CAST(:p AS JSONB), 'PENDING')
             """
         ),
         {
+            "store_id": event["store_id"],
             "eid": event["entity_id"],
             "p": json.dumps({"status": "CONFIRMED", **(event.get("payload") or {})}),
         },
@@ -69,11 +74,12 @@ async def handle_order_cancelled(db: AsyncSession, event: dict) -> None:
         text(
             """
             INSERT INTO sync_queue (
-                target_system, entity_type, entity_id, action, payload, status
-            ) VALUES ('n8n', 'order', :eid, 'update', CAST(:p AS JSONB), 'PENDING')
+                store_id, target_system, entity_type, entity_id, action, payload, status
+            ) VALUES (:store_id, 'n8n', 'order', :eid, 'update', CAST(:p AS JSONB), 'PENDING')
             """
         ),
         {
+            "store_id": event["store_id"],
             "eid": event["entity_id"],
             "p": json.dumps({"status": "CANCELLED", **(event.get("payload") or {})}),
         },
@@ -116,7 +122,7 @@ async def _claim_batch(db: AsyncSession, batch_size: int) -> list[dict]:
                  LIMIT :n
             )
             RETURNING id, event_id, event_type, entity_type, entity_id,
-                      payload, retry_count, max_retries
+                      payload, retry_count, max_retries, store_id
             """
         ),
         {"worker": WORKER_ID, "n": batch_size},
@@ -125,7 +131,7 @@ async def _claim_batch(db: AsyncSession, batch_size: int) -> list[dict]:
         {
             "id": r[0], "event_id": r[1], "event_type": r[2],
             "entity_type": r[3], "entity_id": r[4], "payload": r[5],
-            "retry_count": r[6], "max_retries": r[7],
+            "retry_count": r[6], "max_retries": r[7], "store_id": r[8],
         }
         for r in rows.all()
     ]

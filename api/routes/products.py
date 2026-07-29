@@ -360,8 +360,8 @@ async def delete_product(
     if hard:
         # Block hard delete if there are any order_items referencing this product
         ref = await db.execute(
-            text("SELECT 1 FROM order_items WHERE product_id = :id LIMIT 1"),
-            {"id": product_id},
+            text("SELECT 1 FROM order_items WHERE product_id = :id AND store_id = :store_id LIMIT 1"),
+            {"id": product_id, "store_id": store.id},
         )
         if ref.first():
             raise HTTPException(
@@ -506,8 +506,11 @@ async def delete_offer(
 ) -> None:
     # Block delete if reservations exist
     ref = await db.execute(
-        text("SELECT 1 FROM inventory_reservations WHERE offer_id = :id AND status = 'ACTIVE' LIMIT 1"),
-        {"id": offer_id},
+        text(
+            "SELECT 1 FROM inventory_reservations "
+            "WHERE offer_id = :id AND status = 'ACTIVE' AND store_id = :store_id LIMIT 1"
+        ),
+        {"id": offer_id, "store_id": store.id},
     )
     if ref.first():
         raise HTTPException(
