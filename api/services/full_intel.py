@@ -333,12 +333,18 @@ async def _apply_payload(
             fields_filled.append(f"images(+{images_added})")
 
     # ── Append observations row per atomic field for audit ─────────
+    # observations.store_id is NOT NULL (migration 005). Derive it from the
+    # product being observed, same derive-from-parent pattern as the
+    # product_media insert above and the writers in enrichment_runner.py /
+    # llm_enrichment.py.
     for f in fields_filled:
         # Strip count suffixes like "specs(+9)" → "specs"
         base_field = f.split("(")[0]
         await db.execute(text("""
-            INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-            VALUES ('product', :pid, :field, CAST(:val AS JSONB), :src, :conf)
+            INSERT INTO observations (store_id, entity_type, entity_id, field, value, source, confidence)
+            SELECT p.store_id, 'product', :pid, :field, CAST(:val AS JSONB), :src, :conf
+              FROM products p
+             WHERE p.id = :pid
         """), {
             "pid": product_id,
             "field": base_field,
