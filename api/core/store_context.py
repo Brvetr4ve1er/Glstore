@@ -294,6 +294,27 @@ async def store_for_admin(request: Request, db: AsyncSession, admin: Any) -> Sto
     return store
 
 
+# ── Cross-store row guards ────────────────────────────────────────────────
+#
+# Some platform-level tables carry no store_id by design (migration 005:
+# scrape_jobs, scrape_sources, competitor_prices, intel_jobs — "the scraper
+# researches the *market*, not one store's catalog"). Their owning store is
+# derived through product_id, so any route that accepts a caller-supplied
+# product id must first prove that product belongs to the acting store.
+#
+# Cross-store access answers 404, never 403: confirming that a row exists in
+# another brand's catalog is itself a leak.
+
+
+async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
+        {"id": product_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+
+
 def require_admin_store_for(admin_dep: Any):
     """Build a dependency that yields the store an admin request acts on.
 

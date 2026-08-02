@@ -19,22 +19,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
-from api.core.store_context import Store, require_admin_store_for
+from api.core.store_context import (
+    Store,
+    _assert_product_in_store,
+    require_admin_store_for,
+)
 from api.services import enrichment_runner, llm, llm_enrichment
 
 router = APIRouter(prefix="/products", tags=["enrichment"])
 
 WRITE_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR")
 READ_ROLES  = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
-
-
-async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
-    row = await db.execute(
-        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
-        {"id": product_id, "sid": store_id},
-    )
-    if not row.first():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
 
 @router.post("/{product_id}/enrich")

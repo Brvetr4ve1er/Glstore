@@ -25,8 +25,17 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db, SessionLocal
-from api.core.security import require_role, get_current_admin, CurrentAdmin
-from api.core.store_context import Store, require_admin_store_for
+from api.core.security import (
+    CurrentAdmin,
+    get_current_admin,
+    require_platform_operator,
+    require_role,
+)
+from api.core.store_context import (
+    Store,
+    _assert_product_in_store,
+    require_admin_store_for,
+)
 
 router = APIRouter(tags=["scraper"])
 
@@ -44,15 +53,10 @@ READ_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
 #
 # Cross-store access is a 404, never a 403: confirming that a row exists in
 # another brand's catalog is itself a leak.
+#
+# That product→store check is shared with the intel and enrichment routers,
+# so it lives in api/core/store_context.py and is imported above.
 # ════════════════════════════════════════════════════════════════════════════
-
-async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
-    row = await db.execute(
-        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
-        {"id": product_id, "sid": store_id},
-    )
-    if not row.first():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -405,6 +409,22 @@ async def market_alerts(
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3. Settings
+#
+# `app_settings['scraper.config']` is PLATFORM-GLOBAL — one row, no store_id,
+# governing how every brand scrapes. Two things in it reach past the brand
+# that edits it:
+#
+#   · `searxng_url` is fetched server-side by the probe below and by every
+#     worker, so whoever sets it chooses an outbound destination for the whole
+#     platform (an SSRF surface).
+#   · `price_outlier_*` / `min_confidence_for_price` decide which observations
+#     survive into `competitor_prices` — rows attached to OTHER brands'
+#     products.
+#
+# Reading it is not the risk, so GET keeps its existing roles. Writing it, and
+# making the server fetch a URL out of it, are restricted to platform
+# operators (`admin_users.store_id IS NULL`). Scoping the row itself would
+# need a schema change; this closes the hole without one.
 # ════════════════════════════════════════════════════════════════════════════
 
 class ScraperConfigIn(BaseModel):
@@ -454,7 +474,10 @@ async def get_scraper_settings(db: AsyncSession = Depends(get_db)) -> dict[str, 
     return _mask_keys(cfg)
 
 
-@router.put("/settings/scraper", dependencies=[Depends(require_role("SUPER_ADMIN", "ADMIN"))])
+@router.put(
+    "/settings/scraper",
+    dependencies=[Depends(require_platform_operator("SUPER_ADMIN", "ADMIN"))],
+)
 async def put_scraper_settings(
     dto: ScraperConfigIn,
     db: AsyncSession = Depends(get_db),
@@ -486,8 +509,14 @@ async def put_scraper_settings(
     return _mask_keys(new)
 
 
-@router.post("/settings/scraper/probe", dependencies=[Depends(require_role(*READ_ROLES))])
+@router.post(
+    "/settings/scraper/probe",
+    dependencies=[Depends(require_platform_operator(*READ_ROLES))],
+)
 async def probe_scraper(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+    # Platform-operator only even though it writes nothing: it makes the server
+    # issue a request to whatever `searxng_url` currently holds, which is the
+    # second half of the same SSRF surface the PUT above closes.
     cfg = await _load_scraper_config(db)
     out: dict[str, Any] = {
         "searxng": {"online": False, "error": None},

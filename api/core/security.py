@@ -89,3 +89,30 @@ def require_role(*allowed: str):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient role")
         return admin
     return _dep
+
+
+def require_platform_operator(*allowed: str):
+    """Guard for endpoints that read or write PLATFORM-GLOBAL configuration.
+
+    A handful of settings live in `app_settings` with no store_id and cannot
+    get one without a schema change — `scraper.config` and `llm.config` govern
+    how EVERY brand scrapes and enriches. Role alone is the wrong gate there:
+    the ADMIN of one brand is a full admin *of that brand*, not of the
+    platform, and must not be able to repoint a shared outbound URL or move
+    the price-outlier bounds that decide what lands against another brand's
+    products.
+
+    Composes on top of `require_role`, so an insufficient role still fails
+    first with exactly the 403 it always did; a correctly-roled but
+    store-scoped admin now fails on the second check instead of succeeding.
+    """
+    role_dep = require_role(*allowed)
+
+    async def _dep(admin: CurrentAdmin = Depends(role_dep)) -> CurrentAdmin:
+        if not admin.is_platform_operator:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "This setting is platform-wide; only a platform operator may change it.",
+            )
+        return admin
+    return _dep

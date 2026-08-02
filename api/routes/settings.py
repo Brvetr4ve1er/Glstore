@@ -20,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
-from api.core.security import CurrentAdmin, require_role
+from api.core.security import CurrentAdmin, require_platform_operator, require_role
 from api.core.store_context import (
     Store,
     clear_domain_cache,
@@ -53,11 +53,20 @@ async def get_llm(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     return cfg.to_safe_dict()
 
 
-@router.put("/llm", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.put(
+    "/llm",
+    dependencies=[Depends(require_platform_operator(*WRITE_ROLES))],
+)
 async def put_llm(
     dto: LLMConfigIn,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
+    # `llm.config` is one PLATFORM-GLOBAL app_settings row (see
+    # api/services/llm.py) with no store_id — the same endpoint, model and API
+    # key serve every brand's enrichment. Same shape as the scraper config, so
+    # the same rule: an ADMIN scoped to one brand must not be able to repoint
+    # the outbound endpoint, or swap the key, for all of them. GET keeps its
+    # existing roles; the key it returns is masked.
     current = await llm.load_config(db)
 
     # Special handling for api_key:

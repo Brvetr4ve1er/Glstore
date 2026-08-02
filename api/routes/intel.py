@@ -23,7 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import SessionLocal, get_db
 from api.core.security import CurrentAdmin, get_current_admin, require_role
-from api.core.store_context import Store, require_admin_store_for
+from api.core.store_context import (
+    Store,
+    _assert_product_in_store,
+    require_admin_store_for,
+)
 
 router = APIRouter(tags=["intel"])
 
@@ -40,16 +44,11 @@ READ_ROLES  = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
 #
 # Cross-store access is a 404, never a 403: telling an operator that a row
 # exists in another brand's catalog is itself a leak.
+#
+# The product-level half of that check is shared with the scraper and
+# enrichment routers, so it lives in api/core/store_context.py and is
+# imported above.
 # ─────────────────────────────────────────────────────────────────────────
-
-async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
-    row = await db.execute(
-        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
-        {"id": product_id, "sid": store_id},
-    )
-    if not row.first():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
-
 
 async def _assert_intel_job_in_store(db: AsyncSession, job_id: UUID, store_id) -> None:
     row = await db.execute(
@@ -289,8 +288,16 @@ async def get_intel_batch(
 ) -> dict[str, Any]:
     """Aggregate progress for the batch — used by the bulk progress UI.
 
-    Scoped to this store's products, so another brand's batch reads as empty
-    rather than reporting its progress."""
+    Scoped to this store's products. A batch id with no rows in this store —
+    whether it belongs to another brand or does not exist at all — is a 404,
+    the same answer every other guarded endpoint here gives. It used to be a
+    200 with an empty aggregate, which let a caller tell "no such batch" apart
+    from nothing at all only by guessing, and disagreed with the sibling
+    routes for no reason.
+
+    `intel_jobs` rows ARE the batch (there is no batches table), so "no rows"
+    is the only signal available. The bulk UI never polls a batch it did not
+    get a non-zero `queued` for, so it never asks about an empty one."""
     rows = await db.execute(text("""
         SELECT j.status, COUNT(*),
                AVG(j.completeness_after - j.completeness_before)::real AS avg_delta,
@@ -313,6 +320,9 @@ async def get_intel_batch(
             images_added += int(r[3] or 0)
 
     total = sum(by_status.values())
+    if total == 0:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "intel batch not found")
+
     completed = by_status.get("COMPLETED", 0)
     failed    = by_status.get("FAILED", 0)
     cancelled = by_status.get("CANCELLED", 0)
