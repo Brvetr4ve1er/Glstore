@@ -23,11 +23,46 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import SessionLocal, get_db
 from api.core.security import CurrentAdmin, get_current_admin, require_role
+from api.core.store_context import Store, require_admin_store_for
 
 router = APIRouter(tags=["intel"])
 
 WRITE_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR")
 READ_ROLES  = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Store scoping
+#
+# intel_jobs is platform-level by design (migration 005) — it has no
+# store_id of its own. The owning store is derived through product_id, so
+# every guard here goes job → product → store.
+#
+# Cross-store access is a 404, never a 403: telling an operator that a row
+# exists in another brand's catalog is itself a leak.
+# ─────────────────────────────────────────────────────────────────────────
+
+async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
+        {"id": product_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+
+
+async def _assert_intel_job_in_store(db: AsyncSession, job_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("""
+            SELECT 1
+              FROM intel_jobs j
+              JOIN products p ON p.id = j.product_id
+             WHERE j.id = :id AND p.store_id = :sid
+        """),
+        {"id": job_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "intel job not found")
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -37,17 +72,18 @@ READ_ROLES  = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
 @router.post(
     "/products/{product_id}/intel",
     status_code=202,
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
 )
 async def enqueue_intel(
     product_id: UUID,
     wait: bool = Query(False, description="Block up to 120s and return inline result"),
     db: AsyncSession = Depends(get_db),
     admin: CurrentAdmin = Depends(get_current_admin),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
-    exists = await db.execute(text("SELECT 1 FROM products WHERE id = :id"), {"id": product_id})
-    if not exists.first():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+    # The intel pipeline overwrites description, specs, images and
+    # observations — running it on another brand's product corrupts that
+    # brand's catalog. Ownership is checked before anything is enqueued.
+    await _assert_product_in_store(db, product_id, store.id)
 
     # Reuse any in-flight job for this product
     existing = await db.execute(text("""
@@ -114,16 +150,16 @@ class IntelBulkRequest(BaseModel):
 @router.post(
     "/products/intel-bulk",
     status_code=202,
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
 )
 async def enqueue_intel_bulk(
     body: IntelBulkRequest,
     db: AsyncSession = Depends(get_db),
     admin: CurrentAdmin = Depends(get_current_admin),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     """Returns {batch_id, queued} — track progress via /intel-batches/{batch_id}."""
     where: list[str] = ["p.status <> 'ARCHIVED'"]
-    params: dict[str, Any] = {"lim": body.limit}
+    params: dict[str, Any] = {"lim": body.limit, "sid": store.id}
 
     if body.product_ids:
         where.append("p.id = ANY(:ids)")
@@ -147,6 +183,10 @@ async def enqueue_intel_bulk(
             "Provide product_ids or at least one filter (only_status, missing_brand, …).",
         )
 
+    # Applied after the "at least one filter" check so the store predicate is
+    # never mistaken for a caller-supplied filter. Explicit product_ids that
+    # belong to another brand simply do not match — they are never enqueued.
+    where.append("p.store_id = :sid")
     where_sql = " AND ".join(where)
     rows = await db.execute(
         text(f"SELECT p.id FROM products p WHERE {where_sql} ORDER BY p.completeness_score ASC LIMIT :lim"),
@@ -194,20 +234,22 @@ async def enqueue_intel_bulk(
 
 @router.get(
     "/intel-jobs/{job_id}",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def get_intel_job(
     job_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     row = await db.execute(text("""
-        SELECT id, product_id, batch_id, status, llm_kind, llm_model,
-               fields_filled, images_added,
-               completeness_before, completeness_after, status_after,
-               duration_ms, claimed_by, claimed_at, started_at, completed_at,
-               error_message, raw_payload, scrape_summary, retry_count, created_at
-          FROM intel_jobs WHERE id = :id
-    """), {"id": job_id})
+        SELECT j.id, j.product_id, j.batch_id, j.status, j.llm_kind, j.llm_model,
+               j.fields_filled, j.images_added,
+               j.completeness_before, j.completeness_after, j.status_after,
+               j.duration_ms, j.claimed_by, j.claimed_at, j.started_at, j.completed_at,
+               j.error_message, j.raw_payload, j.scrape_summary, j.retry_count, j.created_at
+          FROM intel_jobs j
+          JOIN products p ON p.id = j.product_id
+         WHERE j.id = :id AND p.store_id = :sid
+    """), {"id": job_id, "sid": store.id})
     r = row.first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "intel job not found")
@@ -239,21 +281,25 @@ async def get_intel_job(
 
 @router.get(
     "/intel-batches/{batch_id}",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def get_intel_batch(
     batch_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
-    """Aggregate progress for the batch — used by the bulk progress UI."""
+    """Aggregate progress for the batch — used by the bulk progress UI.
+
+    Scoped to this store's products, so another brand's batch reads as empty
+    rather than reporting its progress."""
     rows = await db.execute(text("""
-        SELECT status, COUNT(*),
-               AVG(completeness_after - completeness_before)::real AS avg_delta,
-               SUM(images_added)::int AS images_added
-          FROM intel_jobs
-         WHERE batch_id = :id
-         GROUP BY status
-    """), {"id": batch_id})
+        SELECT j.status, COUNT(*),
+               AVG(j.completeness_after - j.completeness_before)::real AS avg_delta,
+               SUM(j.images_added)::int AS images_added
+          FROM intel_jobs j
+          JOIN products p ON p.id = j.product_id
+         WHERE j.batch_id = :id AND p.store_id = :sid
+         GROUP BY j.status
+    """), {"id": batch_id, "sid": store.id})
     by_status: dict[str, int] = {}
     delta_sum = 0.0
     delta_cnt = 0
@@ -294,12 +340,15 @@ async def get_intel_batch(
 
 @router.post(
     "/intel-jobs/{job_id}/cancel",
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
 )
 async def cancel_intel_job(
     job_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
+    # 404 first (unknown or another brand's job), 409 only for a real
+    # state conflict on a job this store owns.
+    await _assert_intel_job_in_store(db, job_id, store.id)
     res = await db.execute(text("""
         UPDATE intel_jobs SET
             status = 'CANCELLED',

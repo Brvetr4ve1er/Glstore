@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 
 router = APIRouter(prefix="/jobs", tags=["jobs-console"])
 
@@ -39,21 +40,76 @@ JobType = Literal["scrape", "event", "sync"]
 
 
 # ─────────────────────────────────────────────────────────────────────────
+# Store scoping
+#
+# The console is per-brand: an operator sees the work belonging to the store
+# they are acting on, and nothing else. The three tables reach their store
+# by different routes, and no schema changes here:
+#
+#   scrape_jobs  platform-level (migration 005) — owner derived through
+#                product_id, which is NOT NULL with an FK to products, so an
+#                inner JOIN never drops a legitimate row.
+#   events       carries store_id (NOT NULL since migration 005).
+#   sync_queue   carries store_id (NOT NULL since migration 005).
+#
+# Cross-store access is a 404, never a 403: confirming a row exists in
+# another brand's console is itself a leak.
+# ─────────────────────────────────────────────────────────────────────────
+
+async def _assert_scrape_job_in_store(db: AsyncSession, job_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("""
+            SELECT 1
+              FROM scrape_jobs j
+              JOIN products p ON p.id = j.product_id
+             WHERE j.id = :id AND p.store_id = :sid
+        """),
+        {"id": job_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "scrape job not found")
+
+
+# Fixed statements rather than an interpolated table name — the table is
+# never taken from request data.
+_OWNERSHIP_SQL = {
+    "event": ("SELECT 1 FROM events WHERE id = :id AND store_id = :sid", "event not found"),
+    "sync":  ("SELECT 1 FROM sync_queue WHERE id = :id AND store_id = :sid", "sync row not found"),
+}
+
+
+async def _assert_row_in_store(
+    db: AsyncSession, kind: Literal["event", "sync"], row_id: UUID, store_id,
+) -> None:
+    sql, missing = _OWNERSHIP_SQL[kind]
+    row = await db.execute(text(sql), {"id": row_id, "sid": store_id})
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, missing)
+
+
+# ─────────────────────────────────────────────────────────────────────────
 # Stats — for the dashboard tiles
 # ─────────────────────────────────────────────────────────────────────────
 
-@router.get("/stats", dependencies=[Depends(require_role(*READ_ROLES))])
-async def jobs_stats(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
-    """Counts grouped by (type, normalized status)."""
+@router.get("/stats")
+async def jobs_stats(
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
+    """Counts grouped by (type, normalized status), for this store only."""
     rows_scrape = await db.execute(text("""
-        SELECT status, COUNT(*) FROM scrape_jobs GROUP BY status
-    """))
+        SELECT j.status, COUNT(*)
+          FROM scrape_jobs j
+          JOIN products p ON p.id = j.product_id
+         WHERE p.store_id = :sid
+         GROUP BY j.status
+    """), {"sid": store.id})
     rows_event = await db.execute(text("""
-        SELECT status, COUNT(*) FROM events GROUP BY status
-    """))
+        SELECT status, COUNT(*) FROM events WHERE store_id = :sid GROUP BY status
+    """), {"sid": store.id})
     rows_sync = await db.execute(text("""
-        SELECT status, COUNT(*) FROM sync_queue GROUP BY status
-    """))
+        SELECT status, COUNT(*) FROM sync_queue WHERE store_id = :sid GROUP BY status
+    """), {"sid": store.id})
 
     def _to_dict(rows) -> dict[str, int]:
         return {r[0]: int(r[1]) for r in rows.all()}
@@ -84,7 +140,7 @@ async def jobs_stats(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
 # Unified list — UNION ALL across the three tables, normalized
 # ─────────────────────────────────────────────────────────────────────────
 
-@router.get("", dependencies=[Depends(require_role(*READ_ROLES))])
+@router.get("")
 async def list_jobs(
     type_filter: str | None = Query(None, alias="type",
                                     description="scrape | event | sync (omit = all)"),
@@ -94,6 +150,7 @@ async def list_jobs(
     page: int = Query(1, ge=1),
     page_size: int = Query(40, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     """Returns a normalized job-list across all three tables. The shape is:
 
@@ -113,23 +170,26 @@ async def list_jobs(
     """
     offset = (page - 1) * page_size
     parts: list[str] = []
-    params: dict[str, Any] = {"limit": page_size, "offset": offset}
+    params: dict[str, Any] = {"limit": page_size, "offset": offset, "sid": store.id}
 
-    # SCRAPE
+    # SCRAPE — the label exposes the product SKU, so the join to products is
+    # both how the label is built and how the row is scoped to this store.
     if not type_filter or type_filter == "scrape":
         parts.append("""
-            SELECT id::text                AS id,
+            SELECT j.id::text              AS id,
                    'scrape'                AS type,
-                   status::text            AS status,
-                   ('scrape · ' || COALESCE((SELECT sku FROM products WHERE id = product_id), 'product?')) AS label,
-                   product_id::text        AS subtype,
-                   claimed_by              AS claimed_by,
-                   started_at              AS started_at,
-                   completed_at            AS completed_at,
-                   error_message           AS error,
-                   retry_count             AS retry_count,
-                   created_at              AS created_at
-              FROM scrape_jobs
+                   j.status::text          AS status,
+                   ('scrape · ' || COALESCE(p.sku, 'product?')) AS label,
+                   j.product_id::text      AS subtype,
+                   j.claimed_by            AS claimed_by,
+                   j.started_at            AS started_at,
+                   j.completed_at          AS completed_at,
+                   j.error_message         AS error,
+                   j.retry_count           AS retry_count,
+                   j.created_at            AS created_at
+              FROM scrape_jobs j
+              JOIN products p ON p.id = j.product_id
+             WHERE p.store_id = :sid
         """)
 
     # EVENT
@@ -147,6 +207,7 @@ async def list_jobs(
                    retry_count             AS retry_count,
                    created_at              AS created_at
               FROM events
+             WHERE store_id = :sid
         """)
 
     # SYNC
@@ -164,6 +225,7 @@ async def list_jobs(
                    retry_count             AS retry_count,
                    created_at              AS created_at
               FROM sync_queue
+             WHERE store_id = :sid
         """)
 
     if not parts:
@@ -227,14 +289,20 @@ async def list_jobs(
 # Per-type detail
 # ─────────────────────────────────────────────────────────────────────────
 
-@router.get("/scrape/{job_id}", dependencies=[Depends(require_role(*READ_ROLES))])
-async def detail_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.get("/scrape/{job_id}")
+async def detail_scrape(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
     j = await db.execute(text("""
-        SELECT id, product_id, status, max_sources, intents, expected_price,
-               claimed_by, claimed_at, started_at, completed_at,
-               error_message, summary, retry_count, created_at
-          FROM scrape_jobs WHERE id = :id
-    """), {"id": job_id})
+        SELECT j.id, j.product_id, j.status, j.max_sources, j.intents, j.expected_price,
+               j.claimed_by, j.claimed_at, j.started_at, j.completed_at,
+               j.error_message, j.summary, j.retry_count, j.created_at
+          FROM scrape_jobs j
+          JOIN products p ON p.id = j.product_id
+         WHERE j.id = :id AND p.store_id = :sid
+    """), {"id": job_id, "sid": store.id})
     r = j.first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "scrape job not found")
@@ -280,15 +348,19 @@ async def detail_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dic
     }
 
 
-@router.get("/event/{job_id}", dependencies=[Depends(require_role(*READ_ROLES))])
-async def detail_event(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.get("/event/{job_id}")
+async def detail_event(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
     e = await db.execute(text("""
         SELECT id, event_id, correlation_id, causation_id,
                entity_type, entity_id, event_type, payload,
                status, retry_count, max_retries, last_error,
                next_retry_at, locked_by, locked_at, processed_at, created_at
-          FROM events WHERE id = :id
-    """), {"id": job_id})
+          FROM events WHERE id = :id AND store_id = :sid
+    """), {"id": job_id, "sid": store.id})
     r = e.first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "event not found")
@@ -315,14 +387,18 @@ async def detail_event(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict
     }
 
 
-@router.get("/sync/{job_id}", dependencies=[Depends(require_role(*READ_ROLES))])
-async def detail_sync(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.get("/sync/{job_id}")
+async def detail_sync(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+) -> dict[str, Any]:
     e = await db.execute(text("""
         SELECT id, target_system, entity_type, entity_id, action,
                payload, status, retry_count, max_retries, last_error,
                next_retry_at, synced_at, created_at
-          FROM sync_queue WHERE id = :id
-    """), {"id": job_id})
+          FROM sync_queue WHERE id = :id AND store_id = :sid
+    """), {"id": job_id, "sid": store.id})
     r = e.first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "sync row not found")
@@ -349,8 +425,15 @@ async def detail_sync(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[
 # Retry / Cancel
 # ─────────────────────────────────────────────────────────────────────────
 
-@router.post("/scrape/{job_id}/retry", dependencies=[Depends(require_role(*WRITE_ROLES))])
-async def retry_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.post("/scrape/{job_id}/retry")
+async def retry_scrape(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
+) -> dict[str, Any]:
+    # A retry re-runs the scraper against the job's product. 404 first
+    # (unknown or another brand's job), 409 only for a real state conflict.
+    await _assert_scrape_job_in_store(db, job_id, store.id)
     res = await db.execute(text("""
         UPDATE scrape_jobs SET
             status        = 'PENDING',
@@ -372,8 +455,13 @@ async def retry_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict
     return {"ok": True, "id": str(job_id), "status": "PENDING"}
 
 
-@router.post("/scrape/{job_id}/cancel", dependencies=[Depends(require_role(*WRITE_ROLES))])
-async def cancel_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.post("/scrape/{job_id}/cancel")
+async def cancel_scrape(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
+) -> dict[str, Any]:
+    await _assert_scrape_job_in_store(db, job_id, store.id)
     res = await db.execute(text("""
         UPDATE scrape_jobs SET
             status        = 'CANCELLED',
@@ -392,8 +480,13 @@ async def cancel_scrape(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dic
     return {"ok": True, "id": str(job_id), "status": "CANCELLED"}
 
 
-@router.post("/event/{job_id}/retry", dependencies=[Depends(require_role(*WRITE_ROLES))])
-async def retry_event(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.post("/event/{job_id}/retry")
+async def retry_event(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
+) -> dict[str, Any]:
+    await _assert_row_in_store(db, "event", job_id, store.id)
     res = await db.execute(text("""
         UPDATE events SET
             status        = 'PENDING',
@@ -411,8 +504,13 @@ async def retry_event(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[
     return {"ok": True, "id": str(job_id), "status": "PENDING"}
 
 
-@router.post("/sync/{job_id}/retry", dependencies=[Depends(require_role(*WRITE_ROLES))])
-async def retry_sync(job_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.post("/sync/{job_id}/retry")
+async def retry_sync(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
+) -> dict[str, Any]:
+    await _assert_row_in_store(db, "sync", job_id, store.id)
     res = await db.execute(text("""
         UPDATE sync_queue SET
             status        = 'PENDING',

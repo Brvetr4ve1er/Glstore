@@ -26,11 +26,33 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db, SessionLocal
 from api.core.security import require_role, get_current_admin, CurrentAdmin
+from api.core.store_context import Store, require_admin_store_for
 
 router = APIRouter(tags=["scraper"])
 
 WRITE_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR")
 READ_ROLES = ("SUPER_ADMIN", "ADMIN", "OPERATOR", "VIEWER")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 0. Store scoping
+#
+# scrape_jobs / scrape_sources / competitor_prices carry no store_id — they
+# are platform-level by design (migration 005: "the scraper researches the
+# *market*, not one store's catalog"). The owning store is therefore derived
+# through product_id on every guard below.
+#
+# Cross-store access is a 404, never a 403: confirming that a row exists in
+# another brand's catalog is itself a leak.
+# ════════════════════════════════════════════════════════════════════════════
+
+async def _assert_product_in_store(db: AsyncSession, product_id: UUID, store_id) -> None:
+    row = await db.execute(
+        text("SELECT 1 FROM products WHERE id = :id AND store_id = :sid"),
+        {"id": product_id, "sid": store_id},
+    )
+    if not row.first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -47,7 +69,6 @@ class ScrapeRequest(BaseModel):
 @router.post(
     "/products/{product_id}/scrape",
     status_code=202,
-    dependencies=[Depends(require_role(*WRITE_ROLES))],
 )
 async def enqueue_scrape(
     product_id: UUID,
@@ -55,13 +76,11 @@ async def enqueue_scrape(
     wait: bool = Query(False, description="Block up to 90s and return inline result"),
     db: AsyncSession = Depends(get_db),
     admin: CurrentAdmin = Depends(get_current_admin),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
-    # Check product exists
-    exists = await db.execute(
-        text("SELECT 1 FROM products WHERE id = :id"), {"id": product_id},
-    )
-    if not exists.first():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+    # A scrape writes competitor_prices and observations against this product.
+    # Check the product belongs to the acting store before enqueueing anything.
+    await _assert_product_in_store(db, product_id, store.id)
 
     # If a PENDING/RUNNING/CLAIMED job already exists for this product, reuse it
     existing = await db.execute(text("""
@@ -118,18 +137,20 @@ async def enqueue_scrape(
 
 @router.get(
     "/scrape-jobs/{job_id}",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def get_scrape_job(
     job_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     j = await db.execute(text("""
-        SELECT id, product_id, status, max_sources, intents, expected_price,
-               claimed_by, claimed_at, started_at, completed_at,
-               error_message, summary, retry_count, created_at
-          FROM scrape_jobs WHERE id = :id
-    """), {"id": job_id})
+        SELECT j.id, j.product_id, j.status, j.max_sources, j.intents, j.expected_price,
+               j.claimed_by, j.claimed_at, j.started_at, j.completed_at,
+               j.error_message, j.summary, j.retry_count, j.created_at
+          FROM scrape_jobs j
+          JOIN products p ON p.id = j.product_id
+         WHERE j.id = :id AND p.store_id = :sid
+    """), {"id": job_id, "sid": store.id})
     r = j.first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "job not found")
@@ -176,13 +197,14 @@ async def get_scrape_job(
 
 @router.get(
     "/products/{product_id}/scrape-jobs",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def list_product_scrape_jobs(
     product_id: UUID,
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
+    await _assert_product_in_store(db, product_id, store.id)
     rows = await db.execute(text("""
         SELECT id, status, started_at, completed_at, error_message, summary, created_at
           FROM scrape_jobs
@@ -206,14 +228,15 @@ async def list_product_scrape_jobs(
 
 @router.get(
     "/products/{product_id}/competitor-prices",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def get_competitor_prices(
     product_id: UUID,
     domain: str | None = None,
     limit: int = Query(200, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
+    await _assert_product_in_store(db, product_id, store.id)
     where = ["product_id = :pid"]
     params: dict[str, Any] = {"pid": product_id, "lim": limit}
     if domain:
@@ -244,13 +267,14 @@ async def get_competitor_prices(
 
 @router.get(
     "/products/{product_id}/market-summary",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def get_market_summary(
     product_id: UUID,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
     """Latest aggregated picture: median, low, high, delta vs our price, sources."""
+    await _assert_product_in_store(db, product_id, store.id)
     # Latest competitor_prices per domain (1 per domain, most recent)
     rows = await db.execute(text("""
         WITH latest AS (
@@ -315,7 +339,6 @@ async def get_market_summary(
 
 @router.get(
     "/products/market/alerts",
-    dependencies=[Depends(require_role(*READ_ROLES))],
 )
 async def market_alerts(
     threshold_pct: float = Query(0.10, ge=0, le=2.0,
@@ -323,7 +346,10 @@ async def market_alerts(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> dict[str, Any]:
+    """Catalog-wide alert list — restricted to the acting store's catalog so
+    one brand cannot enumerate another brand's SKUs, names and pricing."""
     offset = (page - 1) * page_size
     rows = await db.execute(text("""
         WITH latest AS (
@@ -351,6 +377,7 @@ async def market_alerts(
                      LIMIT 1) AS primary_image
               FROM products p
              WHERE p.status <> 'ARCHIVED'
+               AND p.store_id = :sid
         )
         SELECT o.product_id, o.sku, o.name, o.brand, o.category, o.completeness_score,
                o.our_price, m.median_price, m.source_count, o.primary_image,
@@ -362,7 +389,7 @@ async def market_alerts(
            AND ((o.our_price - m.median_price) / m.median_price) >= :th
          ORDER BY vs_pct DESC
          LIMIT :lim OFFSET :off
-    """), {"th": threshold_pct, "lim": page_size, "off": offset})
+    """), {"th": threshold_pct, "lim": page_size, "off": offset, "sid": store.id})
     items = [{
         "product_id": str(r[0]), "sku": r[1], "name": r[2],
         "brand": r[3], "category": r[4],
