@@ -295,30 +295,115 @@ vendors, no commissions and no payouts. One brand = one row in `stores`.
 Each store is fully isolated — its own products, offers, customers, orders and order
 numbering. That is what migration 005 built, so adding brand #2 rewrites nothing.
 
-### Step A — turn off single-store mode
+## Turning on multi-brand
 
-`SINGLE_STORE_MODE=true` makes **every** hostname resolve to the store with slug
-`default`. That is what lets a `*.vercel.app` URL work before you own a domain — and
-it is exactly what you must switch off once a second brand exists, otherwise both
-domains keep serving brand #1.
+Multi-brand is off by default: `SINGLE_STORE_MODE=true`. Turning it on is a single
+env-var flip — and **that flip has to be the last thing you do.**
 
-On Vercel → Settings → Environment Variables:
+Do them in this order. "If you do it in the wrong order" below says exactly what
+breaks otherwise.
 
-| Name | Value |
-|---|---|
-| `SINGLE_STORE_MODE` | `false` |
+| Step | Do | Writes to |
+|---|---|---|
+| **A** | See what you actually have | — (read only) |
+| **B** | Attach brand #1's **real** hostnames | `store_domains` |
+| **C** | Create brand #2 | `stores` + `store_domains` |
+| **D** | DNS, Vercel domains, `ALLOWED_HOSTS`, `CORS_ORIGINS` | your host |
+| **E** | Verify **while the fallback is still on** | — (read only) |
+| **F** | **Only now** set `SINGLE_STORE_MODE=false` | Vercel env |
+| **G** | Give brand #2 its own look | `stores.theme` |
 
-With it off, an unrecognised Host is a hard `404 "No store is configured for this
-address."` — deliberate: serving the wrong brand's catalog after a DNS typo is worse
-than an error page. So finish Step B and Step C before flipping it, and make sure your
-first brand's real domain is registered too (the seeded `localhost` / `127.0.0.1`
-domains only cover local development).
+(Lettered so they don't collide with the numbered deploy steps at the top of this doc.)
 
-### Step B — add the store
+### Step A — see what you actually have
+
+In Neon's SQL editor:
+
+```sql
+SELECT slug, name, order_prefix, status FROM stores ORDER BY slug;
+
+SELECT s.slug, d.domain, d.is_primary
+  FROM store_domains d JOIN stores s ON s.id = d.store_id
+ ORDER BY s.slug, d.is_primary DESC;
+```
+
+A deployment that has only ever run one brand answers `default | Default Store | GL`
+(or whatever `init_remote_db.py --brand/--prefix` set) and exactly **two** domains:
+`localhost` and `127.0.0.1`. Migration 005 seeded those for local development.
+
+**Your live `<project>.vercel.app` URL is not in that list.** That is the entire
+problem this runbook exists to solve — see Step F.
+
+Without a SQL console, the same answer comes from the script you will use in Step B —
+with no `--domain` and `--dry-run` it only looks:
 
 ```bash
-pip install asyncpg   # same one-off dependency as the DB init in Step 2
+python scripts/deploy/add_domain.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" \
+  --slug default --dry-run
+```
+```
+Domain → store mapping (every brand on this database):
 
+  default   "Default Store"  ←
+      · localhost   (primary)
+      · 127.0.0.1
+```
+
+### Step B — attach brand #1's real hostnames
+
+Every hostname that must keep working after the flip has to be a `store_domains` row:
+the `*.vercel.app` URL, your apex domain, `www`, any staging host.
+
+```bash
+pip install asyncpg   # same one-off dependency as the DB init in Step 2 above
+
+# ALWAYS look first — writes nothing, prints the full domain → store mapping
+python scripts/deploy/add_domain.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" \
+  --slug default \
+  --domain <your-project>.vercel.app \
+  --domain shop.yourdomain.com \
+  --dry-run
+
+# then the same command without --dry-run
+```
+
+(Or omit the connection string and set `DATABASE_URL`. Use Neon's **direct**,
+non-pooled string, same as Step 2.)
+
+`add_domain.py` only ever writes `store_domains`. It has no `--name` and no
+`--prefix`, **cannot create a store**, and refuses a slug that does not exist —
+so a typo is an error listing your real slugs, not a phantom third brand.
+(`add_store.py` is the opposite tool: it *creates* a brand, and requires the exact
+`--name`/`--prefix` of an existing slug, which is why it is the wrong instrument for
+"I just need to add a hostname".)
+
+| Flag | Meaning |
+|---|---|
+| `--slug` | an **existing** store's slug, from Step A |
+| `--domain` | bare hostname, repeatable — no scheme, no port, no path |
+| `--primary` | make the first `--domain` this store's primary (see below) |
+| `--dry-run` | report + print the mapping, write nothing, exit 0. Legal with no `--domain` — that is the inspect mode from Step A |
+
+What it refuses:
+
+- **A hostname that already belongs to another brand** → exits non-zero naming the
+  owner, and writes nothing for the whole batch. `store_domains.domain` is globally
+  unique, so a hostname routes to exactly one brand; moving one is a deliberate
+  two-step (`DELETE` it from the other store, then re-run).
+- **`--primary` when the store already has a different primary** → exits non-zero and
+  hands you the two-statement swap. One primary per store is enforced by the
+  `store_domains_one_primary_per_store` index; the script never demotes anything
+  implicitly. You rarely need `--primary` — the primary only builds absolute URLs,
+  **every** attached domain routes.
+
+Re-running with hostnames the store already owns writes nothing and exits 0.
+
+> Host lookups are cached for 60s (`api/core/store_context._CACHE_TTL_SECONDS`), so a
+> newly attached domain can take a minute (or a redeploy) to start resolving.
+
+### Step C — create brand #2
+
+```bash
 python scripts/deploy/add_store.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" \
   --slug appliances \
   --name "Appliances DZ" \
@@ -363,8 +448,11 @@ exact same command inserts nothing and exits 0. Two refusals worth knowing:
 
 > There is no "create store" button in the admin — the console only *switches between*
 > stores that already exist. This script is the supported way to create one.
+> To add a hostname to a brand that already exists, use `add_domain.py` (Step B) —
+> `add_store.py` would make you re-type that brand's exact `--name` and `--prefix`
+> and exits 1 if either differs.
 
-### Step C — point a domain at it
+### Step D — point domains at the deployment
 
 1. **DNS**: add a `CNAME` for `appliances.yourdomain.com` → `cname.vercel-dns.com`
    (or whatever your host tells you). Repeat for each `--domain` you registered.
@@ -378,20 +466,76 @@ exact same command inserts nothing and exits 0. Two refusals worth knowing:
 4. **`CORS_ORIGINS`**: add each brand's origin (`https://appliances.yourdomain.com`, …)
    plus your local admin origin. Redeploy after changing env vars.
 
-Then prove that brand end to end — this places a **real COD order** on it:
+### Step E — verify, while the fallback is still on
+
+This is the step that makes Step F boring.
+
+`SINGLE_STORE_MODE=true` does **not** force every hostname onto the `default` store.
+Host resolution runs *first* and a registered domain always wins; the flag only decides
+what happens to an **unrecognised** Host — fall back to `default` (on) or `404` (off).
+So every domain you attached in Steps B–C already routes correctly **right now**, and
+you can prove it before you take the net away.
 
 ```bash
+# brand #2, resolved by Host — places a REAL COD order on the new brand
 python scripts/deploy/smoke_test_checkout.py https://appliances.yourdomain.com
-# or, to test brand routing through a URL that isn't its own domain yet:
+
+# or, before DNS has propagated: same connection, different Host header
 python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app \
   --store-host appliances.yourdomain.com
 ```
 
-`--store-host` sets the `Host` header without changing where the request connects, so
-you can confirm the store resolves before DNS has propagated. An order number coming
-back as `APP-2026-000001` is the proof: that prefix only exists on the new store.
+`--store-host` sets the `Host` header without changing where the request connects. An
+order number coming back as `APP-2026-000001` is the proof — that prefix exists only on
+the new store.
 
-### Step D — give the brand its own look
+Then re-run Step A's second query and tick off, one by one, every hostname you expect to
+keep serving. **Anything missing from that list 404s the moment you do Step F.**
+
+### Step F — set `SINGLE_STORE_MODE=false`
+
+On Vercel → Settings → Environment Variables, then redeploy:
+
+| Name | Value |
+|---|---|
+| `SINGLE_STORE_MODE` | `false` |
+
+That removes the fallback: an unrecognised Host is now a hard
+`404 "No store is configured for this address."` Deliberate — serving the wrong brand's
+catalog after a DNS typo is worse than an error page.
+
+Leaving it `true` is not safe once you have two brands either: any hostname you forgot
+to register keeps quietly resolving to `default`, so brand #2's URL would serve brand
+#1's catalog. Flip it, so a mistake fails loudly instead of selling from the wrong shop.
+
+### If you do it in the wrong order
+
+**Setting `SINGLE_STORE_MODE=false` before Step B is the one that hurts.**
+
+The only hostnames migration 005 seeds are `localhost` and `127.0.0.1`. Your live
+`<project>.vercel.app` URL is not one of them, and with the fallback off there is
+nothing left to catch it:
+
+- **Every public page 404s** — `No store is configured for this address.` Storefront,
+  catalog, checkout, for every visitor, from the first request after the redeploy.
+- **The admin console keeps working**, which makes it confusing: it sends `x-store-id`,
+  and admin routes resolve their store from that authenticated header, never from `Host`
+  (`api/core/store_context.py` — Host is client-controlled, so it is a routing signal,
+  not an authorization one). The dashboard stays green while the shop is dark.
+- **Recovery is Step B**: attach the hostname, then wait out the 60s domain cache. No
+  redeploy needed — though setting the flag back to `true` gets the shop up immediately
+  while you finish.
+
+Two smaller reversals:
+
+- **Creating brand #2 (Step C) before attaching brand #1's domains (Step B)** is
+  harmless. Both only write `store_domains`, and neither can take a hostname the other
+  owns — the scripts refuse and exit non-zero.
+- **Skipping Step D's `ALLOWED_HOSTS`** fails differently: `400 Invalid host header`,
+  raised by TrustedHostMiddleware *before* any route runs, so store resolution never
+  happens at all. A 400 means `ALLOWED_HOSTS`; a 404 means `store_domains`.
+
+### Step G — give the brand its own look
 
 Storefront theming is **per store** — it lives in `stores.theme`, not in a global
 setting. Two brands on one deployment therefore look nothing alike.
@@ -431,8 +575,8 @@ operators, so a scoped admin of one brand cannot change behaviour for the others
 
 | Symptom | Cause / fix |
 |---|---|
-| Every page 404s "No store is configured" | **Single brand:** `SINGLE_STORE_MODE` not `true`, or the DB init didn't create the `default` store — re-run Step 2. **Multi-brand:** that hostname isn't in `store_domains`. Add it with `add_store.py --domain …` (same `--slug`), or check for a typo. |
-| A new brand's domain serves the *old* brand's catalog | `SINGLE_STORE_MODE` is still `true`, so every Host resolves to the `default` store. Set it to `false` and redeploy (see "Running more than one brand"). |
+| Every page 404s "No store is configured" | That hostname has no `store_domains` row and the fallback is off. Attach it: `python scripts/deploy/add_domain.py "<direct-neon-url>" --slug <slug> --domain <hostname>` — run it with `--dry-run` first to see the current mapping. (**Single brand:** `SINGLE_STORE_MODE` not `true` is the other way to get here, or the DB init never created the `default` store — re-run Step 2.) |
+| A new brand's domain serves the *old* brand's catalog | That domain isn't registered to the new store, so it falls through to the `default` store. Check the mapping (`add_domain.py --slug <slug> --dry-run`) and attach it. `SINGLE_STORE_MODE=true` is what makes the fallthrough silent rather than a 404 — it does **not** override a domain that *is* registered. See "Turning on multi-brand". |
 | Both brands look identical | The new store's `stores.theme` is still empty, so it falls back to the global pre-007 theme. Theme it in admin → Settings → Theme **with that store selected**. |
 | 400 "Invalid host header" | `ALLOWED_HOSTS` not set to `*` (or your domain) with `ENVIRONMENT=production`. |
 | API 500 on first request after idle | Serverless **cold start** (~1–2s) + Neon waking from scale-to-zero. Normal; the next request is fast. |
