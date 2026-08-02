@@ -5,6 +5,11 @@ GET /categories            distinct categories with per-category product count
 GET /brands/public         distinct brands with per-brand product count
 GET /price-bounds          min/max retail across active offers (for filter slider)
 GET /products/featured     highest-completeness ACTIVE products with images, capped
+GET /products/graph        brand × category graph for the admin's explorer
+
+Every endpoint here resolves the store with `resolve_store`: these facets back
+the storefront's navbar AND the admin's filters, so an authenticated admin gets
+the store it named in `x-store-id` and anonymous traffic gets the Host's store.
 """
 from __future__ import annotations
 
@@ -15,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
-from api.core.store_context import Store, require_store
+from api.core.store_context import Store, resolve_store
 
 router = APIRouter(tags=["catalog"])
 
@@ -28,7 +33,7 @@ _PRODUCT_NODE_HARD_CAP = 4000
 @router.get("/categories")
 async def list_categories(
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     rows = await db.execute(text("""
         SELECT category, COUNT(*) AS n
@@ -47,7 +52,7 @@ async def list_categories(
 @router.get("/brands/public")
 async def list_public_brands(
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     rows = await db.execute(text("""
         SELECT UPPER(brand) AS b, COUNT(*) AS n
@@ -66,7 +71,7 @@ async def list_public_brands(
 @router.get("/price-bounds")
 async def price_bounds(
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     row = await db.execute(text("""
         SELECT MIN(COALESCE(o.sale_price, o.retail_price)),
@@ -90,7 +95,7 @@ async def catalog_graph(
     product_limit:    int  = Query(800, ge=10, le=_PRODUCT_NODE_HARD_CAP),
     only_status:      list[str] | None = Query(None, description="Restrict product nodes to these statuses."),
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     """Returns the catalog graph used by the admin's Obsidian-style explorer.
 
@@ -275,7 +280,7 @@ async def catalog_graph(
 async def featured_products(
     limit: int = Query(12, ge=1, le=48),
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     """Public storefront's hero featured: ACTIVE, has primary image, highest completeness."""
     rows = await db.execute(text("""

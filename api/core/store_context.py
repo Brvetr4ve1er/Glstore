@@ -20,6 +20,12 @@ Security boundary — read this before using it on an admin route:
     Admin routes MUST NOT scope by Host. An operator's reachable stores come
     from their `admin_users.store_id` (NULL = platform operator, sees all).
     Use `require_store` for public routes only.
+
+Three dependencies, three audiences:
+    require_store            public only          Host
+    require_admin_store_for  admin only           x-store-id (authorized)
+    resolve_store            both (catalog reads) x-store-id when the caller
+                             proves they are an admin, Host otherwise
 """
 from __future__ import annotations
 
@@ -36,6 +42,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.config import get_settings
 from api.core.db import get_db
+from api.core.security import CurrentAdmin, get_current_admin
 
 log = logging.getLogger("glstore.store")
 
@@ -232,8 +239,10 @@ async def resolve_store_by_id(db: AsyncSession, store_id: UUID) -> Store | None:
     return _row_to_store(row) if row is not None else None
 
 
-def require_admin_store_for(admin_dep: Any):
-    """Build a dependency that yields the store an admin request acts on.
+async def store_for_admin(request: Request, db: AsyncSession, admin: Any) -> Store:
+    """The store an authenticated admin request acts on. One implementation,
+    shared by `require_admin_store_for` and `resolve_store`, so a read and a
+    write from the same admin can never disagree about who may touch what.
 
     Resolution:
       - Store-scoped operator  → their own store. An `x-store-id` naming a
@@ -242,52 +251,110 @@ def require_admin_store_for(admin_dep: Any):
         is no implicit default: writing to the wrong brand's catalog because
         a header was missing is worse than an error.
     """
+    raw = request.headers.get(STORE_HEADER)
+    requested: UUID | None = None
+    if raw:
+        try:
+            requested = UUID(raw.strip())
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"Malformed {STORE_HEADER} header.",
+            )
+
+    if admin.store_id is not None:
+        if requested is not None and requested != admin.store_id:
+            log.warning(
+                "admin tried to act on a store they are not assigned to",
+                extra={
+                    "admin_id": str(admin.id),
+                    "assigned_store": str(admin.store_id),
+                    "requested_store": str(requested),
+                },
+            )
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "You do not have access to that store.",
+            )
+        target = admin.store_id
+    else:
+        if requested is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"Platform operators must select a store via the "
+                f"{STORE_HEADER} header.",
+            )
+        target = requested
+
+    store = await resolve_store_by_id(db, target)
+    if store is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found.")
+
+    bind_store(store)
+    return store
+
+
+def require_admin_store_for(admin_dep: Any):
+    """Build a dependency that yields the store an admin request acts on.
+
+    Authentication is mandatory here — `admin_dep` rejects the request before
+    we ever look at the store header.
+    """
 
     async def _dep(
         request: Request,
         db: AsyncSession = Depends(get_db),
         admin=Depends(admin_dep),
     ) -> Store:
-        raw = request.headers.get(STORE_HEADER)
-        requested: UUID | None = None
-        if raw:
-            try:
-                requested = UUID(raw.strip())
-            except ValueError:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    f"Malformed {STORE_HEADER} header.",
-                )
-
-        if admin.store_id is not None:
-            if requested is not None and requested != admin.store_id:
-                log.warning(
-                    "admin tried to act on a store they are not assigned to",
-                    extra={
-                        "admin_id": str(admin.id),
-                        "assigned_store": str(admin.store_id),
-                        "requested_store": str(requested),
-                    },
-                )
-                raise HTTPException(
-                    status.HTTP_403_FORBIDDEN,
-                    "You do not have access to that store.",
-                )
-            target = admin.store_id
-        else:
-            if requested is None:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    f"Platform operators must select a store via the "
-                    f"{STORE_HEADER} header.",
-                )
-            target = requested
-
-        store = await resolve_store_by_id(db, target)
-        if store is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found.")
-
-        bind_store(store)
-        return store
+        return await store_for_admin(request, db, admin)
 
     return _dep
+
+
+# ── Dual-purpose reads ────────────────────────────────────────────────────
+#
+# `GET /products`, `GET /categories` and friends serve two callers: the
+# anonymous storefront and the logged-in admin console. Before `resolve_store`
+# they resolved by Host alone, so the admin browsed whichever brand its Host
+# mapped to while every write it issued went to the store named in
+# `x-store-id`. Reads and writes could point at different brands.
+
+
+async def _optional_admin(request: Request) -> CurrentAdmin | None:
+    """The admin behind this request, or None if there isn't a usable one.
+
+    NEVER raises. `get_current_admin` answers a missing/expired/forged token
+    with a 401, which is right for an admin-only route and wrong here: on a
+    dual-purpose read an unusable token just means "anonymous". A customer
+    with a stale token in localStorage must still be able to shop.
+    """
+    header = request.headers.get("authorization")
+    if not header:
+        return None
+    scheme, _, token = header.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        return None
+    try:
+        return await get_current_admin(token=token.strip())
+    except Exception:
+        # Expired, forged, wrong type, malformed claims — all the same answer.
+        log.debug("unusable bearer token on a dual-purpose read; treating as anonymous")
+        return None
+
+
+async def resolve_store(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Store:
+    """FastAPI dependency for reads that BOTH the storefront and the admin call.
+
+    Authentication is optional. An admin that proves who it is and names a
+    store gets that store under the same authorization rules its writes obey;
+    everyone else gets today's Host resolution, unchanged.
+    """
+    if request.headers.get(STORE_HEADER):
+        admin = await _optional_admin(request)
+        if admin is not None:
+            return await store_for_admin(request, db, admin)
+
+    return await require_store(request, db)

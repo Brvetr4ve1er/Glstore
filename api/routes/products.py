@@ -3,6 +3,10 @@ Products routes — read + write (Phase 0).
 
 Public:    GET /products, GET /products/{id}
 Admin:     POST, PATCH, DELETE /products  + /products/{id}/offers CRUD
+
+The two GETs serve the storefront AND the admin console, so they resolve the
+store with `resolve_store`: `x-store-id` for an authenticated admin, Host for
+everyone else. That keeps an admin's reads on the same store as its writes.
 """
 import json
 import re
@@ -15,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
 from api.core.security import require_role
-from api.core.store_context import Store, require_admin_store_for, require_store
+from api.core.store_context import Store, require_admin_store_for, resolve_store
 from api.models.schemas import (
     OfferCreate,
     OfferPatch,
@@ -80,7 +84,7 @@ async def list_products(
     sort: str = Query("recent", description="recent|price_asc|price_desc|completeness|name_asc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=120),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     offset = (page - 1) * page_size
     where: list[str] = ["p.store_id = :store_id"]
@@ -182,7 +186,7 @@ async def list_products(
 async def get_product(
     product_id: UUID,
     db: AsyncSession = Depends(get_db),
-    store: Store = Depends(require_store),
+    store: Store = Depends(resolve_store),
 ) -> dict[str, Any]:
     prod_row = await db.execute(
         text(

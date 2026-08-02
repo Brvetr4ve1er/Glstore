@@ -134,8 +134,9 @@ async def request_id_and_rate_limit(request: Request, call_next):
             headers={"x-request-id": rid},
         )
 
-    # Which store served this request. Resolved by Depends(require_store), so
-    # it is only set on store-scoped routes — absent on /healthz, /docs, admin.
+    # Which store served this request. Set by whichever store dependency the
+    # route used (require_store / resolve_store / require_admin_store_for), so
+    # it is only present on store-scoped routes — absent on /healthz, /docs.
     # Makes "why did I get the wrong catalog?" answerable from the response.
     served_by = bound_store()
     if served_by is not None:
