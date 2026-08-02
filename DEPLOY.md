@@ -134,7 +134,7 @@ curl -s "$BASE/api/v1/products?page=1&page_size=1"
 curl -s -X POST $BASE/api/v1/orders/create -H 'Content-Type: application/json' -d '{
   "customer_name":"Test","customer_phone":"0555123456",
   "items":[{"offer_id":"OFFER_ID","quantity":1}],
-  "shipping_address":{"wilaya":"Alger","commune":"Alger Centre","address":"1 rue test"},
+  "shipping_address":{"wilaya":"Alger","commune":"Alger Centre","street":"1 rue test"},
   "payment_method":"COD","shipping_cost":0,"discount_amount":0
 }'
 # → returns an order with "order_number":"GLV-2026-000001" and status "RESERVED"
@@ -154,6 +154,9 @@ check or to run from CI against a staging environment:
 python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app
 # or, if GLSTORE_BASE_URL is already set in the shell:
 python scripts/deploy/smoke_test_checkout.py
+# once you run more than one brand, test one specific brand:
+python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app \
+  --store-host appliances.yourdomain.com
 ```
 
 It performs, in order: `GET /healthz`, `GET /api/v1/products` (grabs a real
@@ -197,27 +200,153 @@ VITE_API_URL=https://<your-project>.vercel.app/api/v1
 Then add your local admin origin to `CORS_ORIGINS` on Vercel (e.g.
 `https://<your-project>.vercel.app,http://localhost:5174`) and redeploy.
 
-> Note: the admin app's own multi-store wiring (store selection header) is a
-> known follow-up — the public store does not depend on it. Ping me to finish
-> that when you want full in-app catalog management.
+The admin's store picker is wired: it loads your stores from `GET /stores` and
+sends the selected one as the `x-store-id` header on every call, so catalog
+reads and writes always act on the same brand. See
+[Running more than one brand](#running-more-than-one-brand) once you have a
+second one.
 
 ---
 
-## Going multi-store later (your superstore)
+## Running more than one brand
 
-When you're ready for brand #2, you don't rewrite anything:
+This platform hosts **several brands you own** — GLAIVE gaming gear, a home-appliance
+brand, whatever comes next — each with its own domain, look, catalog and orders, all
+managed from **one admin login**. It is not a marketplace: there are no third-party
+vendors, no commissions and no payouts. One brand = one row in `stores`.
 
-1. Set `SINGLE_STORE_MODE=false` on Vercel.
-2. Insert the new store + its domains:
-   ```sql
-   INSERT INTO stores (slug, name, order_prefix) VALUES ('ghir','Ghir Laffaire','GHIR');
-   INSERT INTO store_domains (store_id, domain, is_primary)
-     SELECT id, 'ghir.yourdomain.com', true FROM stores WHERE slug='ghir';
-   ```
-3. Add that domain to the Vercel project + register the first store's real domain too.
+Each store is fully isolated — its own products, offers, customers, orders and order
+numbering. That is what migration 005 built, so adding brand #2 rewrites nothing.
 
-Each store is fully isolated (its own products, orders, customers) — that's what
-migration 005 built.
+### Step A — turn off single-store mode
+
+`SINGLE_STORE_MODE=true` makes **every** hostname resolve to the store with slug
+`default`. That is what lets a `*.vercel.app` URL work before you own a domain — and
+it is exactly what you must switch off once a second brand exists, otherwise both
+domains keep serving brand #1.
+
+On Vercel → Settings → Environment Variables:
+
+| Name | Value |
+|---|---|
+| `SINGLE_STORE_MODE` | `false` |
+
+With it off, an unrecognised Host is a hard `404 "No store is configured for this
+address."` — deliberate: serving the wrong brand's catalog after a DNS typo is worse
+than an error page. So finish Step B and Step C before flipping it, and make sure your
+first brand's real domain is registered too (the seeded `localhost` / `127.0.0.1`
+domains only cover local development).
+
+### Step B — add the store
+
+```bash
+pip install asyncpg   # same one-off dependency as the DB init in Step 2
+
+python scripts/deploy/add_store.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" \
+  --slug appliances \
+  --name "Appliances DZ" \
+  --prefix APP \
+  --domain appliances.yourdomain.com \
+  --domain www.appliances.yourdomain.com
+```
+
+(Or omit the connection string and set `DATABASE_URL`. Use Neon's **direct**,
+non-pooled string, same as Step 2.)
+
+```
+✅ Store ready.
+   id:       6f0c…-…
+   slug:     appliances
+   name:     Appliances DZ
+   prefix:   APP   (order numbers look like APP-2026-000001)
+   currency: DZD
+   domains:  appliances.yourdomain.com*, www.appliances.yourdomain.com
+```
+
+What the arguments mean:
+
+| Flag | Rules | Notes |
+|---|---|---|
+| `--slug` | lowercase, hyphen-separated (`^[a-z0-9]+(?:-[a-z0-9]+)*$`) | permanent internal key for the brand |
+| `--name` | 1–200 chars | shown in the admin's store picker |
+| `--prefix` | UPPERCASE, 2–10 chars (`^[A-Z][A-Z0-9]{1,9}$`) | prefixes every order number for this brand |
+| `--domain` | bare hostname, repeatable | **first one becomes the primary**; optional — you can add domains later |
+| `--currency` | 3-letter ISO code, default `DZD` | |
+
+The script validates all of that in Python before it connects, so a typo gets a plain
+message instead of a Postgres constraint error. It is **idempotent** — re-running the
+exact same command inserts nothing and exits 0. Two refusals worth knowing:
+
+- **Slug already exists with different details** → it changes nothing and exits non-zero.
+  `order_prefix` is baked into every order number that brand has already issued, so a
+  rename is never something a deploy script should do quietly. Use a different `--slug`,
+  or edit the existing store deliberately.
+- **A domain already points at another brand** → it says so and exits non-zero rather
+  than silently leaving the hostname on the old store. Remove it there first, then re-run.
+
+> There is no "create store" button in the admin — the console only *switches between*
+> stores that already exist. This script is the supported way to create one.
+
+### Step C — point a domain at it
+
+1. **DNS**: add a `CNAME` for `appliances.yourdomain.com` → `cname.vercel-dns.com`
+   (or whatever your host tells you). Repeat for each `--domain` you registered.
+2. **Vercel** → Settings → Domains → add each hostname to the same project. All brands
+   are served by one deployment; the API tells them apart by the `Host` header via the
+   `store_domains` table.
+3. **`ALLOWED_HOSTS`**: with `ENVIRONMENT=production` this must admit every brand
+   hostname, e.g. `appliances.yourdomain.com,www.appliances.yourdomain.com,glaive.yourdomain.com`
+   (or stay `*`). A host that isn't listed gets a `400 Invalid host header` before any
+   route runs.
+4. **`CORS_ORIGINS`**: add each brand's origin (`https://appliances.yourdomain.com`, …)
+   plus your local admin origin. Redeploy after changing env vars.
+
+Then prove that brand end to end — this places a **real COD order** on it:
+
+```bash
+python scripts/deploy/smoke_test_checkout.py https://appliances.yourdomain.com
+# or, to test brand routing through a URL that isn't its own domain yet:
+python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app \
+  --store-host appliances.yourdomain.com
+```
+
+`--store-host` sets the `Host` header without changing where the request connects, so
+you can confirm the store resolves before DNS has propagated. An order number coming
+back as `APP-2026-000001` is the proof: that prefix only exists on the new store.
+
+### Step D — give the brand its own look
+
+Storefront theming is **per store** — it lives in `stores.theme`, not in a global
+setting. Two brands on one deployment therefore look nothing alike.
+
+- Public read: `GET /storefront/theme` resolves the store from the `Host` header and
+  returns **that** store's theme, so each domain boots its own palette with no redeploy.
+- Editing it: admin → **Settings → Theme**, with the target brand selected in the store
+  picker (scope `storefront`). The admin sends the selected store in the `x-store-id`
+  header and the write lands on that store's row only.
+- A brand whose theme is still empty falls back to the old global
+  `app_settings['storefront.theme']` value, so nothing renders blank before you have
+  themed it.
+- **The admin console's own theme stays global** (`app_settings['admin.theme']`, scope
+  `admin`). That is your operator chrome, not a brand asset — restyling it does not
+  touch any storefront.
+
+Product images, copy and catalog are per store too: a new brand starts with an **empty
+catalog**. The 14 seeded GLAIVE products belong to the `default` store and are not
+shared.
+
+### Who can manage which brand
+
+`admin_users.store_id` decides:
+
+- **`NULL` = platform operator** — the seeded owner account. Sees every store in the
+  picker, and must name one via `x-store-id` on store-scoped calls. This is the "one
+  person, several brands" setup.
+- **Set to a store id** = scoped operator. Sees and touches only that brand; naming a
+  different store is a `403`.
+
+Platform-wide settings (scraper config, LLM config) are restricted to platform
+operators, so a scoped admin of one brand cannot change behaviour for the others.
 
 ---
 
@@ -225,7 +354,9 @@ migration 005 built.
 
 | Symptom | Cause / fix |
 |---|---|
-| Every page 404s "No store is configured" | `SINGLE_STORE_MODE` not `true`, or the DB init didn't create the `default` store. Re-run Step 2. |
+| Every page 404s "No store is configured" | **Single brand:** `SINGLE_STORE_MODE` not `true`, or the DB init didn't create the `default` store — re-run Step 2. **Multi-brand:** that hostname isn't in `store_domains`. Add it with `add_store.py --domain …` (same `--slug`), or check for a typo. |
+| A new brand's domain serves the *old* brand's catalog | `SINGLE_STORE_MODE` is still `true`, so every Host resolves to the `default` store. Set it to `false` and redeploy (see "Running more than one brand"). |
+| Both brands look identical | The new store's `stores.theme` is still empty, so it falls back to the global pre-007 theme. Theme it in admin → Settings → Theme **with that store selected**. |
 | 400 "Invalid host header" | `ALLOWED_HOSTS` not set to `*` (or your domain) with `ENVIRONMENT=production`. |
 | API 500 on first request after idle | Serverless **cold start** (~1–2s) + Neon waking from scale-to-zero. Normal; the next request is fast. |
 | CORS errors in the browser console | `CORS_ORIGINS` must include the exact origin you're loading from. Update + redeploy. |

@@ -23,12 +23,31 @@ live database, ending in an actual order insert.
 
 Usage:
     python scripts/deploy/smoke_test_checkout.py [base_url]
+    python scripts/deploy/smoke_test_checkout.py [base_url] --store-host HOST
 
-Base URL resolution order: argv[1], then the GLSTORE_BASE_URL environment
-variable, then http://localhost:8000.
+Base URL resolution order: the positional argument, then the GLSTORE_BASE_URL
+environment variable, then http://localhost:8000.
 
-Standard library only (urllib.request + json) — no pip install required, so
-this runs unmodified on any box that has Python 3.
+`--store-host` sets the `Host` header on all four requests WITHOUT changing
+where the TCP connection goes. That is how this proves ONE SPECIFIC BRAND on
+a multi-brand deployment: the public API resolves the store from `Host` via
+`store_domains` (api/core/store_context.py), so
+
+    python scripts/deploy/smoke_test_checkout.py https://api.example.dz \\
+        --store-host appliances.example.dz
+
+drives checkout for the appliances brand — its catalog, its offers, and an
+order numbered with its own prefix — against the same deployment. Without the
+flag nothing changes: the Host header stays whatever the URL implies, exactly
+as before.
+
+Two things to know when using it: the hostname must exist in `store_domains`
+for that store (add it with scripts/deploy/add_store.py), and in production
+`ALLOWED_HOSTS` must admit it or TrustedHostMiddleware answers 400 before any
+route runs.
+
+Standard library only (argparse + urllib.request + json) — no pip install
+required, so this runs unmodified on any box that has Python 3.
 
 Exit code: 0 only if all four steps passed. 1 if any step failed (the
 response body received is printed alongside the failing step) or if the
@@ -36,6 +55,7 @@ target could not be reached at all (connection refused, DNS failure, etc.).
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -45,10 +65,29 @@ from typing import Any
 
 TIMEOUT_SECONDS = 15
 
+# Host header override for every request, or None for urllib's default (the
+# hostname in the URL). Set once by main() from --store-host; kept module-level
+# so the four call sites below stay exactly as they were.
+_STORE_HOST: str | None = None
 
-def _base_url() -> str:
-    if len(sys.argv) > 1 and sys.argv[1].strip():
-        return sys.argv[1].rstrip("/")
+
+def _parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(
+        description="End-to-end checkout smoke test against a live GLstore API.",
+    )
+    ap.add_argument("base_url", nargs="?", default="",
+                    help="API base URL (default: $GLSTORE_BASE_URL, "
+                         "then http://localhost:8000).")
+    ap.add_argument("--store-host", default=None, metavar="HOST",
+                    help="Send this as the Host header on every request so the "
+                         "API resolves a specific brand's store. The connection "
+                         "still goes to base_url.")
+    return ap.parse_args()
+
+
+def _base_url(cli_value: str = "") -> str:
+    if cli_value.strip():
+        return cli_value.rstrip("/")
     env = os.environ.get("GLSTORE_BASE_URL", "").strip()
     if env:
         return env.rstrip("/")
@@ -66,6 +105,11 @@ def _request(method: str, url: str, body: dict[str, Any] | None = None) -> tuple
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         headers["Content-Type"] = "application/json"
+    if _STORE_HOST:
+        # urllib only adds its own Host header when the request has none, so
+        # this overrides routing at the application layer while the socket
+        # still connects to the host in `url`.
+        headers["Host"] = _STORE_HOST
 
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
@@ -97,8 +141,15 @@ def _fail(step: str, detail: str, body: str) -> None:
 
 
 def main() -> int:
-    base = _base_url()
+    global _STORE_HOST
+    args = _parse_args()
+    if args.store_host and args.store_host.strip():
+        _STORE_HOST = args.store_host.strip()
+
+    base = _base_url(args.base_url)
     print(f"Checkout smoke test against: {base}")
+    if _STORE_HOST:
+        print(f"Host header (brand under test): {_STORE_HOST}")
     print("This will create a REAL order if all steps succeed. Ctrl+C now to abort.\n")
 
     # ── Step 1: liveness ────────────────────────────────────────────────
@@ -166,6 +217,10 @@ def main() -> int:
     print(f"PASS [4/4] POST /api/v1/orders/create -> 201, order_number={order_number}")
 
     print("\nAll steps passed. Store-scoped checkout works end to end.")
+    if _STORE_HOST:
+        # The prefix in order_number is the store's own `order_prefix`, so it
+        # is the proof that the Host header selected the brand we asked for.
+        print(f"brand:        {_STORE_HOST}")
     print(f"order_number: {order_number}")
     print(f"status:       {order_status}")
     return 0
