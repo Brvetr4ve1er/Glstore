@@ -172,6 +172,83 @@ ledger. This is standard-library-only Python — no `pip install` needed.
 
 ---
 
+## Applying migrations to a live database
+
+**Run this after any deploy that adds a file to `db/migrations/`.** Nothing else
+will apply it. Code ships on push; schema does not.
+
+Why there is a separate step at all: `RUN_STARTUP_MIGRATIONS=false` in the Step 4
+env table, because serverless has no single startup to hang a schema change off —
+every cold start would race every other one. And `init_remote_db.py` (Step 2)
+deliberately refuses any database that already has a `products` table, so it can
+never be the answer either. This script is the third door, and the only one that
+opens onto a live database.
+
+```bash
+pip install asyncpg   # same one-off dependency as Step 2
+
+# 1. ALWAYS dry-run first. It writes nothing — not one row, not even the
+#    tracking table — and just tells you what a real run would do.
+python scripts/deploy/apply_migrations.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" --dry-run
+
+# 2. then apply
+python scripts/deploy/apply_migrations.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb"
+```
+
+(Or omit the connection string and set `DATABASE_URL`.)
+
+> **Use Neon's DIRECT, non-pooled connection string** — the same one from Step 1,
+> *not* the pooled host you put in the Vercel `DATABASE_URL`. This is DDL: it holds
+> a session-scoped advisory lock and runs each migration in its own transaction,
+> and a pooler is free to hand you a different backend mid-session, which would
+> silently break both.
+
+A clean dry run looks like this:
+
+```
+→ discovered 8 migration file(s) in db/migrations
+→ connecting (TLS) …
+
+→ 1 migration(s) WOULD be applied, in this order:
+   · 007_per_store_theme.sql   sha256=d83f5aa74ec1927a…
+   (6 already applied, would be skipped.)
+
+Dry run — nothing was written. Re-run without --dry-run to apply.
+```
+
+Then the real run prints `✅ Applied 1 migration(s): …` and lists everything now
+recorded in `_migrations`. **Re-running is safe**: a second run finds nothing
+pending, says so, and exits 0.
+
+### If you deployed before this script existed
+
+You probably have exactly this situation: `007_per_store_theme.sql` is in the repo
+but not in your database. The symptom is quiet rather than loud — the storefront
+falls back to the pre-007 global theme, so **the palette you saved in Theme Studio
+appears to have been forgotten**. Dry-run, then apply; the theme comes back.
+
+### What it refuses to do
+
+| It stops when | Because |
+|---|---|
+| The database has no `products` table | It migrates, it doesn't initialize. Run `init_remote_db.py` (Step 2) first. |
+| An already-applied migration's file has changed | Migrations are immutable once applied. If the file and the recorded SQL differ, nobody can say what the database actually contains. Restore the file from git and put the change in a **new** migration. Nothing is applied and nothing is recorded. |
+| Another process holds the migration lock | It takes the same Postgres advisory lock `api/core/migrations.py` takes, so a persistent replica booting with `RUN_STARTUP_MIGRATIONS=true` can't run migrations underneath it. |
+| A migration's SQL fails | That one migration is rolled back; migrations that already succeeded in this run stay committed. Fix the SQL and re-run — it resumes from where it stopped. |
+
+Every applied file is recorded in `_migrations` with the SHA-256 of its bytes, in
+exactly the format `api/core/migrations.py` uses. So the two paths agree: if you
+ever move to a persistent host and flip `RUN_STARTUP_MIGRATIONS=true`, nothing
+re-applies and nothing reports a false mismatch.
+
+To see the state at any time, in Neon's SQL editor:
+
+```sql
+SELECT filename, applied_at FROM _migrations ORDER BY filename;
+```
+
+---
+
 ## 🔒 Before you share the link: rotate the admin password
 
 The seeded admin (`brvetr4veler@gmail.com` / `brveadmin`) is **in the repo**, so
@@ -361,5 +438,6 @@ operators, so a scoped admin of one brand cannot change behaviour for the others
 | API 500 on first request after idle | Serverless **cold start** (~1–2s) + Neon waking from scale-to-zero. Normal; the next request is fast. |
 | CORS errors in the browser console | `CORS_ORIGINS` must include the exact origin you're loading from. Update + redeploy. |
 | `prepared statement` errors | Ensure `DB_SERVERLESS=true` is set (uses NullPool + disabled statement cache). |
-| DB init says "already initialized" | The DB already has tables. Use a fresh Neon branch, or re-run with `--force`. |
+| DB init says "already initialized" | The DB already has tables. That's `init_remote_db.py` refusing to clobber a live database — for a schema change you want `apply_migrations.py` instead (see "Applying migrations to a live database"). Use a fresh Neon branch, or `--force`, only if you really meant to re-initialize. |
+| A shipped change behaves like the old code (e.g. the saved storefront theme reverts) | A `db/migrations/*.sql` reached the repo but not the database — `RUN_STARTUP_MIGRATIONS=false` means deploys never apply migrations. Run `python scripts/deploy/apply_migrations.py "<direct-neon-url>" --dry-run`. |
 ```
