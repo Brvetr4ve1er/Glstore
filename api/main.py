@@ -15,7 +15,6 @@ from api.core.db import SessionLocal, engine
 from api.core.logging import bind_request_id, setup_logging
 from api.core.migrations import MigrationLockBusy, run_pending_migrations
 from api.core.ratelimit import RateLimiter, client_key
-from api.core.store_context import bound_store
 from api.routes import auth, catalog, enrichment, events, health, images, intel, issues, jobs, orders, products, products_import, public_orders, scraper, settings as settings_route, stores
 
 # Structured JSON logging — all lines on stdout, request_id flows via
@@ -138,7 +137,11 @@ async def request_id_and_rate_limit(request: Request, call_next):
     # route used (require_store / resolve_store / require_admin_store_for), so
     # it is only present on store-scoped routes — absent on /healthz, /docs.
     # Makes "why did I get the wrong catalog?" answerable from the response.
-    served_by = bound_store()
+    #
+    # Read from request.state, NOT from bound_store(): `call_next` runs the
+    # endpoint in a copied context, so a ContextVar set inside a dependency
+    # never propagates back up here. `scope["state"]` does. See bind_store().
+    served_by = getattr(request.state, "store", None)
     if served_by is not None:
         response.headers["x-store"] = served_by.slug
 

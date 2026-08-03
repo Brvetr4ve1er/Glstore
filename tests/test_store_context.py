@@ -59,7 +59,7 @@ httpx = pytest.importorskip(
     reason="these tests drive real HTTP through the ASGI app",
 )
 
-from fastapi import Depends, FastAPI  # noqa: E402  (deliberately after the skips)
+from fastapi import Depends, FastAPI, Request  # noqa: E402  (deliberately after the skips)
 
 
 # ── DB stub, installed before api.core.store_context is imported ──────────
@@ -476,3 +476,155 @@ async def test_anonymous_request_never_pays_for_token_decoding(monkeypatch):
     r = await _get("/dual", host="brand-a.dz")
     assert r.status_code == 200
     assert called is False
+
+
+# ── Store visibility: the `x-store` response header ───────────────────────
+#
+# The header answers "which brand served this request?" from the response
+# alone. It shipped broken: `api/main.py` read `bound_store()` after
+# `call_next`, and Starlette's BaseHTTPMiddleware runs the endpoint via
+# `task_group.start_soon(coro)` — spawning a task COPIES the context, so a
+# ContextVar set inside a dependency lands in a child context the middleware
+# never sees. The header therefore never fired, for any route, ever.
+#
+# `bind_store()` now also stashes the store on `request.state`, which is
+# backed by `scope["state"]` — one dict shared with the middleware's own
+# Request. These tests pin BOTH halves: that the new read works for all
+# three dependencies, and that the old one still would not, so nobody
+# "simplifies" it back.
+
+
+def _build_stamped_app() -> FastAPI:
+    """`_build_app()` behind the same header stamp `api/main.py` applies."""
+    app = _build_app()
+
+    @app.get("/unscoped")
+    async def _unscoped():
+        """No store dependency — the /healthz case."""
+        return {"ok": True}
+
+    @app.middleware("http")
+    async def _stamp(request: Request, call_next):
+        response = await call_next(request)
+        # Verbatim from api/main.py.
+        served_by = getattr(request.state, "store", None)
+        if served_by is not None:
+            response.headers["x-store"] = served_by.slug
+        # The read that used to be there, kept as a live counter-example.
+        via_contextvar = sc.bound_store()
+        if via_contextvar is not None:
+            response.headers["x-store-via-contextvar"] = via_contextvar.slug
+        return response
+
+    return app
+
+
+_STAMPED_APP = _build_stamped_app()
+
+
+async def _get_stamped(path, *, host="brand-a.dz", token=None, store_id=None):
+    headers = {}
+    if token is not None:
+        headers["authorization"] = f"Bearer {token}"
+    if store_id is not None:
+        headers[sc.STORE_HEADER] = str(store_id)
+
+    sc.bind_store(None)
+    transport = httpx.ASGITransport(app=_STAMPED_APP)
+    async with httpx.AsyncClient(transport=transport, base_url=f"http://{host}") as client:
+        return await client.get(path, headers=headers)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "dependency,path,kwargs,expected",
+    [
+        ("require_store", "/public", {"host": "brand-a.dz"}, "brand-a"),
+        ("resolve_store (anonymous)", "/dual", {"host": "brand-b.dz"}, "brand-b"),
+        (
+            "resolve_store (admin)",
+            "/dual",
+            {"host": "brand-a.dz", "store_id": _STORE_B.id},
+            "brand-b",
+        ),
+        (
+            "require_admin_store_for",
+            "/admin",
+            {"host": "brand-a.dz", "store_id": _STORE_B.id},
+            "brand-b",
+        ),
+    ],
+    ids=["require_store", "resolve_store_anon", "resolve_store_admin", "admin_store"],
+)
+async def test_x_store_header_fires_for_every_store_dependency(
+    dependency, path, kwargs, expected
+):
+    """All three dependencies must stamp the header — a fix that only covered
+    the public path would leave the admin console just as blind as before."""
+    if "store_id" in kwargs:
+        kwargs["token"] = _token_for(_STORE_B.id)
+    r = await _get_stamped(path, **kwargs)
+    assert r.status_code == 200, dependency
+    assert r.headers.get("x-store") == expected, (
+        f"{dependency}: expected x-store={expected!r}, "
+        f"got {r.headers.get('x-store')!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_x_store_header_reports_the_serving_store_not_the_host():
+    """The admin console reaches brand-a's hostname while acting on brand-b.
+    The header must name the store whose data came back, or it is worse than
+    useless — it would confirm the wrong brand."""
+    r = await _get_stamped(
+        "/admin", host="brand-a.dz",
+        token=_token_for(_STORE_B.id), store_id=_STORE_B.id,
+    )
+    assert r.status_code == 200
+    assert r.json()["slug"] == "brand-b"
+    assert r.headers.get("x-store") == "brand-b"
+
+
+@pytest.mark.asyncio
+async def test_x_store_header_is_absent_on_an_unscoped_route():
+    """/healthz, /docs and friends belong to no brand; claiming one would be
+    a lie the operator then debugs against."""
+    r = await _get_stamped("/unscoped")
+    assert r.status_code == 200
+    assert "x-store" not in r.headers
+
+
+@pytest.mark.asyncio
+async def test_x_store_header_exposes_the_default_store_fallback():
+    """Outside production an unrecognised host quietly falls back to the
+    `default` store. That fallback is exactly the "why am I seeing the wrong
+    catalog?" case the header exists to answer, so it must name `default`
+    rather than the brand the operator thought they were on."""
+    r = await _get_stamped("/public", host="nobody.dz")
+    assert r.status_code == 200
+    assert r.json()["slug"] == "default"
+    assert r.headers.get("x-store") == "default"
+
+
+@pytest.mark.asyncio
+async def test_context_var_alone_never_reaches_the_middleware():
+    """Why `request.state` and not `bound_store()`. If this ever starts
+    passing, Starlette changed how `call_next` spawns the endpoint and the
+    simpler read becomes available again — until then it is dead code."""
+    r = await _get_stamped("/public", host="brand-a.dz")
+    assert r.status_code == 200
+    assert r.headers.get("x-store") == "brand-a"
+    assert "x-store-via-contextvar" not in r.headers, (
+        "a ContextVar set in a dependency now propagates back to the "
+        "middleware; api/main.py could read bound_store() again"
+    )
+
+
+@pytest.mark.asyncio
+async def test_bind_store_without_a_request_still_binds_the_context_var():
+    """Workers and CLI paths call `bind_store(store)` with no request. That
+    must keep working — `emit_event()` reads `bound_store()` as a fallback."""
+    sc.bind_store(_STORE_A)
+    assert sc.bound_store() is _STORE_A
+    sc.bind_store(None)
+    assert sc.bound_store() is None

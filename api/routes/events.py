@@ -55,17 +55,32 @@ async def ingest_event(
     return {"accepted": True, "event_id": dto.event_id}
 
 
-@router.get("/{event_id}", dependencies=[Depends(require_role("SUPER_ADMIN", "ADMIN"))])
-async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@router.get("/{event_id}")
+async def get_event(
+    event_id: str,
+    db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role("SUPER_ADMIN", "ADMIN"))),
+) -> dict[str, Any]:
+    """Read one event, scoped to the acting store.
+
+    Same shape as `GET /jobs/event/{job_id}`: the store filter is part of the
+    WHERE clause, so another brand's event is indistinguishable from one that
+    does not exist — 404, never 403. Confirming a row exists in another
+    brand's queue is itself a leak.
+
+    The role requirement is unchanged (SUPER_ADMIN, ADMIN); it now runs
+    through `require_admin_store_for`, which authenticates first and only
+    then resolves the store.
+    """
     row = await db.execute(
         text(
             """
             SELECT event_id, event_type, entity_type, entity_id, status,
                    retry_count, last_error, created_at, processed_at
-              FROM events WHERE event_id = :id
+              FROM events WHERE event_id = :id AND store_id = :sid
             """
         ),
-        {"id": event_id},
+        {"id": event_id, "sid": store.id},
     )
     r = row.first()
     if not r:

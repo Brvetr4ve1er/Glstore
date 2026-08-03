@@ -75,9 +75,28 @@ _store_var: ContextVar[Store | None] = ContextVar("gl_store", default=None)
 _domain_cache: dict[str, tuple[Store, float]] = {}
 
 
-def bind_store(store: Store | None) -> None:
-    """Attach a store to the current async context."""
+def bind_store(store: Store | None, request: Request | None = None) -> None:
+    """Attach a store to the current async context, and to the request if given.
+
+    Two homes for one fact, because neither alone reaches every reader:
+
+      · the ContextVar flows DOWN — every coroutine spawned while handling the
+        request sees it, which is what `emit_event()` and the loggers want.
+      · it does not flow back UP. Starlette's `BaseHTTPMiddleware.call_next`
+        runs the endpoint via `task_group.start_soon(coro)`, and spawning a
+        task COPIES the context, so a `.set()` inside a dependency lands in a
+        child context the middleware never sees. `bound_store()` in an HTTP
+        middleware therefore always answers None.
+      · `request.state` is backed by `scope["state"]`, one dict shared by every
+        Request built from that scope — including the middleware's. So the
+        response-header stamp in `api/main.py` reads it from there.
+
+    `request` stays optional: workers and CLI paths bind a store outside any
+    request and pass nothing.
+    """
     _store_var.set(store)
+    if request is not None:
+        request.state.store = store
 
 
 def bound_store() -> Store | None:
@@ -185,6 +204,9 @@ async def require_store(
     # The middleware resolves first; this is the common path.
     already = bound_store()
     if already is not None:
+        # Re-bind so `request.state` cannot lag the ContextVar when the store
+        # was resolved by an earlier dependency in this same request.
+        bind_store(already, request)
         return already
 
     host = normalize_host(request.headers.get("host"))
@@ -212,7 +234,7 @@ async def require_store(
             detail="No store is configured for this address.",
         )
 
-    bind_store(store)
+    bind_store(store, request)
     return store
 
 
@@ -290,7 +312,7 @@ async def store_for_admin(request: Request, db: AsyncSession, admin: Any) -> Sto
     if store is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found.")
 
-    bind_store(store)
+    bind_store(store, request)
     return store
 
 

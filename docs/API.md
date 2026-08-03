@@ -342,7 +342,8 @@ Paginated list / single fetch.
 n8n / external system entry point. Idempotent via `event_id UUID`.
 
 ### `GET /events/{event_id}`  *(ADMIN+)*
-Inspect retry state, last error.
+Inspect retry state, last error. Store-scoped: an event belonging to another
+brand answers `404`, the same as one that does not exist.
 
 ---
 
@@ -351,7 +352,15 @@ Inspect retry state, last error.
 | Header | Purpose |
 |---|---|
 | `Authorization: Bearer <jwt>` | required for all admin endpoints |
+| `x-store-id` | which brand an admin request acts on; required for platform operators (an operator scoped to one store may omit it) |
 | `x-request-id` | client-supplied or auto-generated; echoed in response + logs |
+
+### Response headers
+
+| Header | Purpose |
+|---|---|
+| `x-request-id` | echo of the request id |
+| `x-store` | slug of the brand that served the request. Present only on store-scoped routes — absent on `/healthz`, `/docs`. Answers "why am I seeing the wrong catalog?" from the response alone |
 
 ### Errors
 
