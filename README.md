@@ -124,6 +124,41 @@ docker compose exec db psql -U glstore -d glstore -f /docker-entrypoint-initdb.d
 
 ---
 
+## Running the tests
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/
+```
+
+**A bare `python -m pytest tests/` with no dependencies installed will SILENTLY
+SKIP the tenancy suite** — `tests/test_store_context.py`, the 40+ assertions
+guarding the multi-brand store-isolation boundary (`api/core/store_context.py`).
+That file uses `pytest.importorskip("sqlalchemy")` / `importorskip("jwt")`, so
+if those two packages aren't on `sys.path` the whole module degrades to a
+single `skipped` result and the run still reports a comfortable
+`N passed, 1 skipped` — a green build that tested **none** of the brand
+boundary. This has already bitten the repo once: four `NOT NULL store_id`
+crashes shipped past a suite that looked green for exactly this reason.
+
+To get the real result — the one that actually exercises store isolation —
+install `requirements.txt` first, or just run the file in isolation and read
+the summary line:
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/test_store_context.py -v
+# look for "N passed" with N > 0 and NO mention of "skipped"
+```
+
+CI (`.github/workflows/tests.yml`) always installs `requirements.txt` before
+testing, and has a dedicated step that fails the build outright if
+`tests/test_store_context.py` reports any skip — see that workflow file for
+the mechanism. Locally, a skip is easy to miss in the noise of a full
+`tests/` run; watch for it explicitly if you're not using CI.
+
+---
+
 ## Project structure
 
 See [docs/STRUCTURE.md](docs/STRUCTURE.md) for the full file tree with annotations. Top level:

@@ -1,0 +1,94 @@
+name: tests
+
+"on":
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Matches the runtime the app actually ships on: docker/Dockerfile.api,
+          # docker/Dockerfile.worker and docker/Dockerfile.scraper are all
+          # "FROM python:3.12-slim" (DEPLOY.md's "Python 3.11+" is a floor for
+          # the one-off local deploy scripts, not the pin used here).
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite
+        run: python -m pytest tests/
+
+      # --- Loud-skip guard -------------------------------------------------
+      # tests/test_store_context.py (40+ assertions guarding the multi-brand
+      # isolation boundary) uses pytest.importorskip on sqlalchemy/pyjwt, so
+      # if either is ever missing from requirements.txt - or this job's
+      # "pip install" step above regresses - the file collects ZERO real
+      # tests and the whole module collapses into a single "skipped" result
+      # instead of failing. A bare "python -m pytest tests/" then reports a
+      # comfortable green ("N passed, 1 skipped") while the tenancy guard
+      # never actually ran.
+      #
+      # This step re-runs that file alone with --junitxml and inspects the
+      # structured <testsuite> counts (tests/skipped/failures/errors)
+      # instead of grepping pytest's human-readable text output. That text
+      # is NOT a stable signal: this repo's pyproject.toml already adds -q
+      # via addopts, so an extra -q on the command line here would silently
+      # double up to -qq and suppress the "N passed" summary line entirely
+      # - the JUnit XML counts are unaffected by verbosity flags or by
+      # pytest's wording changing between versions.
+      - name: Guard against tests/test_store_context.py silently skipping
+        run: |
+          python -m pytest tests/test_store_context.py --junitxml=store_context_junit.xml || true
+          python - <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse("store_context_junit.xml")
+          root = tree.getroot()
+          suite = root if root.tag == "testsuite" else root.find("testsuite")
+          if suite is None:
+              print("::error::could not find a <testsuite> in store_context_junit.xml")
+              sys.exit(1)
+
+          tests = int(suite.get("tests", 0))
+          skipped = int(suite.get("skipped", 0))
+          failures = int(suite.get("failures", 0))
+          errors = int(suite.get("errors", 0))
+          passed = tests - skipped - failures - errors
+
+          print(
+              f"tests/test_store_context.py: tests={tests} passed={passed} "
+              f"skipped={skipped} failures={failures} errors={errors}"
+          )
+
+          if skipped > 0:
+              print(
+                  f"::error::tests/test_store_context.py reported {skipped} "
+                  f"skipped test(s). This file has no legitimate per-test "
+                  f"skips (only a module-level pytest.importorskip on "
+                  f"sqlalchemy/pyjwt), so any skip here means the multi-brand "
+                  f"tenancy guard did not execute - most likely sqlalchemy "
+                  f"and/or pyjwt are missing from this environment. "
+                  f"Failing the build; do not let this go green."
+              )
+              sys.exit(1)
+          if failures > 0 or errors > 0:
+              print(
+                  f"::error::tests/test_store_context.py had {failures} "
+                  f"failure(s) and {errors} error(s)."
+              )
+              sys.exit(1)
+          if passed <= 0:
+              print("::error::tests/test_store_context.py reported zero passing tests.")
+              sys.exit(1)
+
+          print(f"Tenancy guard OK: {passed} test(s) passed, 0 skipped.")
+          PY
