@@ -1,13 +1,26 @@
 # Serverless (Vercel) dependency set for the FastAPI function.
 #
-# Deliberately SLIM — the public API never imports Playwright/BeautifulSoup/lxml
-# at load time (those live in the workers, which don't run on Vercel), and the
-# ASGI server is provided by Vercel's runtime, so uvicorn/pytest are excluded.
-# Keeping this list minimal = smaller bundle + faster cold starts.
+# SLIM, but not arbitrarily so: this list is exactly the import closure of
+# `import api.index`. Playwright and lxml stay out because nothing the API
+# imports needs them at load time and no API route runs the scraper engine
+# in-process (routes only enqueue jobs; the workers, which don't run on
+# Vercel, execute them). uvicorn/pytest stay out because Vercel's runtime
+# provides the ASGI server. Smaller bundle = faster cold starts.
+#
+# beautifulsoup4 is the exception that proves the rule — see its note below.
+# Before removing anything here, run the same check CI runs:
+#     pip install -r api/requirements.txt && python -c "import api.index"
+# in a CLEAN environment. The root requirements.txt is a superset, so a local
+# venv built from it will import fine while Vercel's build is already broken.
 #
 # The full dependency list for the Docker/worker images stays in the root
 # requirements.txt — this file is used only by @vercel/python (it sits next to
 # the entrypoint api/index.py, which Vercel prefers over the root file).
+#
+# Pins must have prebuilt manylinux wheels for the Python in `.python-version`
+# (3.12). asyncpg==0.29.0 in particular has no 3.13+ wheel, which is why that
+# file exists — without it Vercel picks its own default and the build fails
+# with "No matching distribution found for asyncpg==0.29.0".
 fastapi==0.115.0
 pydantic==2.9.2
 pydantic-settings==2.5.2
@@ -19,3 +32,17 @@ pyjwt==2.9.0
 python-multipart==0.0.12
 httpx[http2]==0.27.2
 boto3==1.35.40
+
+# Required at IMPORT time, not for scraping. api/routes/images.py imports one
+# DB-only helper (_recompute_status_and_completeness) from api/services/
+# full_intel.py, and that module's own imports reach the scraper engine ->
+# extractors -> `from bs4 import BeautifulSoup`. Python runs a module top to
+# bottom on import, so the whole chain loads even though the API never calls
+# any of it. Without this pin every request on Vercel 500s at cold start with
+# ModuleNotFoundError: No module named 'bs4'.
+#
+# lxml is deliberately NOT here: the extractors pass "lxml" to BeautifulSoup
+# only when they actually parse a page, which happens in the workers.
+# (Pure-Python package, so it adds ~0 cold-start cost. The cleaner fix is to
+# make that import lazy in images.py and drop this line — a separate change.)
+beautifulsoup4==4.12.3

@@ -84,10 +84,23 @@ Copy the output — you'll paste it as `JWT_SECRET` in Step 4.
 
 ### 4a. Via GitHub (recommended — gives auto-deploys)
 
-1. Push this repo to GitHub (the branch you want to deploy).
+1. Push the branch you want to deploy:
+   ```bash
+   git push origin gaming-store
+   ```
 2. In Vercel → **Add New… → Project** → import the repo.
-3. Vercel reads `vercel.json` — **leave the framework/build settings at their auto-detected defaults** (the JSON drives everything).
-4. Before the first deploy, open **Settings → Environment Variables** and add all of these (Production scope):
+3. **Set the Production Branch to `gaming-store`** — Settings → Git → Production Branch.
+   **Do this before the first deploy.**
+
+   > ⚠️ **This is the easiest way to deploy nothing that works.** The repo's default
+   > branch is `main`, so Vercel pre-fills `main` and a straight "Import → Deploy"
+   > builds it. `main` is the pre-multi-store snapshot: no `stores` table, no
+   > per-brand routing, no `api/index.py`, no `vercel.json`. It will either fail to
+   > build or come up as a store that cannot take an order — and the error messages
+   > won't point at the branch. Everything in this document assumes `gaming-store`.
+
+4. Vercel reads `vercel.json` — **leave the framework/build settings at their auto-detected defaults** (the JSON drives everything).
+5. Before the first deploy, open **Settings → Environment Variables** and add all of these (Production scope):
 
 | Name | Value |
 |---|---|
@@ -103,9 +116,16 @@ Copy the output — you'll paste it as `JWT_SECRET` in Step 4.
 > Note the `DATABASE_URL` here uses the **`postgresql+asyncpg://`** prefix (SQLAlchemy driver form),
 > and you can use Neon's **pooled** host here for runtime. Query params like `?sslmode=require` are fine.
 
-5. Click **Deploy**. You don't know your exact `*.vercel.app` URL until the first
+6. Click **Deploy**. You don't know your exact `*.vercel.app` URL until the first
    deploy finishes — that's OK, `SINGLE_STORE_MODE=true` + `ALLOWED_HOSTS=*` mean
    any hostname works. After it deploys, update `CORS_ORIGINS` to the real URL and redeploy.
+
+> **Python version:** `.python-version` pins **3.12** and Vercel reads it automatically —
+> there is nothing to configure. Don't "upgrade" it casually: `asyncpg==0.29.0` publishes
+> no wheel for 3.13+, so bumping that file breaks the build with
+> `No matching distribution found for asyncpg==0.29.0`. To move to a newer Python you must
+> raise the `asyncpg` pin in **both** `requirements.txt` and `api/requirements.txt` first.
+> 3.12 is also what CI and all three Dockerfiles use, so local, CI and production agree.
 
 ### 4b. Via Vercel CLI (no GitHub needed)
 

@@ -92,3 +92,71 @@ jobs:
 
           print(f"Tenancy guard OK: {passed} test(s) passed, 0 skipped.")
           PY
+
+  # --- Serverless bundle guard ---------------------------------------------
+  # The `pytest` job above installs the ROOT requirements.txt, which is a
+  # superset of api/requirements.txt. That makes it structurally blind to the
+  # thing that actually breaks a Vercel deploy: a module the API imports whose
+  # package is missing from the SLIM list. The symptom is never a failing
+  # test - it is a 500 on every request at cold start, discovered only after
+  # the deploy, with `ModuleNotFoundError` buried in the function logs.
+  #
+  # So this job reproduces Vercel's build inputs exactly and nothing else:
+  # the Python from .python-version, ONLY api/requirements.txt, and then the
+  # single import Vercel performs to serve the app. It is the cheapest
+  # possible end-to-end proof that the deployed bundle can boot.
+  serverless-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Read from .python-version so this job and Vercel can never drift.
+          python-version-file: ".python-version"
+
+      # Installs ONLY the serverless list. Deliberately does not install the
+      # root requirements.txt - having both would defeat the entire purpose.
+      - name: Install ONLY the serverless dependency set
+        run: pip install -r api/requirements.txt
+
+      # Fails if any pin lacks a wheel for this Python, or if the bundle
+      # reaches a module that isn't in the list.
+      - name: Import the app the way Vercel does
+        env:
+          # Dummy values - config is validated at import, but nothing
+          # connects. No network, no database, no real secret.
+          DATABASE_URL: postgresql+asyncpg://user:pass@localhost/db
+          JWT_SECRET: ci-import-check-not-a-real-secret
+          CORS_ORIGINS: http://localhost
+          ENVIRONMENT: production
+          DB_SERVERLESS: "true"
+          RUN_STARTUP_MIGRATIONS: "false"
+          SINGLE_STORE_MODE: "true"
+          ALLOWED_HOSTS: "*"
+        run: |
+          python - <<'PY'
+          import sys
+
+          try:
+              import api.index
+          except ModuleNotFoundError as exc:
+              print(
+                  f"::error::The serverless bundle cannot import: {exc}. "
+                  f"api/index.py reaches a module whose package is NOT in "
+                  f"api/requirements.txt. On Vercel this is not a warning - "
+                  f"it is a cold-start crash, so EVERY request 500s. Either "
+                  f"add the missing package to api/requirements.txt, or make "
+                  f"the offending import lazy so the bundle stops reaching it."
+              )
+              sys.exit(1)
+
+          routes = len(api.index.app.routes)
+          if routes <= 0:
+              print("::error::app imported but registered zero routes.")
+              sys.exit(1)
+
+          print(f"Serverless bundle OK: app imported, {routes} routes registered.")
+          PY
