@@ -11,6 +11,7 @@ services:
       - ./db/schema.sql:/docker-entrypoint-initdb.d/00-schema.sql:ro
       - ./db/seed_admin.sql:/docker-entrypoint-initdb.d/01-seed_admin.sql:ro
       - ./db/seed_gaming.sql:/docker-entrypoint-initdb.d/02-seed_gaming.sql:ro
+      - ./db/seed_glaive_starter.sql:/docker-entrypoint-initdb.d/03-seed_glaive_starter.sql:ro
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:

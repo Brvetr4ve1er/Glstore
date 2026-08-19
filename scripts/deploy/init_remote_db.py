@@ -8,7 +8,9 @@ It applies, IN THE SAME ORDER Docker uses (this order is load-bearing):
     1. db/schema.sql            base single-tenant schema + seed data tables
     2. db/seed_admin.sql        the platform admin login
     3. db/seed_gaming.sql       14 GLAIVE products + offers, archived on load
-    4. db/migrations/*.sql      000 → 006, in filename order
+    4. db/seed_glaive_starter.sql  15 GLAIVE demo products, ACTIVE (invented
+                                data -- archive them when real stock lands)
+    5. db/migrations/*.sql      000 → 007, in filename order
                                 (005 backfills the seeded rows into the
                                  'default' store, THEN sets store_id NOT NULL —
                                  which is exactly why seeds must run first)
@@ -102,7 +104,8 @@ async def main() -> int:
             )
 
         # 1) base schema + seeds (order matters — see module docstring)
-        for name in ("schema.sql", "seed_admin.sql", "seed_gaming.sql"):
+        for name in ("schema.sql", "seed_admin.sql", "seed_gaming.sql",
+                     "seed_glaive_starter.sql"):
             p = DB_DIR / name
             print(f"→ applying {p.relative_to(REPO_ROOT)} …")
             await _run_sql_file(conn, p)

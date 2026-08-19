@@ -19,14 +19,17 @@ Your store launches with **checkout fully wired** — store resolution, per-bran
 order numbering, stock reservation and Cash-on-Delivery all work end to end and
 are smoke-testable from the first deploy.
 
-**The public catalog starts empty, on purpose.** The 14 GLAIVE products in
-`db/seed_gaming.sql` are a layout fixture, not sellable stock — their names are
-SteelSeries' actual product line (Arctis Nova, Apex Pro TKL, Aerox 3, QcK,
-GameDAC), inserted under `brand = 'GLAIVE'`. The seed therefore archives them as
-it loads (`status='ARCHIVED'` **and** offers deactivated), so they stay in the
-database as a rendering reference but never reach the storefront and cannot be
-ordered. Import your real catalog through the admin's CSV import before you
-share the link.
+**It launches with a 15-product DEMO catalog — invented products that do not
+exist.** `db/seed_glaive_starter.sql` seeds them ACTIVE so the shop is browsable
+and checkout is testable on day one. Their names, specs, prices and stock are all
+made up. **Archive them before you take a real order** — you cannot fulfil them.
+The paste-ready off-switch is in that file's header.
+
+A separate 14 products in `db/seed_gaming.sql` are seeded **already archived** and
+never reach the storefront: their names were SteelSeries' actual product line
+(Arctis Nova, Apex Pro TKL, Aerox 3, QcK, GameDAC) under `brand = 'GLAIVE'` — fine
+for the layout study they were, not fine for a live shop. They stay only as a
+rendering reference.
 
 ---
 
@@ -70,13 +73,13 @@ python scripts/deploy/init_remote_db.py "postgresql://USER:PASSWORD@ep-xxxx.neon
 ```
 
 This applies `schema → seeds → migrations` in the correct order, loads the 14
-GLAIVE fixture products **as archived**, records all migrations, and brands the
-store. You should see:
+GLAIVE fixture products **as archived** plus the 15 demo products **as ACTIVE**,
+records all migrations, and brands the store. You should see:
 
 ```
 ✅ Database initialized.
    store:      GLAIVE (slug=default, prefix=GLV, currency=DZD)
-   products:   14  (0 live on the storefront)
+   products:   29  (15 live on the storefront)
    offers:     ...
    migrations: 000_… 001_… 002_… 003_… 004_… 005_stores.sql 006_store_scope_orders.sql
 ```
@@ -149,10 +152,10 @@ vercel --prod     # deploy
 
 ## Step 5 — Verify it's live
 
-Open `https://<your-project>.vercel.app`. You should see the storefront shell —
-branding, navigation, search, theme — with **an empty catalog**. That is the
-expected first-deploy state: the seeded products are archived (see the top of
-this document), so there is nothing to sell until you import real stock.
+Open `https://<your-project>.vercel.app`. You should see a working shop — branding,
+navigation, search, and **15 demo products** across Headsets, Keyboards, Mice,
+Controllers, Mousepads and Accessories. Remember they are invented (see the top of
+this document).
 
 Confirm the app and database are actually talking:
 
@@ -161,16 +164,16 @@ BASE=https://<your-project>.vercel.app
 
 curl -s $BASE/healthz                      # -> {"status":"ok"}
 curl -s $BASE/api/v1/storefront/theme      # -> your store's palette, proves store resolution
-curl -s "$BASE/api/v1/products?page=1&page_size=1"   # -> {"items":[],...} EXPECTED while empty
+curl -s "$BASE/api/v1/products?page=1&page_size=1"   # -> one of the demo products
 ```
 
-An empty `items` array with HTTP 200 is a **pass** here: the request reached the
-function, resolved a store and queried Postgres. A 500 or a 404 is not.
+If `items` comes back **empty**, the demo seed did not load — re-check Step 2.
+(An empty catalog is a legitimate state once you archive the demo set; it is not
+what you should see on a fresh init.)
 
-### Then import your catalog, and only then test an order
+### Then test a real order
 
-Checkout cannot be verified against an empty shop — there is no offer to buy.
-Import real stock through the admin's CSV import first, then place a test order:
+The demo stock makes checkout verifiable immediately — no import needed first:
 
 ```bash
 BASE=https://<your-project>.vercel.app
@@ -202,9 +205,10 @@ four checks and prints PASS/FAIL for each — useful for a quick post-deploy
 check or to run from CI against a staging environment.
 
 > **Requires stock.** It buys something, so it needs at least one ACTIVE product
-> with an active offer. Against a freshly initialized store it stops at
-> `FAIL [2/4 list products] … nothing ACTIVE to sell` — that is the empty
-> catalog, not a broken deploy. Import first, then run this.
+> with an active offer. A fresh init ships 15 demo products, so this passes out of
+> the box. **After you archive the demo set** it stops at
+> `FAIL [2/4 list products] … nothing ACTIVE to sell` — that is an empty catalog,
+> not a broken deploy. Import real stock, then run it again.
 
 ```bash
 python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app
