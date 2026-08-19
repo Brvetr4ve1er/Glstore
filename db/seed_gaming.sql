@@ -222,3 +222,68 @@ FROM p CROSS JOIN (VALUES
   ('GLV-AC-002-STD','{}', 2200, 4500, NULL, 55)
 ) AS v(sku, attrs, pp, rp, sp, stock)
 ON CONFLICT (variant_sku) DO NOTHING;
+
+-- =====================================================================
+--  ARCHIVE THE PLACEHOLDER CATALOG
+--  ---------------------------------------------------------------
+--  The 14 products above are a DESIGN STUDY, not sellable stock. Their
+--  names are SteelSeries' actual product line (Arctis Nova, Apex Pro
+--  TKL, Aerox 3, Rival 3, QcK, GameDAC) and their specs carry
+--  SteelSeries trademarks such as "ClearCast" -- all inserted under
+--  brand = 'GLAIVE'. That is fine as a layout/theming fixture; it is
+--  not fine on a storefront taking real cash-on-delivery orders.
+--
+--  So they are seeded (useful as a rendering fixture before real stock
+--  arrives, and as a reference for catalog shape) but immediately
+--  ARCHIVED, which removes them from every public surface.
+--
+--  WHY BOTH UPDATES ARE REQUIRED -- archiving the product is NOT enough:
+--    · api/routes/catalog.py requires status = 'ACTIVE' for facets and
+--      featured, and excludes ARCHIVED from lists. Product hidden. Good.
+--    · BUT api/services/orders.py:94-109 joins offers -> products and
+--      tests ONLY o.is_active. It never reads p.status. An ARCHIVED
+--      product whose offers are still active is therefore STILL
+--      ORDERABLE by anyone holding an offer id (stale cart, bookmark).
+--      Deactivating the offers is what actually closes that path -- the
+--      same pair of writes DELETE /products/{id} performs on a soft
+--      archive.
+--
+--  Runs at seed time, BEFORE migration 005 adds store_id, so these
+--  match on sku alone. SKUs are listed explicitly rather than matched
+--  with LIKE 'GLV-%' so that re-running this against a live database
+--  can never touch a real product imported later under the same prefix.
+--
+--  TO BRING THEM BACK (demo/testing on a non-public deployment):
+--    UPDATE products SET status = 'ACTIVE' WHERE sku IN (...same list...);
+--    UPDATE offers SET is_active = true WHERE variant_sku LIKE 'GLV-%';
+--
+--  Idempotent: both statements are UPDATEs, safe to re-run.
+-- =====================================================================
+
+UPDATE products
+   SET status     = 'ARCHIVED',
+       updated_at = NOW()
+ WHERE sku IN (
+    'GLV-HS-001','GLV-HS-002','GLV-HS-003',
+    'GLV-KB-001','GLV-KB-002','GLV-KB-003',
+    'GLV-MO-001','GLV-MO-002','GLV-MO-003',
+    'GLV-MP-001','GLV-MP-002',
+    'GLV-CT-001',
+    'GLV-AC-001','GLV-AC-002'
+   )
+   AND status <> 'ARCHIVED';
+
+UPDATE offers o
+   SET is_active  = false,
+       updated_at = NOW()
+  FROM products p
+ WHERE p.id = o.product_id
+   AND p.sku IN (
+    'GLV-HS-001','GLV-HS-002','GLV-HS-003',
+    'GLV-KB-001','GLV-KB-002','GLV-KB-003',
+    'GLV-MO-001','GLV-MO-002','GLV-MO-003',
+    'GLV-MP-001','GLV-MP-002',
+    'GLV-CT-001',
+    'GLV-AC-001','GLV-AC-002'
+   )
+   AND o.is_active;

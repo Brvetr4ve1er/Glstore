@@ -168,7 +168,13 @@ def main() -> int:
         return 1
     items = (parsed or {}).get("items") if isinstance(parsed, dict) else None
     if not items:
-        _fail("2/4 list products", "HTTP 200 but no items in response", raw)
+        _fail("2/4 list products",
+              "HTTP 200 but no items in response — the store resolved and the "
+              "database answered, there is simply nothing ACTIVE to sell. On a "
+              "fresh deploy this is EXPECTED: db/seed_gaming.sql archives its 14 "
+              "fixture products on load. Import real stock, then re-run. (If you "
+              "did import stock, check the products are ACTIVE and their offers "
+              "is_active.)", raw)
         return 1
     product_id = items[0].get("id")
     if not product_id:

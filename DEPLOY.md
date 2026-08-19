@@ -15,8 +15,18 @@ paste secrets, hit deploy). I can't create accounts or enter your credentials.
               Neon Postgres  (free serverless DB)
 ```
 
-Your store launches with a **real catalog** — the 14 seeded GLAIVE products —
-and can take Cash-on-Delivery orders immediately.
+Your store launches with **checkout fully wired** — store resolution, per-brand
+order numbering, stock reservation and Cash-on-Delivery all work end to end and
+are smoke-testable from the first deploy.
+
+**The public catalog starts empty, on purpose.** The 14 GLAIVE products in
+`db/seed_gaming.sql` are a layout fixture, not sellable stock — their names are
+SteelSeries' actual product line (Arctis Nova, Apex Pro TKL, Aerox 3, QcK,
+GameDAC), inserted under `brand = 'GLAIVE'`. The seed therefore archives them as
+it loads (`status='ARCHIVED'` **and** offers deactivated), so they stay in the
+database as a rendering reference but never reach the storefront and cannot be
+ordered. Import your real catalog through the admin's CSV import before you
+share the link.
 
 ---
 
@@ -59,13 +69,14 @@ pip install asyncpg
 python scripts/deploy/init_remote_db.py "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb" --brand "GLAIVE" --prefix GLV
 ```
 
-This applies `schema → seeds → migrations` in the correct order, seeds the 14
-GLAIVE products, records all migrations, and brands the store. You should see:
+This applies `schema → seeds → migrations` in the correct order, loads the 14
+GLAIVE fixture products **as archived**, records all migrations, and brands the
+store. You should see:
 
 ```
 ✅ Database initialized.
    store:      GLAIVE (slug=default, prefix=GLV, currency=DZD)
-   products:   14
+   products:   14  (0 live on the storefront)
    offers:     ...
    migrations: 000_… 001_… 002_… 003_… 004_… 005_stores.sql 006_store_scope_orders.sql
 ```
@@ -138,16 +149,36 @@ vercel --prod     # deploy
 
 ## Step 5 — Verify it's live
 
-Open `https://<your-project>.vercel.app` — you should see the storefront with the
-GLAIVE catalog. Then smoke-test the full order path from a terminal:
+Open `https://<your-project>.vercel.app`. You should see the storefront shell —
+branding, navigation, search, theme — with **an empty catalog**. That is the
+expected first-deploy state: the seeded products are archived (see the top of
+this document), so there is nothing to sell until you import real stock.
+
+Confirm the app and database are actually talking:
 
 ```bash
 BASE=https://<your-project>.vercel.app
 
-# 1. catalog loads (store resolves on the vercel host)
+curl -s $BASE/healthz                      # -> {"status":"ok"}
+curl -s $BASE/api/v1/storefront/theme      # -> your store's palette, proves store resolution
+curl -s "$BASE/api/v1/products?page=1&page_size=1"   # -> {"items":[],...} EXPECTED while empty
+```
+
+An empty `items` array with HTTP 200 is a **pass** here: the request reached the
+function, resolved a store and queried Postgres. A 500 or a 404 is not.
+
+### Then import your catalog, and only then test an order
+
+Checkout cannot be verified against an empty shop — there is no offer to buy.
+Import real stock through the admin's CSV import first, then place a test order:
+
+```bash
+BASE=https://<your-project>.vercel.app
+
+# 1. categories now reflect your imported catalog
 curl -s $BASE/api/v1/catalog/categories | head
 
-# 2. grab a real offer id from a product
+# 2. grab a real offer id from a product (requires imported stock)
 curl -s "$BASE/api/v1/products?page=1&page_size=1"
 
 # 3. place a test COD order (replace OFFER_ID)
@@ -168,7 +199,12 @@ event are all wired.
 
 The manual curl steps above are also wrapped in one script that does the same
 four checks and prints PASS/FAIL for each — useful for a quick post-deploy
-check or to run from CI against a staging environment:
+check or to run from CI against a staging environment.
+
+> **Requires stock.** It buys something, so it needs at least one ACTIVE product
+> with an active offer. Against a freshly initialized store it stops at
+> `FAIL [2/4 list products] … nothing ACTIVE to sell` — that is the empty
+> catalog, not a broken deploy. Import first, then run this.
 
 ```bash
 python scripts/deploy/smoke_test_checkout.py https://<your-project>.vercel.app
@@ -573,8 +609,9 @@ setting. Two brands on one deployment therefore look nothing alike.
   touch any storefront.
 
 Product images, copy and catalog are per store too: a new brand starts with an **empty
-catalog**. The 14 seeded GLAIVE products belong to the `default` store and are not
-shared.
+catalog**. The 14 seeded GLAIVE products belong to the `default` store, are not
+shared, and are archived on load anyway (see the top of this document) — so a new
+brand and brand #1 both start with nothing on the shelf until you import stock.
 
 ### Who can manage which brand
 

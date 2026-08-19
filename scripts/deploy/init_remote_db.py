@@ -7,7 +7,7 @@ It applies, IN THE SAME ORDER Docker uses (this order is load-bearing):
 
     1. db/schema.sql            base single-tenant schema + seed data tables
     2. db/seed_admin.sql        the platform admin login
-    3. db/seed_gaming.sql       the 14 GLAIVE products + offers
+    3. db/seed_gaming.sql       14 GLAIVE products + offers, archived on load
     4. db/migrations/*.sql      000 → 006, in filename order
                                 (005 backfills the seeded rows into the
                                  'default' store, THEN sets store_id NOT NULL —
@@ -141,6 +141,11 @@ async def main() -> int:
 
         # 4) verify + report
         n_products = await conn.fetchval("SELECT COUNT(*) FROM products")
+        # Seeded products are archived placeholders (see db/seed_gaming.sql),
+        # so a bare total would imply a storefront that has stock. Report what
+        # a customer would actually see.
+        n_active   = await conn.fetchval(
+            "SELECT COUNT(*) FROM products WHERE status = 'ACTIVE'")
         n_offers   = await conn.fetchval("SELECT COUNT(*) FROM offers")
         n_admins   = await conn.fetchval("SELECT COUNT(*) FROM admin_users")
         store      = await conn.fetchrow(
@@ -150,7 +155,7 @@ async def main() -> int:
         print("\n✅ Database initialized.")
         print(f"   store:      {store['name']} (slug={store['slug']}, "
               f"prefix={store['order_prefix']}, currency={store['currency']})")
-        print(f"   products:   {n_products}")
+        print(f"   products:   {n_products}  ({n_active} live on the storefront)")
         print(f"   offers:     {n_offers}")
         print(f"   admins:     {n_admins}")
         print(f"   migrations: {', '.join(r['filename'] for r in applied)}")
