@@ -28,6 +28,8 @@ REVIEWS = REPO / "api" / "routes" / "reviews.py"
 NEWSLETTER = REPO / "api" / "routes" / "newsletter.py"
 PRODUCTS = REPO / "api" / "routes" / "products.py"
 MIGRATION = REPO / "db" / "migrations" / "008_merchandising.sql"
+CONTACT = REPO / "api" / "routes" / "contact.py"
+MIGRATION_009 = REPO / "db" / "migrations" / "009_contact_messages.sql"
 
 
 def _sql_literals(path: Path) -> list[str]:
@@ -174,3 +176,95 @@ def test_submit_review_checks_the_product_belongs_to_the_store():
                 "submit_review must assert the product is in the acting store"
             return
     raise AssertionError("submit_review not found")
+
+
+# ── Migration 009 (contact_messages) — same class of bug, same guards ──────
+
+def test_migration_009_exists():
+    assert MIGRATION_009.is_file(), "migration 009 is missing"
+
+
+def test_contact_messages_store_id_is_not_nullable():
+    """`store_id NOT NULL` is the column-level half of the guard.
+
+    It does not by itself stop a message being inserted for the wrong store —
+    that is what require_store resolving from Host, tested below, is for. This
+    only proves the column can never be silently NULL, which is the exact shape
+    of three of the four store_id bugs this codebase has already shipped.
+    """
+    sql = " ".join(MIGRATION_009.read_text(encoding="utf-8").split())
+    assert re.search(
+        r"store_id\s+UUID\s+NOT\s+NULL\s+REFERENCES\s+stores",
+        sql, re.I,
+    ), "contact_messages.store_id must be NOT NULL REFERENCES stores"
+
+
+def test_contact_message_text_fields_are_capped():
+    """Unbounded text from an anonymous public endpoint is an abuse surface
+    regardless of what ever renders it."""
+    sql = " ".join(MIGRATION_009.read_text(encoding="utf-8").split())
+    assert re.search(r"message\s+TEXT\s+NOT\s+NULL\s+CHECK\s*\(\s*length\(message\)", sql, re.I), (
+        "contact_messages.message must have a length CHECK"
+    )
+    assert re.search(r"name\s+TEXT\s+NOT\s+NULL\s+CHECK\s*\(\s*length\(name\)", sql, re.I), (
+        "contact_messages.name must have a length CHECK"
+    )
+
+
+def _sql_literals_for(path: Path, table: str) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            v = " ".join(node.value.split())
+            if re.search(rf"\b(FROM|INTO|UPDATE)\s+{table}\b", v, re.I):
+                out.append(v)
+    return out
+
+
+def test_every_contact_messages_query_filters_by_store():
+    """The bug that has now shipped in this codebase six times, caught statically."""
+    stmts = _sql_literals_for(CONTACT, "contact_messages")
+    assert stmts, "no contact_messages SQL found — did the file move?"
+    for sql in stmts:
+        ok = re.search(r"store_id\s*=\s*:", sql, re.I) or "store_id," in sql.lower()
+        assert ok, f"contact_messages SQL without a store_id filter:\n  {sql[:160]}"
+
+
+def test_contact_submit_is_public_and_host_scoped():
+    deps = _dep_names(CONTACT, "submit_contact_message")
+    assert "require_store" in deps, "POST /contact must use require_store"
+    assert "require_admin_store_for" not in deps, (
+        "POST /contact is public and must not require an admin store header"
+    )
+
+
+@pytest.mark.parametrize("func", ["contact_inbox", "moderate_contact_message"])
+def test_contact_admin_routes_resolve_the_store_from_the_authenticated_header(func):
+    deps = _dep_names(CONTACT, func)
+    assert "require_admin_store_for" in deps, f"{func} must use require_admin_store_for"
+    assert "require_store" not in deps, (
+        f"{func} is admin and must not resolve by client-controlled Host"
+    )
+
+
+# ── GET /products?badge= — validated against the enum, not just cast ───────
+
+def test_products_badge_filter_is_validated_against_the_enum():
+    """An invalid `badge=` value must 422, not fall through to a raw SQL cast
+    that would surface as a 500 and incidentally confirm the column is an enum."""
+    src = " ".join(PRODUCTS.read_text(encoding="utf-8").split())
+    assert re.search(
+        r'badge:\s*Literal\[\s*"NEW",\s*"BEST_SELLER",\s*"PRO",\s*"SALE"\s*\]\s*\|\s*None',
+        src,
+    ), "badge query param must be typed as the Literal enum, not a bare str"
+
+
+def test_products_search_matches_barcode_exactly_not_fuzzily():
+    """A scanned barcode is the complete string — ILIKE substring-matching it
+    is both semantically wrong and, at scale, an unindexed scan for nothing."""
+    src = " ".join(PRODUCTS.read_text(encoding="utf-8").split())
+    assert "p.barcode = :q_exact" in src, (
+        "barcode must be matched with exact equality, not ILIKE"
+    )
+

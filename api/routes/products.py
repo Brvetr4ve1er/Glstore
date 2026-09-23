@@ -10,7 +10,7 @@ everyone else. That keeps an admin's reads on the same store as its writes.
 """
 import json
 import re
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -77,6 +77,10 @@ async def list_products(
     q: str | None = Query(None, min_length=1, max_length=200),
     category: str | None = None,
     brand: str | None = None,
+    # Validated against the enum here, not just by the SQL cast -- an invalid
+    # value gets a clean 422 instead of Postgres raising on the cast, which
+    # would otherwise leak "this column is an enum" via a 500.
+    badge: Literal["NEW", "BEST_SELLER", "PRO", "SALE"] | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
     in_stock: bool | None = Query(None, description="If true, exclude items with 0 available"),
     price_min: float | None = Query(None, ge=0),
@@ -98,8 +102,16 @@ async def list_products(
         where.append("p.status <> 'ARCHIVED'")
 
     if q:
-        where.append("(p.name ILIKE :q OR p.sku ILIKE :q OR p.brand ILIKE :q)")
+        # Barcode is matched EXACTLY, not fuzzily: a shopper who scans one has
+        # the complete string, and ILIKE substring-matching a barcode column
+        # is both semantically wrong and, on a much larger catalog than
+        # today's 567 rows, an unindexed scan for no benefit.
+        where.append("(p.name ILIKE :q OR p.sku ILIKE :q OR p.brand ILIKE :q OR p.barcode = :q_exact)")
         params["q"] = f"%{q}%"
+        params["q_exact"] = q
+    if badge:
+        where.append("p.badge = :badge")
+        params["badge"] = badge
     if category:
         where.append("p.category = :cat")
         params["cat"] = category
