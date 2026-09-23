@@ -6,29 +6,39 @@ against assumptions; the numbers below were measured, not estimated.
 
 ## The brand — CONFIRMED
 
-**This storefront is BOUAKIL ELECTRO, the real business.**
+**The customer-facing brand is AMANATKOM. Put AMANATKOM on the page.**
 
-Confirmed by the owner. GLAIVE (gaming) and Ghir Laffaire (appliances) were
-placeholders. Bouakil Electro is the actual retailer, and this 567-product
-appliance catalogue is its actual stock.
+Two names, two jobs — do not mix them up:
 
-Structure, unchanged:
+| Name | What it is | Where it appears |
+|---|---|---|
+| **AMANATKOM** | the **brand** customers see | hero, logo, nav, footer, page titles, SEO, emails |
+| **Bouakil Electro** | the **operating company** | legal/company fine print only — never as the shop's name |
 
-```
-AMANATKOM            the platform  (admin console, app_name, deployment)
-  └── Bouakil Electro   the real store  ← this storefront
-```
+This is the ordinary company-vs-brand split: Bouakil Electro is the real
+business that owns and runs the shop; AMANATKOM (أماناتكم — "your trusts") is
+what it trades under. A shopper should see AMANATKOM everywhere and encounter
+"Bouakil Electro" only where a legal entity is genuinely required.
+
+AMANATKOM is also the platform name, which is fine and not a conflict: the
+platform hosts brands, and today it hosts one — its own. GLAIVE remains a
+second brand the architecture supports; it is simply not what this storefront
+serves.
 
 What this means for copy, concretely:
 
-- The shop is named **Bouakil Electro** — hero, footer, page titles, SEO.
+- The shop is named **AMANATKOM** — hero, footer, page titles, SEO, logo alt.
 - It sells **home appliances** in Algeria: DZD, 58 wilayas, cash on delivery.
-- The GLAIVE gaming identity does not appear anywhere on this storefront.
-  "JOUE POUR GAGNER", `/c/Headsets`, `/c/Keyboards` are all wrong here.
+- The GLAIVE gaming identity appears nowhere here. "JOUE POUR GAGNER",
+  `/c/Headsets`, `/c/Keyboards` are all wrong for this storefront.
 - **Do not invent claims.** No "25 years", no "#1 in Algeria", no warranty
   terms, no delivery promises beyond the ones already in the codebase
-  (58 wilayas, paiement à la livraison). If you want a claim and cannot source
-  it from existing code, leave it out — the owner supplies real ones.
+  (58 wilayas, paiement à la livraison). With a real brand on the page,
+  invented marketing claims stop being a design smell and become a liability.
+  If you want a claim and cannot source it from existing code, leave it out.
+- **Do not translate or transliterate the brand.** It is written AMANATKOM in
+  Latin script throughout. Do not render it in Arabic script, and do not
+  "correct" the spelling.
 
 **GLAIVE stays exactly as built.** Nothing in `db/seed_gaming.sql`,
 `db/seed_glaive_starter.sql` or the GLAIVE theme is touched. This is the
