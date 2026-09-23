@@ -126,6 +126,20 @@ Copy the output — you'll paste it as `JWT_SECRET` in Step 4.
 | `DATABASE_URL` | `postgresql+asyncpg://USER:PASSWORD@ep-xxxx.neon.tech/neondb` |
 | `JWT_SECRET` | *(the string from Step 3)* |
 | `CORS_ORIGINS` | `https://<your-project>.vercel.app` |
+| `CRON_SECRET` | *(generate like the JWT secret in Step 3)* |
+
+> **`CRON_SECRET` is not optional if you want stock to work.** Vercel runs no
+> background workers, so nothing releases abandoned cart reservations. A cron
+> job (configured in `vercel.json`) calls the maintenance endpoint daily, and
+> that endpoint refuses every request unless this secret matches. Leave it
+> unset and the job 503s forever: `offers.reserved_quantity` only ever climbs,
+> and stock you physically have slowly becomes unsellable.
+>
+> Note the frequency. Docker's reservation worker runs every **30 seconds**;
+> the cron here is **daily**, because Vercel restricts cron frequency on lower
+> plans. Check what your plan allows and raise the schedule in `vercel.json`
+> if you can — or shorten the reservation TTL, because on a daily sweep an
+> abandoned cart can hold stock for up to 24 hours.
 
 > Note the `DATABASE_URL` here uses the **`postgresql+asyncpg://`** prefix (SQLAlchemy driver form),
 > and you can use Neon's **pooled** host here for runtime. Query params like `?sslmode=require` are fine.

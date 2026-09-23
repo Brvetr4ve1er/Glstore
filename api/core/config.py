@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # changes per deploy) without registering every host in store_domains.
     # Turn OFF the moment you run more than one brand.
     single_store_mode: bool = False
+    # Shared secret for Vercel Cron. Empty means the maintenance endpoint
+    # refuses every request -- see api/routes/internal.py for why that is
+    # the safe default.
+    cron_secret: str = ""
     # Hosts TrustedHostMiddleware accepts in production. Comma-separated.
     # Use "*" to accept any host (fine for a single store on a platform subdomain).
     allowed_hosts: str = "*.glstore.dz,glstore.dz"

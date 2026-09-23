@@ -160,3 +160,36 @@ jobs:
 
           print(f"Serverless bundle OK: app imported, {routes} routes registered.")
           PY
+
+  # --- Storefront -----------------------------------------------------------
+  # The storefront had TWO FAILING TESTS that nobody saw, because nothing in CI
+  # ever ran them: this file had a pytest job and a bundle-import job, and no
+  # npm step at all. A test suite that is never executed is not a safety net,
+  # it is a comforting file.
+  #
+  # `run build` is here too, and it is the one that maps to a real outage:
+  # vercel.json builds the storefront with @vercel/static-build, so a
+  # TypeScript error is not a failed test, it is a failed deploy.
+  storefront:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Pinned to an LTS. Deliberately NOT matching whatever a maintainer
+          # happens to run locally -- CI should fail on what Vercel builds on.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+
+      - name: Install (locked)
+        run: npm ci --prefix storefront
+
+      - name: Run tests
+        run: npm --prefix storefront run test
+
+      - name: Build exactly as Vercel does
+        run: npm --prefix storefront run build
