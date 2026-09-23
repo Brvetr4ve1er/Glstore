@@ -238,3 +238,51 @@ export const trackOrder = (orderNumber: string, phone: string) =>
     order_number: orderNumber,
     phone,
   })
+
+// ── Reviews (migration 008) ─────────────────────────────────────
+export interface ReviewItem {
+  id: string
+  customer_name: string
+  rating: number
+  title: string | null
+  body: string | null
+  created_at: string
+}
+
+export interface ReviewList {
+  items: ReviewItem[]
+  page: number
+  page_size: number
+  total: number
+  avg_rating: number | null
+}
+
+export interface ReviewSubmission {
+  customer_name: string
+  rating: number
+  title?: string | null
+  body?: string | null
+}
+
+export const fetchReviews = (productId: string, pageSize = 6) =>
+  req<ReviewList>('GET', `/products/${productId}/reviews?page_size=${pageSize}`)
+
+export const submitReview = (productId: string, dto: ReviewSubmission) =>
+  req<{ id: string; status: string; created_at: string; message: string }>(
+    'POST', `/products/${productId}/reviews`, dto,
+  )
+
+// ── Newsletter (migration 008) ──────────────────────────────────
+export const subscribeNewsletter = (email: string) =>
+  req<{ subscribed: boolean; message: string }>('POST', '/newsletter', { email })
+
+// ── Contact (migration 009) ─────────────────────────────────────
+export interface ContactSubmission {
+  name: string
+  phone?: string | null
+  email?: string | null
+  message: string
+}
+
+export const submitContactMessage = (dto: ContactSubmission) =>
+  req<{ id: string; created_at: string; message: string }>('POST', '/contact', dto)

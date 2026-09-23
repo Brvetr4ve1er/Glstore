@@ -825,3 +825,54 @@ export interface StoreListResult {
 
 export const fetchStores = () =>
   req<StoreListResult>('GET', '/stores')
+
+// ── Reviews moderation (migration 008) ──────────────────────────
+export interface AdminReviewItem {
+  id: string
+  product_id: string
+  product_name: string
+  product_slug: string
+  customer_name: string
+  rating: number
+  title: string | null
+  body: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  created_at: string
+}
+
+export interface AdminReviewList {
+  items: AdminReviewItem[]
+  page: number
+  page_size: number
+  total: number
+}
+
+export const fetchReviewQueue = (status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING', page = 1, pageSize = 40) =>
+  req<AdminReviewList>('GET', `/reviews?status=${status}&page=${page}&page_size=${pageSize}`)
+
+export const moderateReview = (reviewId: string, status: 'APPROVED' | 'REJECTED') =>
+  req<{ id: string; status: string }>('PATCH', `/reviews/${reviewId}`, { status })
+
+// ── Contact inbox (migration 009) ───────────────────────────────
+export interface ContactMessage {
+  id: string
+  name: string
+  phone: string | null
+  email: string | null
+  message: string
+  status: 'NEW' | 'READ' | 'ARCHIVED'
+  created_at: string
+}
+
+export interface ContactMessageList {
+  items: ContactMessage[]
+  page: number
+  page_size: number
+  total: number
+}
+
+export const fetchContactInbox = (status: 'NEW' | 'READ' | 'ARCHIVED' = 'NEW', page = 1, pageSize = 40) =>
+  req<ContactMessageList>('GET', `/contact-messages?status=${status}&page=${page}&page_size=${pageSize}`)
+
+export const moderateContactMessage = (messageId: string, status: 'READ' | 'ARCHIVED') =>
+  req<{ id: string; status: string }>('PATCH', `/contact-messages/${messageId}`, { status })

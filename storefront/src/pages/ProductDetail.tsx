@@ -37,7 +37,10 @@ import {
   Minus, Plus, ThumbsUp, ThumbsDown, Quote, Star, Info,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { fetchProduct, fetchProducts, type ProductDetail } from '@/lib/api'
+import {
+  fetchProduct, fetchProducts, fetchReviews,
+  type ProductDetail,
+} from '@/lib/api'
 import { fmtMoney } from '@/lib/format'
 import { CategoryIcon, NoImageIllustration } from '@/lib/icons'
 import { categoryLabel, classifyProductName } from '@/lib/taxonomy'
@@ -52,42 +55,10 @@ import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/Scro
 import { Button, Tag, EmptyState } from '@/components/ui'
 import { SEO } from '@/components/SEO'
 
-/**
- * Reviews client, local on purpose.
- *
- * `lib/api.ts` has no reviews binding and neither `req` nor `BASE` is
- * exported from it — and api.ts is not this task's file to edit. So the one
- * endpoint this page needs is called directly, with the same base-URL rule the
- * rest of the client uses (same-origin `/api/v1` unless `VITE_API_URL` splits
- * the deploy apart). When api.ts grows a `fetchReviews`, delete this block and
- * import it instead.
- */
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
-
-interface ReviewItem {
-  id: string
-  customer_name: string
-  rating: number
-  title: string | null
-  body: string | null
-  created_at: string
-}
-
-interface ReviewList {
-  items: ReviewItem[]
-  page: number
-  page_size: number
-  total: number
-  avg_rating: number | null
-}
-
-async function fetchProductReviews(productId: string): Promise<ReviewList> {
-  const res = await fetch(`${API_BASE}/products/${productId}/reviews?page_size=6`, {
-    headers: { 'x-request-id': crypto.randomUUID() },
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json() as Promise<ReviewList>
-}
+// Reviews client moved to `lib/api.ts` (`fetchReviews` / `submitReview` /
+// `ReviewItem` / `ReviewList`) — this page used to carry a local fetch here
+// because api.ts had no reviews binding yet. It does now; nothing below this
+// comment needs to touch the network layer directly.
 
 /**
  * `GET /products/{id}` returns `avg_rating` / `review_count` since migration
@@ -157,7 +128,7 @@ export default function ProductDetailPage() {
   // an error state on a page that otherwise rendered fine.
   const { data: reviews } = useQuery({
     queryKey: ['reviews', p?.id],
-    queryFn: () => fetchProductReviews(p!.id),
+    queryFn: () => fetchReviews(p!.id),
     enabled: !!p?.id,
     retry: false,
     staleTime: 60_000,
