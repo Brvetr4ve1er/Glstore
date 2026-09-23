@@ -15,7 +15,7 @@ from api.core.db import SessionLocal, engine
 from api.core.logging import bind_request_id, setup_logging
 from api.core.migrations import MigrationLockBusy, run_pending_migrations
 from api.core.ratelimit import RateLimiter, client_key
-from api.routes import auth, catalog, enrichment, events, health, images, intel, issues, jobs, newsletter, orders, products, products_import, public_orders, reviews, scraper, settings as settings_route, stores
+from api.routes import auth, catalog, enrichment, events, health, images, intel, issues, jobs, newsletter, orders, products, products_export, products_import, public_orders, reviews, scraper, settings as settings_route, stores
 
 # Structured JSON logging — all lines on stdout, request_id flows via
 # ContextVar so handlers don't have to thread it through every call.
@@ -186,6 +186,11 @@ app.include_router(images.router, prefix="/api/v1")
 # for the same reason: everything that hangs off /products goes before the
 # dynamic catcher, so the ordering rule stays one rule instead of two.
 app.include_router(reviews.router, prefix="/api/v1")
+# products_export serves /products/export, /products/bulk-update and
+# /products/bulk-status -- all /products/<static>, so they MUST register
+# before the /products/{product_id} catcher below or "export" gets parsed
+# as a UUID and 422s.
+app.include_router(products_export.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(products_import.router, prefix="/api/v1")
 app.include_router(enrichment.router, prefix="/api/v1")

@@ -31,6 +31,7 @@ from fastapi.responses import StreamingResponse
 # can import this module without DB drivers installed.
 from api.core.db import get_db
 from api.core.security import require_role
+from api.core.store_context import Store, require_admin_store_for
 
 router = APIRouter(prefix="/products", tags=["export"])
 
@@ -61,13 +62,14 @@ _CSV_COLUMNS = [
 ]
 
 
-@router.get("/export", dependencies=[Depends(require_role(*READ_ROLES))])
+@router.get("/export")
 async def export_products(
     status: list[str] | None = Query(None, description="Filter by status (default: all non-archived)"),
     brand: str | None = Query(None, description="Filter by exact brand"),
     category: str | None = Query(None, description="Filter by exact category"),
     missing_brand: bool = Query(False, description="Only export products with no brand"),
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
 ) -> StreamingResponse:
     """Export the product catalog as CSV.
 
@@ -84,8 +86,10 @@ async def export_products(
     text = _text  # type: ignore[assignment]
 
     # Build WHERE clause
-    conditions: list[str] = ["p.status <> 'ARCHIVED'"]
-    params: dict[str, Any] = {}
+    # Scoped to the acting store. Without this the export streams EVERY
+    # brand's catalog to anyone holding a viewer token.
+    conditions: list[str] = ["p.store_id = :store_id", "p.status <> 'ARCHIVED'"]
+    params: dict[str, Any] = {"store_id": store.id}
 
     if statuses:
         conditions.append("p.status = ANY(:statuses)")
@@ -163,11 +167,15 @@ async def export_products(
             buf.truncate(0)
             buf.seek(0)
 
-    filename = "glstore-catalog.csv"
+    # Named for the brand, not the platform. The documented workflow is
+    # export -> edit in Excel -> re-import, and an operator running two
+    # brands with two files both called "glstore-catalog.csv" will
+    # eventually re-import one brand's catalog into the other.
+    filename = f"{store.slug}-catalog.csv"
     if statuses:
-        filename = f"glstore-{'-'.join(s.lower() for s in statuses)}.csv"
+        filename = f"{store.slug}-{'-'.join(s.lower() for s in statuses)}.csv"
     elif missing_brand:
-        filename = "glstore-missing-brand.csv"
+        filename = f"{store.slug}-missing-brand.csv"
 
     return StreamingResponse(
         _generate(),
@@ -215,10 +223,11 @@ class BulkUpdateResponse(BaseModel):
 _VALID_STATUSES = {"RAW", "NORMALIZED", "CLASSIFIED", "VERIFIED", "ACTIVE", "NEEDS_FIX", "ARCHIVED"}
 
 
-@router.post("/bulk-update", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/bulk-update")
 async def bulk_update_products(
     body: BulkUpdateRequest,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> BulkUpdateResponse:
     """Update brand / category / status / description on up to 500 products at once.
 
@@ -255,10 +264,15 @@ async def bulk_update_products(
         # Only updated_at + version — nothing to update
         return BulkUpdateResponse(updated=0, skipped=len(body.product_ids), product_ids=[])
 
+    # Product ids arrive in the request body, so they are caller-chosen.
+    # Ids belonging to another brand fail this WHERE and are counted in
+    # `skipped` in the response -- visible as a number, never a silent edit.
+    params["store_id"] = store.id
     result = await db.execute(text(f"""
         UPDATE products
            SET {", ".join(set_clauses)}
          WHERE id = ANY(CAST(:ids AS UUID[]))
+           AND store_id = :store_id
            AND status <> 'ARCHIVED'
         RETURNING id
     """), params)
@@ -275,9 +289,11 @@ async def bulk_update_products(
         for pid in updated_ids:
             for field_name in changed_fields:
                 await db.execute(text("""
-                    INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-                    VALUES ('product', :pid, :field, CAST(:val AS JSONB), 'bulk_admin_edit', 1.0)
+                    INSERT INTO observations
+                        (store_id, entity_type, entity_id, field, value, source, confidence)
+                    VALUES (:sid, 'product', :pid, :field, CAST(:val AS JSONB), 'bulk_admin_edit', 1.0)
                 """), {
+                    "sid": store.id,
                     "pid": pid,
                     "field": field_name,
                     "val": f'{{"v": "bulk_update"}}',
@@ -306,10 +322,11 @@ class BulkStatusRequest(BaseModel):
     limit:            int  = Field(500, ge=1, le=2000)
 
 
-@router.post("/bulk-status", dependencies=[Depends(require_role(*WRITE_ROLES))])
+@router.post("/bulk-status")
 async def bulk_status_change(
     body: BulkStatusRequest,
     db: AsyncSession = Depends(get_db),
+    store: Store = Depends(require_admin_store_for(require_role(*WRITE_ROLES))),
 ) -> dict[str, Any]:
     """Change the status of many products matching a predicate.
 
@@ -321,8 +338,12 @@ async def bulk_status_change(
         from fastapi import HTTPException
         raise HTTPException(400, f"invalid status '{body.new_status}'")
 
-    conditions: list[str] = ["status <> 'ARCHIVED'"]
-    params: dict[str, Any] = {"new_status": body.new_status.upper(), "lim": body.limit}
+    conditions: list[str] = ["store_id = :store_id", "status <> 'ARCHIVED'"]
+    params: dict[str, Any] = {
+        "store_id": store.id,
+        "new_status": body.new_status.upper(),
+        "lim": body.limit,
+    }
 
     if body.product_ids:
         conditions.append("id = ANY(CAST(:ids AS UUID[]))")
@@ -344,7 +365,8 @@ async def bulk_status_change(
     result = await db.execute(text(f"""
         UPDATE products
            SET status = :new_status, updated_at = NOW(), version = version + 1
-         WHERE id IN (
+         WHERE store_id = :store_id
+           AND id IN (
              SELECT id FROM products WHERE {where}
              ORDER BY completeness_score ASC, updated_at DESC
              LIMIT :lim
@@ -356,9 +378,11 @@ async def bulk_status_change(
     if updated_ids:
         for pid in updated_ids:
             await db.execute(text("""
-                INSERT INTO observations (entity_type, entity_id, field, value, source, confidence)
-                VALUES ('product', :pid, 'status', CAST(:val AS JSONB), 'bulk_admin_status', 1.0)
-            """), {"pid": pid, "val": f'{{"v": "{body.new_status.upper()}"}}'})
+                INSERT INTO observations
+                    (store_id, entity_type, entity_id, field, value, source, confidence)
+                VALUES (:sid, 'product', :pid, 'status', CAST(:val AS JSONB), 'bulk_admin_status', 1.0)
+            """), {"sid": store.id, "pid": pid,
+                   "val": f'{{"v": "{body.new_status.upper()}"}}'})
 
     await db.commit()
 
