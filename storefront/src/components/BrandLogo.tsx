@@ -82,7 +82,7 @@ export function BrandLogo({
       {showWordmark && (
         <div className="flex flex-col leading-none">
           <span className="headline-italic text-[17px] tracking-tight text-[var(--color-text-1)]">
-            <span className="text-[var(--color-brand)]">A</span>MANATKOM
+            <span className="text-[var(--color-brand)]">A</span>MANTCOM
           </span>
           {showTagline && (
             // Sector, not a claim. No "#1", no years in business, no warranty
