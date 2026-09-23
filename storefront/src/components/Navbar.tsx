@@ -73,7 +73,7 @@ export function Navbar() {
     <header className="sticky top-0 z-40">
       {/* Promo strip */}
       <div className="brand-stripe text-[11px] font-bold text-[var(--color-jet-black)] py-1.5 text-center tracking-wide flex items-center justify-center gap-6 flex-wrap px-4">
-        <span className="flex items-center gap-1.5"><Truck size={12} /> LIVRAISON 48H · 58 WILAYAS</span>
+        <span className="flex items-center gap-1.5"><Truck size={12} /> LIVRAISON DANS LES 58 WILAYAS</span>
         <span className="flex items-center gap-1.5"><Shield size={12} /> PAIEMENT À LA LIVRAISON</span>
         <span className="flex items-center gap-1.5 hidden sm:flex"><Home size={12} /> ÉLECTROMÉNAGER POUR TOUTE LA MAISON</span>
       </div>

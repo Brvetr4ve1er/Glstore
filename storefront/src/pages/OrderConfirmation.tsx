@@ -40,7 +40,7 @@ export default function OrderConfirmationPage() {
           Commande confirmée
         </h1>
         <p className="text-[var(--color-text-3)] text-sm mt-3 max-w-md mx-auto leading-relaxed">
-          Votre commande a bien été enregistrée. Un agent vous appellera dans les 24h pour la confirmer et organiser la livraison.
+          Votre commande a bien été enregistrée. Un agent vous appellera pour la confirmer et organiser la livraison.
         </p>
 
         {order ? (
@@ -76,8 +76,8 @@ export default function OrderConfirmationPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-10 text-left">
           {[
-            { icon: Phone,    title: 'Appel sous 24h',     desc: 'Un agent confirme la commande' },
-            { icon: Truck,    title: 'Livraison 48h',       desc: 'À votre adresse en Algérie' },
+            { icon: Phone,    title: 'Appel de confirmation', desc: 'Un agent confirme la commande' },
+            { icon: Truck,    title: 'Livraison',            desc: 'À votre adresse en Algérie' },
             { icon: Sparkles, title: 'Paiement à la porte', desc: 'Vous payez à la réception' },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="glass-sm p-4 flex items-start gap-3">

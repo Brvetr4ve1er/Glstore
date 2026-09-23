@@ -265,7 +265,7 @@ export default function CheckoutPage() {
               Confirmer la commande
             </Button>
             <p className="text-[10px] text-[var(--color-text-3)] text-center mt-3 leading-relaxed">
-              Un agent vous appellera dans les <span className="text-[var(--color-text-1)] font-bold">24h</span> pour confirmer.
+              Un agent vous appellera pour confirmer.
               Aucun paiement n'est prélevé maintenant.
             </p>
           </div>

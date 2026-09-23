@@ -235,7 +235,7 @@ export default function ProductDetailPage() {
   const seoDescription = (
     seoDesc
     || (p.description && p.description.length >= 50 ? p.description.slice(0, 156) : null)
-    || `${[hasBrand ? p.brand : null, catLabel].filter(Boolean).join(' · ')}${unitPrice ? ' · ' + fmtMoney(unitPrice) : ''}. Livraison 48h en Algérie, paiement à la livraison.`
+    || `${[hasBrand ? p.brand : null, catLabel].filter(Boolean).join(' · ')}${unitPrice ? ' · ' + fmtMoney(unitPrice) : ''}. Livraison en Algérie, paiement à la livraison.`
   )
   const ogImage = images[0]?.url ?? null
 
@@ -431,7 +431,7 @@ export default function ProductDetailPage() {
           {/* Trust strip */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: Truck,       title: 'Livraison 48h',   desc: '58 wilayas' },
+              { icon: Truck,       title: 'Livraison',       desc: '58 wilayas' },
               { icon: ShieldCheck, title: 'COD',              desc: 'À la livraison' },
               { icon: Sparkles,    title: 'Vérifié',          desc: 'Stock honnête' },
             ].map(({ icon: Icon, title, desc }) => (
