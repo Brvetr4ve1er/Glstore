@@ -74,7 +74,14 @@ These get lost across subagents. They are not optional.
   layout must not drag copy, currency or shipping claims across. 58 wilayas,
   COD-first, stays.
 - **`store_id NOT NULL` on every new table.** Four separate `store_id` bugs were
-  found this session that 365 green tests missed. `reviews` carries `store_id`.
+  found this session that 365 green tests missed. Every one of them was in a
+  code path that wrote a new table without the store — never in the DDL. So the
+  column is the easy half. `reviews` and `newsletter_subscribers` join the
+  store-scoped list as tables #12 and #13.
+- **Briefs name files and line numbers, and say "read before writing".** Two
+  briefs were wrong this session (a `street` address key, a `theme = '{}'`
+  backfill) — both because the brief paraphrased code instead of pointing at it.
+  Both were caught by implementers, which is luck, not process.
 - **404, never 403, for cross-store access.** Same rule as every other resource.
 - **`python -m pytest tests/` must not drop below 414 passed.**
 - Stay on `gaming-store`. No force git ops. Stage explicit paths, never `-A`.
@@ -112,22 +119,41 @@ One migration, not three: one advisory-lock cycle, one checksum, one
    `badge` column on `products`. An enum, not three booleans — one badge shows
    at a time, and the DB should say so. `SALE` is derivable from `sale_price`
    but merchants expect to set it explicitly.
-3. Indexes: `(store_id, product_id)` on reviews, partial index on
+3. **`newsletter_subscribers`** — `store_id NOT NULL`, `email`, `created_at`,
+   `UNIQUE (store_id, email)`. This is here because Phase 2's newsletter form
+   needs somewhere real to land: a form that swallows input is signal #85 from
+   the audit ("fake forms that don't submit anywhere") and would be a review
+   finding. Storing the capture is in scope; sending anything to it is not.
+4. Indexes: `(store_id, product_id)` on reviews, partial index on
    `status='APPROVED'`.
+
+`badge` must be **nullable with no default**. Migration 008 is the first
+migration the demo catalog passes through — the 15 `GLV-*-1xx` rows exist only
+via seeds — so those 29 rows (14 archived + 15 demo) are what an `ALTER TABLE`
+lands on. A `NOT NULL DEFAULT 'NEW'` would silently badge the entire catalog.
 
 Endpoints:
 
 - `POST /products/{id}/reviews` — public, store from **Host**, lands `PENDING`.
+  Must call `_assert_product_in_store` (already hoisted in
+  `api/core/store_context.py`) **before** inserting. Without it, someone on
+  brand A's domain can review brand B's product by id.
+- `POST /newsletter` — public, store from **Host**, idempotent on
+  `(store_id, email)`.
 - `GET /products/{id}/reviews` — public, `APPROVED` only.
 - `GET /reviews?status=PENDING` + `PATCH /reviews/{id}` — admin, store from
   `x-store-id`, 404 across stores.
 - `PATCH /products/{id}` — extend to accept `badge`.
 - Add `avg_rating` + `review_count` (APPROVED only) to the product list and
-  detail responses.
+  detail responses. Write the correlated subqueries with
+  `AND r.store_id = p.store_id AND r.status = 'APPROVED'` **explicitly**. Keyed
+  on `product_id` alone it is correct today and silently wrong the first time a
+  product id is shared across stores. Pin the store.
 
 **Verify:** mutation-tested tenancy tests for `reviews` in the style of
 `tests/test_store_context.py`; ≥414 tests; migration is pure SQL, no
-`api/core/migrations.py` edits.
+`api/core/migrations.py` edits; `python scripts/deploy/apply_migrations.py
+--dry-run` lists 008 as pending and writes nothing.
 
 ## Phase 2 — Storefront sections (parallelizable — 10 units)
 
@@ -170,7 +196,13 @@ reset. Three options were considered:
 
 ## Phase 3 — Admin
 
-- Review moderation queue (approve/reject, store-scoped).
+- **Review moderation queue** — copy and adapt the existing image review queue:
+  same approve/reject shape, same `x-store-id` scoping, routes in
+  `api/routes/images.py`, UI in `admin/`. This is an adaptation, not a new
+  design.
+  **It must not inherit that queue's defect.** Audit Critical #3: the image
+  queue's approve/reject/primary buttons are icon-only with zero accessible
+  name. The review queue ships with names.
 - Badge assignment in `ProductEditor`.
 
 ## Phase 4 — Prove "prod-ready" moved
