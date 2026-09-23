@@ -1,4 +1,40 @@
 -- ============================================================================
+--  ARCHIVED — superseded by the real Bouakil Electro catalogue
+-- ============================================================================
+--
+--  NOT LOADED BY ANYTHING. Kept for reference only.
+--
+--  WHY IT EXISTED
+--  Brand #2 was a placeholder. The platform needed a second store to prove the
+--  multi-brand architecture worked -- isolated catalogs, per-brand order
+--  numbering, per-store theming -- so this file invented 12 Algerian home
+--  appliances under the name "Ghir Laffaire".
+--
+--  WHY IT IS ARCHIVED
+--  The owner confirmed the real business is BOUAKIL ELECTRO, and supplied its
+--  actual catalogue: 567 real appliances with real SKUs, barcodes, DZD prices
+--  and stock levels. Twelve invented products are no longer useful next to
+--  that, and leaving them runnable invites someone to seed fictional stock
+--  into a live shop.
+--
+--  WHAT REPLACED IT
+--  The live path for brand data is now:
+--      1. python scripts/deploy/add_store.py "<direct-neon-url>" --           --slug bouakil --name "Bouakil Electro" --prefix BKL
+--      2. import the real CSV through the admin's CSV import
+--         (preview first -- it writes nothing -- then commit)
+--
+--  IT WAS NEVER AUTO-LOADED. Verified before archiving: this file is absent
+--  from init_remote_db.py's seed tuple and from docker-compose.yml's
+--  docker-entrypoint-initdb.d mounts. Moving it therefore changes no behaviour
+--  anywhere -- no init path, no test, no container ever read it.
+--
+--  TO USE IT ANYWAY, create a "ghir" store first, then run it from this path.
+--  It still works; it is just no longer part of the product.
+--
+-- ============================================================================
+
+
+-- ============================================================================
 -- Seed: Ghir Laffaire — home appliances (brand #2)
 --
 -- This is the SECOND brand on the platform, alongside GLAIVE (gaming gear).
