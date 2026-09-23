@@ -1,20 +1,57 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Menu, X as XIcon, ChevronDown, Phone, Truck, Shield } from 'lucide-react'
-import { fetchCategories } from '@/lib/api'
+import { ShoppingBag, Menu, X as XIcon, ChevronDown, Truck, Shield, Home } from 'lucide-react'
 import { useCart } from '@/lib/cart'
 import { categoryIcon } from '@/lib/format'
+import { CATEGORIES, categoryBySlug, type Category } from '@/lib/taxonomy'
 import { BrandLogo } from './BrandLogo'
 import { SearchBox } from './SearchBox'
 
-const TOP_LINKS = [
-  { to: '/c/all',          label: 'Tout le matériel' },
-  { to: '/c/Headsets',     label: 'Casques' },
-  { to: '/c/Keyboards',    label: 'Claviers' },
-  { to: '/c/Mice',         label: 'Souris' },
-  { to: '/c/Controllers',  label: 'Manettes' },
+/**
+ * ── Navigation categories ─────────────────────────────────────────────────
+ *
+ * This strip used to hardcode `/c/Headsets`, `/c/Keyboards`, `/c/Mice` and
+ * `/c/Controllers`. None of those categories exists in this catalogue — all
+ * four led to an empty page. The mega menu and the mobile drawer had the
+ * opposite problem: they read `GET /categories`, which returns the single
+ * value `"Electromenager"` for all 567 products, so they offered exactly one
+ * tile with no navigational value.
+ *
+ * Both now read `CATEGORIES` from `@/lib/taxonomy` — the same derived taxonomy
+ * the catalogue, the filters and the icons use, so nav can never drift from
+ * the classification that decides what a product page actually contains.
+ *
+ * The top strip carries a subset; the footer carries all thirteen.
+ */
+
+/**
+ * The six largest buckets, MEASURED against the real 567-product catalogue:
+ * Cuisson 136 · Préparation culinaire 136 · Friture & Grill 49 ·
+ * Petit déjeuner 46 · Froid 35 · Lavage 33. Together they cover 435 of 567
+ * products (77%). The remaining seven live in the mega menu, the drawer and
+ * the footer — none of them is hidden.
+ *
+ * Resolved through `categoryBySlug` rather than re-typed: if a slug is ever
+ * renamed in `taxonomy.ts`, the link drops out of the strip instead of
+ * silently pointing at a dead route.
+ */
+const TOP_SLUGS = [
+  'cuisson',
+  'preparation',
+  'friture-grill',
+  'petit-dejeuner',
+  'froid',
+  'lavage',
+] as const
+
+const TOP_CATEGORIES: Category[] = TOP_SLUGS
+  .map(categoryBySlug)
+  .filter((c): c is Category => c !== undefined)
+
+const TOP_LINKS: { to: string; label: string }[] = [
+  { to: '/c/all', label: 'Tout le catalogue' },
+  ...TOP_CATEGORIES.map(c => ({ to: `/c/${c.slug}`, label: c.label })),
 ]
 
 export function Navbar() {
@@ -22,12 +59,6 @@ export function Navbar() {
   const [megaOpen, setMegaOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const megaRef = useRef<HTMLDivElement>(null)
-
-  const { data: cats } = useQuery({
-    queryKey: ['categories'],
-    queryFn: fetchCategories,
-    staleTime: 5 * 60_000,
-  })
 
   // Click-outside for mega menu
   useEffect(() => {
@@ -44,7 +75,7 @@ export function Navbar() {
       <div className="brand-stripe text-[11px] font-bold text-[var(--color-jet-black)] py-1.5 text-center tracking-wide flex items-center justify-center gap-6 flex-wrap px-4">
         <span className="flex items-center gap-1.5"><Truck size={12} /> LIVRAISON 48H · 58 WILAYAS</span>
         <span className="flex items-center gap-1.5"><Shield size={12} /> PAIEMENT À LA LIVRAISON</span>
-        <span className="flex items-center gap-1.5 hidden sm:flex"><Phone size={12} /> MATÉRIEL GAMING PRO · FOR GLORY</span>
+        <span className="flex items-center gap-1.5 hidden sm:flex"><Home size={12} /> ÉLECTROMÉNAGER POUR TOUTE LA MAISON</span>
       </div>
 
       {/* Main bar */}
@@ -62,7 +93,7 @@ export function Navbar() {
             </button>
 
             {/* Logo */}
-            <Link to="/" className="shrink-0" aria-label="GLAIVE — Accueil">
+            <Link to="/" className="shrink-0" aria-label="AMANATKOM — Accueil">
               <BrandLogo size={36} />
             </Link>
 
@@ -141,16 +172,15 @@ export function Navbar() {
                 >
                   <div className="max-w-[1400px] mx-auto glass-strong p-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                      {(cats?.items ?? []).map(c => (
+                      {CATEGORIES.map(c => (
                         <Link
-                          key={c.name}
-                          to={`/c/${encodeURIComponent(c.name)}`}
+                          key={c.slug}
+                          to={`/c/${c.slug}`}
                           onClick={() => setMegaOpen(false)}
-                          className="flex flex-col gap-1 px-3 py-3 rounded-xl border border-[var(--color-surface-4)] hover:border-[var(--color-electric-blue)]/50 hover:bg-[var(--color-surface-3)] transition-colors group"
+                          className="flex flex-col gap-2 px-3 py-3 rounded-xl border border-[var(--color-surface-4)] hover:border-[var(--color-electric-blue)]/50 hover:bg-[var(--color-surface-3)] transition-colors group"
                         >
-                          <span className="text-2xl">{categoryIcon(c.name)}</span>
-                          <span className="text-sm font-bold text-[var(--color-text-1)] truncate">{c.name}</span>
-                          <span className="text-[10px] text-[var(--color-text-3)] num">{c.count} produits</span>
+                          <span className="text-2xl text-[var(--color-electric-blue)]">{categoryIcon(c.slug)}</span>
+                          <span className="text-sm font-bold text-[var(--color-text-1)] leading-snug">{c.label}</span>
                         </Link>
                       ))}
                     </div>
@@ -188,21 +218,28 @@ export function Navbar() {
                 </button>
               </div>
               <nav className="flex-1 overflow-y-auto py-2">
-                <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-3)]">
+                <Link
+                  to="/c/all"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)]"
+                >
+                  <Menu size={18} className="text-[var(--color-electric-blue)]" />
+                  Tout le catalogue
+                </Link>
+                <div className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text-3)]">
                   Catégories
                 </div>
-                {(cats?.items ?? []).map(c => (
+                {CATEGORIES.map(c => (
                   <Link
-                    key={c.name}
-                    to={`/c/${encodeURIComponent(c.name)}`}
+                    key={c.slug}
+                    to={`/c/${c.slug}`}
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-3)]"
+                    className="flex items-center px-4 py-3 hover:bg-[var(--color-surface-3)]"
                   >
                     <span className="flex items-center gap-3 text-sm font-semibold text-[var(--color-text-1)]">
-                      <span className="text-lg">{categoryIcon(c.name)}</span>
-                      {c.name}
+                      <span className="text-lg text-[var(--color-electric-blue)]">{categoryIcon(c.slug)}</span>
+                      {c.label}
                     </span>
-                    <span className="text-[10px] num text-[var(--color-text-3)]">{c.count}</span>
                   </Link>
                 ))}
               </nav>

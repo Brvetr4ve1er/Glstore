@@ -1,16 +1,33 @@
 import { Link } from 'react-router-dom'
-import { Mail, Phone, MapPin, Truck, ShieldCheck, Sparkles } from 'lucide-react'
+import { Phone, MapPin, Truck, ShieldCheck, Home } from 'lucide-react'
+import { CATEGORIES } from '@/lib/taxonomy'
 import { BrandLogo } from './BrandLogo'
 
-const COLS: { title: string; links: { to: string; label: string }[] }[] = [
+interface FooterCol {
+  title: string
+  /** Renders across two grid tracks, in a two-column list. For long lists. */
+  wide?: boolean
+  links: { to: string; label: string }[]
+}
+
+/**
+ * The footer used to hardcode `/c/Headsets`, `/c/Keyboards`, `/c/Mice` and
+ * `/c/Controllers` — gaming categories that do not exist in this catalogue, so
+ * four of the five shop links led to an empty page.
+ *
+ * The shop column is now generated from `CATEGORIES` in `@/lib/taxonomy`, the
+ * same derived taxonomy the navbar and the catalogue use. All thirteen appear
+ * here — including `Autre`, which is a first-class bucket, not a bin to hide.
+ * The navbar promotes only the six largest; the footer is where the full map
+ * lives.
+ */
+const COLS: FooterCol[] = [
   {
-    title: 'Boutique',
+    title: 'Catégories',
+    wide: true,
     links: [
-      { to: '/c/all',         label: 'Tout le matériel' },
-      { to: '/c/Headsets',    label: 'Casques' },
-      { to: '/c/Keyboards',   label: 'Claviers' },
-      { to: '/c/Mice',        label: 'Souris' },
-      { to: '/c/Controllers', label: 'Manettes' },
+      { to: '/c/all', label: 'Tout le catalogue' },
+      ...CATEGORIES.map(c => ({ to: `/c/${c.slug}`, label: c.label })),
     ],
   },
   {
@@ -34,7 +51,7 @@ export function Footer() {
           {[
             { icon: Truck,       title: 'Livraison rapide',       desc: '48h à travers les 58 wilayas' },
             { icon: ShieldCheck, title: 'Paiement à la livraison', desc: 'Pas de surprise, payez sur place' },
-            { icon: Sparkles,    title: 'Matériel pro authentique', desc: 'Garantie 2 ans · qualité esport' },
+            { icon: Home,        title: 'Toute la maison',         desc: 'Cuisson, froid, lavage, entretien' },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-electric-blue)]/12 flex items-center justify-center shrink-0">
@@ -50,19 +67,26 @@ export function Footer() {
       </div>
 
       {/* Main footer */}
-      <div className="max-w-[1400px] mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-[1400px] mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div>
-          <BrandLogo size={36} showTagline />
+          <BrandLogo size={36} />
           <p className="text-xs text-[var(--color-text-3)] mt-4 leading-relaxed max-w-xs">
-            Matériel gaming de niveau esport, conçu avec et pour les joueurs. Livré vite en Algérie, garanti fiable. For Glory.
+            AMANATKOM — l’électroménager pour toute la maison, livré partout en Algérie.
+            Paiement à la livraison.
           </p>
         </div>
         {COLS.map(col => (
-          <div key={col.title}>
-            <h3 className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)] mb-3">
+          <div key={col.title} className={col.wide ? 'lg:col-span-2' : undefined}>
+            <h3 className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)] mb-3">
               {col.title}
             </h3>
-            <ul className="flex flex-col gap-2 text-sm text-[var(--color-text-2)]">
+            <ul
+              className={
+                col.wide
+                  ? 'grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[var(--color-text-2)]'
+                  : 'flex flex-col gap-2 text-sm text-[var(--color-text-2)]'
+              }
+            >
               {col.links.map(l => (
                 <li key={l.to}>
                   <Link to={l.to} className="link-underline hover:text-[var(--color-text-1)]">
@@ -74,19 +98,18 @@ export function Footer() {
           </div>
         ))}
         <div>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)] mb-3">
+          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-neon-yellow)] mb-3">
             Contact
           </h3>
           <ul className="flex flex-col gap-3 text-sm text-[var(--color-text-2)]">
             <li className="flex items-center gap-2"><Phone size={13} /> +213 …</li>
-            <li className="flex items-center gap-2"><Mail size={13} /> contact@glaive.dz</li>
             <li className="flex items-start gap-2"><MapPin size={13} className="mt-0.5" /> Alger, Algérie</li>
           </ul>
         </div>
       </div>
 
-      <div className="border-t border-[var(--color-surface-4)] py-5 text-center text-[10px] text-[var(--color-text-3)] uppercase tracking-[0.18em]">
-        © GLAIVE Gaming · For Glory
+      <div className="border-t border-[var(--color-surface-4)] py-5 text-center text-xs text-[var(--color-text-3)] uppercase tracking-[0.18em]">
+        © AMANATKOM · Bouakil Electro
       </div>
     </footer>
   )
