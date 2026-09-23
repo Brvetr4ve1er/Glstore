@@ -42,6 +42,7 @@ import { fmtMoney } from '@/lib/format'
 import { CategoryIcon, NoImageIllustration } from '@/lib/icons'
 import { categoryLabel, classifyProductName } from '@/lib/taxonomy'
 import { deriveTags } from '@/lib/tags'
+import { stockLevelOf } from '@/components/FilterSidebar'
 import { useCart } from '@/lib/cart'
 import { pushRecent } from '@/lib/recently-viewed'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -868,10 +869,15 @@ function StockBadge({ oos, available }: { oos: boolean; available: number }) {
       </span>
     )
   }
-  if (available <= 3) {
+  // Same threshold as the card and the filter -- one function, not three
+  // constants. Phrased as a fact ("il reste N") rather than manufactured
+  // urgency: the quantity is real, the exclamation mark was not, and a
+  // shop that shouts at a shopper over three units in stock is training
+  // them to disbelieve it.
+  if (stockLevelOf(available) === 'faible') {
     return (
-      <span className="badge bg-[var(--color-hot-pink)]/15 text-[var(--color-hot-pink)] border border-[var(--color-hot-pink)]/30">
-        Plus que {available} !
+      <span className="badge bg-[var(--color-accent)]/15 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+        Stock limité : il reste {available}
       </span>
     )
   }

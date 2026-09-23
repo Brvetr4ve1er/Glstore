@@ -75,13 +75,31 @@ export const SANS_MARQUE = 'Sans marque'
 export type StockLevel = '' | 'normal' | 'faible' | 'rupture'
 
 /**
- * Boundary between "faible" and "normal", in units.
+ * Boundary between "faible" and "normal", in units. ZERO disables the tier.
  *
- * Matches the two places a shopper already sees the warning — `lib/tags.ts:42`
- * and `ProductDetail.tsx:507` both use `available <= 3` for "Plus que N !" — so
- * the filter agrees with the badges on the cards next to it.
+ * It was 3, chosen to match `lib/tags.ts` and `ProductDetail.tsx`, which both
+ * hardcoded `available <= 3`. Measured against the real 567-product catalogue,
+ * that is indefensible:
+ *
+ *     available = 0 ....  38 products  (  6.7% )
+ *     available = 1 ... 338 products  ( 59.6% )
+ *     available = 2 ... 110 products  ( 19.4% )
+ *     available = 3 ...  31 products  (  5.5% )
+ *
+ * A threshold of 3 marks 479 of 567 products (84.5%) as low stock. A
+ * threshold of 1 still marks 338 (59.6%). An appliance retailer stocks
+ * fridges and ovens one or two deep -- that is ordinary inventory, not
+ * scarcity.
+ *
+ * So a "low stock" badge here is a false urgency signal on most of the shop,
+ * and a facet that returns 85% of the catalogue narrows nothing. Both are
+ * worse than not having the feature. The tier is therefore OFF, and stock is
+ * binary: available, or `rupture` (38 products, 6.7% -- real and actionable).
+ *
+ * Set this above 0 if a future catalogue actually has depth. Card, filter and
+ * detail page all read `stockLevelOf`, so they will follow automatically.
  */
-export const LOW_STOCK_MAX = 3
+export const LOW_STOCK_MAX = 0
 
 export interface FilterState {
   /** A real brand name, `SANS_MARQUE`, or `''` for all. */
@@ -165,7 +183,9 @@ export interface FilterableProduct {
 export function stockLevelOf(available: number | null | undefined): Exclude<StockLevel, ''> {
   const n = available ?? 0
   if (n <= 0) return 'rupture'
-  if (n <= LOW_STOCK_MAX) return 'faible'
+  // LOW_STOCK_MAX is 0 for this catalogue, so this never fires. See its
+  // docblock for the distribution that made the tier misleading.
+  if (LOW_STOCK_MAX > 0 && n <= LOW_STOCK_MAX) return 'faible'
   return 'normal'
 }
 
@@ -554,14 +574,9 @@ export function FilterSidebar({ state, onChange, onClose, drawer }: Props) {
               label="Stock normal"
               count={stockCounts?.normal ?? null}
             />
-            <RadioRow
-              id={`${uid}-stock-faible`}
-              name={`${uid}-stock`}
-              checked={stockValue === 'faible'}
-              onSelect={() => onChange({ ...state, inStockOnly: true, stock: 'faible' })}
-              label="Stock faible"
-              count={stockCounts?.faible ?? null}
-            />
+            {/* No "Stock faible" option: with LOW_STOCK_MAX = 0 the tier is
+                empty by construction, and offering a facet that always returns
+                zero is worse than offering none. See LOW_STOCK_MAX. */}
             <RadioRow
               id={`${uid}-stock-rupture`}
               name={`${uid}-stock`}
@@ -572,8 +587,7 @@ export function FilterSidebar({ state, onChange, onClose, drawer }: Props) {
             />
           </fieldset>
           <p className="text-xs text-[var(--color-text-3)] mt-2.5 leading-relaxed">
-            Calculé sur les quantités réellement disponibles — stock faible à
-            partir de {LOW_STOCK_MAX} pièces ou moins.
+            Calculé sur les quantités réellement disponibles.
           </p>
         </Section>
 

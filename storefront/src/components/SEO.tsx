@@ -21,7 +21,7 @@ interface SEOProps {
 }
 
 const DEFAULT_DESC = 'Matériel gaming pro en Algérie — casques, claviers, souris, manettes. Livraison rapide. Paiement à la livraison.'
-const SITE_NAME = 'GLAIVE'
+const SITE_NAME = 'AMANATKOM'
 
 export function SEO({
   title, description, image, url, type = 'website', noIndex,

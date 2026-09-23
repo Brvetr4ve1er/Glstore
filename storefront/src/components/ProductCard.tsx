@@ -29,10 +29,13 @@
  * shop, so any absolute threshold invents urgency the merchant never claimed:
  * `≤ 5` (what this card used to do) flags 512 products, `≤ 1` still flags 338.
  *
- * So `LOW_STOCK_AT` defaults to 1 and the low state is rendered **calm** —
- * neutral chip, no pink, no countdown — and `lowStockAt={0}` turns it off
- * entirely. When the API starts exposing the merchant's own `Statut Stock`,
- * pass `stock` explicitly and the derivation steps aside.
+ * That reasoning held, and the threshold has since gone to ZERO: at 1 it
+ * still flagged 338 of 567 products, so the tier is off entirely and stock is
+ * binary here. The card no longer owns a threshold at all -- it calls
+ * `stockLevelOf`, the same function the filter counts with, so the two cannot
+ * disagree. See LOW_STOCK_MAX in FilterSidebar for the distribution.
+ * When the API starts exposing the merchant's own `Statut Stock`, pass
+ * `stock` explicitly and the derivation steps aside.
  */
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -41,6 +44,7 @@ import { fmtMoney, NoImageIllustration } from '@/lib/format'
 import { deriveTags, type TagTone } from '@/lib/tags'
 import type { ProductListItem } from '@/lib/api'
 import { Tag } from './ui'
+import { stockLevelOf } from './FilterSidebar'
 
 /** Merchandising flag from `products.badge` (db/migrations/008_merchandising.sql). */
 export type ProductBadge = 'NEW' | 'BEST_SELLER' | 'PRO' | 'SALE'
@@ -69,13 +73,23 @@ function readBadge(p: ProductListItem): ProductBadge | null {
   return BADGES.find((b) => b === raw) ?? null
 }
 
-/** Below (and including) this quantity the card calls the stock low. See header. */
-const LOW_STOCK_AT = 1
-
-function deriveStock(available: number, lowAt: number): StockState {
-  if (available <= 0) return 'rupture'
-  if (lowAt > 0 && available <= lowAt) return 'faible'
-  return 'normal'
+/**
+ * Low stock is NOT defined here.
+ *
+ * This file used to own `LOW_STOCK_AT = 1` while FilterSidebar owned
+ * `LOW_STOCK_MAX = 3` and ProductDetail hardcoded `<= 3`. A product with
+ * `available = 3` was therefore counted under the sidebar's "Stock faible"
+ * facet, rendered with a green dot and "En stock" on every card in the
+ * result it produced, and then shouted "Plus que 3 !" on the detail page.
+ * The filter contradicted its own grid.
+ *
+ * Three constants that must agree will eventually disagree, so there is
+ * now one function. `stockLevelOf` is the same call the filter uses to
+ * build its counts, which makes card and facet agree by construction
+ * rather than by two people remembering to edit both.
+ */
+function deriveStock(available: number): StockState {
+  return stockLevelOf(available)
 }
 
 interface ProductCardProps {
@@ -92,8 +106,6 @@ interface ProductCardProps {
    * here once the API exposes it.
    */
   stock?: StockState
-  /** Quantity at or below which stock reads "low". `0` disables the state. */
-  lowStockAt?: number
 }
 
 export function ProductCard({
@@ -101,7 +113,6 @@ export function ProductCard({
   size = 'md',
   badge,
   stock,
-  lowStockAt = LOW_STOCK_AT,
 }: ProductCardProps) {
   // Inventory chips and the brand chip are the card's own job now — see header.
   const inventoryLabels = new Set([`Plus que ${p.available} en stock`, 'Bientôt de retour'])
@@ -112,7 +123,7 @@ export function ProductCard({
     .slice(0, 3)
 
   const flag = badge !== undefined ? badge : readBadge(p)
-  const state = stock ?? deriveStock(p.available, lowStockAt)
+  const state = stock ?? deriveStock(p.available)
   const oos = state === 'rupture'
 
   return (
