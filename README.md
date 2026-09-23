@@ -1,7 +1,13 @@
-# Ghir Laffaire — Commerce Intelligence Platform
+# AMANATKOM — Commerce Intelligence Platform
 
 > *Fast. Reliable. Yours.*
 > Inspired by Shibuya punk · Built for Algeria.
+
+**AMANATKOM is the platform.** It hosts several brands you own — one row in
+`stores` per brand, each with its own domain, catalog, theme, pricing and order
+numbering, all managed from one login. Today those are **GLAIVE** (gaming gear)
+and **Ghir Laffaire** (home appliances). It is not a marketplace: no
+third-party vendors, no commissions, no payouts.
 
 A unified e-commerce backend + admin console + intelligence engine for the Algerian consumer-electronics market. Ingests messy supplier CSVs, normalises them through a deterministic enrichment brain, and exposes the result through a punk-styled React 19 admin dashboard.
 
