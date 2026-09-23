@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Package, ShoppingCart, LogOut, Sparkles, Stethoscope, Settings as SettingsIcon, Activity, Network, Images, Store as StoreIcon, ChevronsUpDown,
+  MessageSquareText, Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
@@ -15,6 +16,8 @@ const NAV = [
   { to: '/products/issues',   label: 'Catalog Quality', icon: Stethoscope },
   { to: '/images',            label: 'Image Review',    icon: Images },
   { to: '/orders',            label: 'Orders',          icon: ShoppingCart },
+  { to: '/reviews',           label: 'Reviews',         icon: MessageSquareText },
+  { to: '/contact-messages',  label: 'Messages',        icon: Mail },
   { to: '/jobs',              label: 'Jobs Console',    icon: Activity },
   { to: '/graph',             label: 'Catalog Graph',   icon: Network },
   { to: '/settings',          label: 'Settings',        icon: SettingsIcon },

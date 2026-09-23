@@ -38,6 +38,7 @@ import { fetchFeatured, fetchProducts, type ProductListItem } from '@/lib/api'
 import { CategoryIcon, fmtNumber } from '@/lib/format'
 import { CATEGORIES, countByCategory } from '@/lib/taxonomy'
 import { ProductCard } from '@/components/ProductCard'
+import { HomeBadgeRail } from '@/components/HomeBadgeRail'
 import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/ScrollReveal'
 import { Button, EmptyState } from '@/components/ui'
 import { SearchBox } from '@/components/SearchBox'
@@ -296,6 +297,15 @@ export default function Home() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* ── Merchandising rails ──
+          No product carries a badge yet (it's an admin-assigned field with no
+          default), so both render nothing today — see HomeBadgeRail.tsx. They
+          switch on the moment an admin badges a product; no redeploy needed. */}
+      <div className="max-w-[1400px] mx-auto px-6">
+        <HomeBadgeRail badge="NEW" title="Nouveautés" />
+        <HomeBadgeRail badge="BEST_SELLER" title="Meilleures ventes" />
+      </div>
 
       {/* ── Featured products ── */}
       <section className="max-w-[1400px] mx-auto px-6 mb-20">

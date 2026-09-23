@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Phone, MapPin, Truck, ShieldCheck, Home } from 'lucide-react'
+import { MapPin, Truck, ShieldCheck, Home } from 'lucide-react'
 import { CATEGORIES } from '@/lib/taxonomy'
 import { BrandLogo } from './BrandLogo'
+import { NewsletterForm } from './NewsletterForm'
 
 interface FooterCol {
   title: string
@@ -31,13 +32,16 @@ const COLS: FooterCol[] = [
     ],
   },
   {
+    // The 3 links this replaced (/help/livraison, /help/garantie,
+    // /help/retours) pointed at pages that were never built and would 404 —
+    // a delivery-time page, a warranty page and a returns page all need
+    // real policy terms this codebase does not have, so building them
+    // would mean inventing claims. Left out rather than faked.
     title: 'Service',
     links: [
-      { to: '/order/track',    label: 'Suivre ma commande' },
-      { to: '/help/livraison', label: 'Livraison' },
-      { to: '/help/garantie',  label: 'Garantie' },
-      { to: '/help/retours',   label: 'Retours' },
-      { to: '/help/contact',   label: 'Contact' },
+      { to: '/order/track', label: 'Suivre ma commande' },
+      { to: '/faq',          label: 'Questions fréquentes' },
+      { to: '/contact',      label: 'Contact' },
     ],
   },
 ]
@@ -49,7 +53,7 @@ export function Footer() {
       <div className="bg-[var(--color-surface-1)]">
         <div className="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: Truck,       title: 'Livraison rapide',       desc: '48h à travers les 58 wilayas' },
+            { icon: Truck,       title: 'Livraison',              desc: 'Dans les 58 wilayas' },
             { icon: ShieldCheck, title: 'Paiement à la livraison', desc: 'Pas de surprise, payez sur place' },
             { icon: Home,        title: 'Toute la maison',         desc: 'Cuisson, froid, lavage, entretien' },
           ].map(({ icon: Icon, title, desc }) => (
@@ -74,6 +78,7 @@ export function Footer() {
             AMANATKOM — l’électroménager pour toute la maison, livré partout en Algérie.
             Paiement à la livraison.
           </p>
+          <NewsletterForm className="mt-5 max-w-xs" />
         </div>
         {COLS.map(col => (
           <div key={col.title} className={col.wide ? 'lg:col-span-2' : undefined}>
@@ -102,8 +107,12 @@ export function Footer() {
             Contact
           </h3>
           <ul className="flex flex-col gap-3 text-sm text-[var(--color-text-2)]">
-            <li className="flex items-center gap-2"><Phone size={13} /> +213 …</li>
-            <li className="flex items-start gap-2"><MapPin size={13} className="mt-0.5" /> Alger, Algérie</li>
+            <li className="flex items-start gap-2"><MapPin size={13} className="mt-0.5" /> Algérie · 58 wilayas</li>
+            <li>
+              <Link to="/contact" className="link-underline hover:text-[var(--color-text-1)] font-bold">
+                Nous contacter
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

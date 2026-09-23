@@ -29,6 +29,8 @@ const OrderDetail  = lazy(() => import('@/pages/OrderDetail'))
 const ProductImageReview = lazy(() => import('@/pages/ImageReview'))
 const GlobalImageQueue   = lazy(() => import('@/pages/ImageReview').then(m => ({ default: m.GlobalImageQueue })))
 const ThemeStudio        = lazy(() => import('@/pages/ThemeStudio'))
+const ReviewQueue        = lazy(() => import('@/pages/ReviewQueue'))
+const ContactInbox       = lazy(() => import('@/pages/ContactInbox'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthed } = useAuth()
@@ -76,6 +78,8 @@ function AppRoutes() {
             <Route path="graph"           element={<CatalogGraph />} />
             <Route path="settings"        element={<Settings />} />
             <Route path="settings/theme"  element={<ThemeStudio />} />
+            <Route path="reviews"         element={<ReviewQueue />} />
+            <Route path="contact-messages" element={<ContactInbox />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

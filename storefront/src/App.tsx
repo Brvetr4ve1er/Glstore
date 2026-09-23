@@ -19,6 +19,8 @@ const Cart              = lazy(() => import('@/pages/Cart'))
 const Checkout          = lazy(() => import('@/pages/Checkout'))
 const OrderConfirmation = lazy(() => import('@/pages/OrderConfirmation'))
 const OrderTracking     = lazy(() => import('@/pages/OrderTracking'))
+const Contact           = lazy(() => import('@/pages/Contact'))
+const Faq                = lazy(() => import('@/pages/Faq'))
 const NotFound          = lazy(() => import('@/pages/NotFound'))
 
 
@@ -50,6 +52,8 @@ function RoutedShell() {
               <Route path="/checkout"                  element={<Checkout />} />
               <Route path="/order/confirmation/:id"    element={<OrderConfirmation />} />
               <Route path="/order/track"               element={<OrderTracking />} />
+              <Route path="/contact"                   element={<Contact />} />
+              <Route path="/faq"                       element={<Faq />} />
               <Route path="*"                          element={<NotFound />} />
             </Routes>
           </Suspense>
