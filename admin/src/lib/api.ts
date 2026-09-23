@@ -104,6 +104,7 @@ export const login = (email: string, password: string) =>
   req<TokenOut>('POST', '/auth/login', { email, password })
 
 // ── Products ──────────────────────────────────────────────────
+export type ProductBadge = 'NEW' | 'BEST_SELLER' | 'PRO' | 'SALE'
 export interface ProductListItem {
   id: string; sku: string; slug: string; name: string
   brand: string | null; category: string | null
@@ -112,6 +113,7 @@ export interface ProductListItem {
   min_price: number | null
   available: number
   specs: Record<string, unknown>
+  badge?: ProductBadge | null
 }
 export interface ProductListResult {
   items: ProductListItem[]
@@ -127,6 +129,7 @@ export interface ProductDetail extends ProductListItem {
   model: string | null; subcategory: string | null; description: string | null
   status: string; updated_at: string
   barcode: string | null; mpn: string | null
+  badge?: ProductBadge | null
   offers: Offer[]
   media: MediaItem[]
 }
@@ -168,6 +171,10 @@ export interface ProductInput {
 }
 export interface ProductPatchInput extends Partial<ProductInput> {
   status?: 'RAW' | 'NORMALIZED' | 'CLASSIFIED' | 'VERIFIED' | 'ACTIVE' | 'NEEDS_FIX' | 'ARCHIVED'
+  // Send an explicit `null` to CLEAR a badge -- the field must be present
+  // in the PATCH body, not omitted, since the API only updates fields it
+  // actually receives (`exclude_unset` on the Pydantic side).
+  badge?: ProductBadge | null
 }
 export interface OfferPatchInput extends Partial<OfferInput> {
   is_active?: boolean
