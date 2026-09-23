@@ -285,6 +285,37 @@ body {
 }
 .crown-bounce { animation: crown-bounce 1.8s ease-in-out infinite; }
 
+/* ── Category tile motion (CategoryTile.tsx) ───────────────
+   One calm accent movement per premium category icon — a highlight sweep,
+   a pulse, a slow spin, a drifting dash, a small slide. Durations sit in
+   the 2.8s–4.2s band on purpose: fast enough to read as alive, slow enough
+   to read as premium rather than busy. All five fold into the global
+   `prefers-reduced-motion: reduce` rule above — nothing extra needed here. */
+@keyframes tile-sheen {
+  0%, 16%   { transform: translateX(-14px); opacity: 0; }
+  36%, 62%  { opacity: .9; }
+  86%, 100% { transform: translateX(18px); opacity: 0; }
+}
+.tile-sheen { stroke: rgba(255,255,255,.75); stroke-width: 4; stroke-linecap: round; animation: tile-sheen 3.8s cubic-bezier(.2,.8,.2,1) infinite; }
+
+@keyframes tile-pulse {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  48%      { opacity: 1;   transform: scale(1.1); }
+}
+.tile-pulse { transform-origin: center; animation: tile-pulse 3.4s cubic-bezier(.2,.8,.2,1) infinite; }
+
+@keyframes tile-spin { to { transform: rotate(360deg); } }
+.tile-spin { transform-origin: center; animation: tile-spin 4.2s linear infinite; }
+
+@keyframes tile-dash { to { stroke-dashoffset: -56; } }
+.tile-air { stroke-dasharray: 18 10; animation: tile-dash 3.4s linear infinite; }
+
+@keyframes tile-slide {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(5px); }
+}
+.tile-slide { animation: tile-slide 3.2s cubic-bezier(.2,.8,.2,1) infinite; }
+
 /* ── Underline link ─────────────────────────────────────── */
 .link-underline {
   position: relative;

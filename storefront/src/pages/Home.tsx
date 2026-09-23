@@ -35,10 +35,11 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArrowRight, LayoutGrid, PackageCheck, Store, Truck, Wallet } from 'lucide-react'
 import { fetchFeatured, fetchProducts, type ProductListItem } from '@/lib/api'
-import { CategoryIcon, fmtNumber } from '@/lib/format'
+import { fmtNumber } from '@/lib/format'
 import { CATEGORIES, countByCategory } from '@/lib/taxonomy'
 import { ProductCard } from '@/components/ProductCard'
 import { HomeBadgeRail } from '@/components/HomeBadgeRail'
+import { CategoryTile } from '@/components/CategoryTile'
 import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/ScrollReveal'
 import { Button, EmptyState } from '@/components/ui'
 import { SearchBox } from '@/components/SearchBox'
@@ -249,9 +250,11 @@ export default function Home() {
                     n === 0 ? 'opacity-60' : '',
                   ].join(' ')}
                 >
-                  <span className="w-14 h-14 rounded-2xl bg-[var(--color-electric-blue)]/10 text-[var(--color-electric-blue)] flex items-center justify-center transition-transform group-hover:scale-110">
-                    <CategoryIcon category={cat.slug} size={28} />
-                  </span>
+                  <CategoryTile
+                    slug={cat.slug}
+                    size={56}
+                    className="transition-transform group-hover:scale-110"
+                  />
                   <span className="text-sm font-bold text-[var(--color-text-1)] leading-tight line-clamp-2">
                     {cat.label}
                   </span>
