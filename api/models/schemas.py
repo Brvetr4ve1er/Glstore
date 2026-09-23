@@ -47,6 +47,9 @@ class ProductPatch(BaseModel):
     mpn: str | None = None
     ean: str | None = None
     status: Literal["RAW", "NORMALIZED", "CLASSIFIED", "VERIFIED", "ACTIVE", "NEEDS_FIX", "ARCHIVED"] | None = None
+    # Merchandising flag (migration 008). Nullable on purpose: sending
+    # `"badge": null` clears it, which is how a merchant un-badges a product.
+    badge: Literal["NEW", "BEST_SELLER", "PRO", "SALE"] | None = None
 
 
 class ProductOut(ProductBase):

@@ -15,7 +15,7 @@ from api.core.db import SessionLocal, engine
 from api.core.logging import bind_request_id, setup_logging
 from api.core.migrations import MigrationLockBusy, run_pending_migrations
 from api.core.ratelimit import RateLimiter, client_key
-from api.routes import auth, catalog, enrichment, events, health, images, intel, issues, jobs, orders, products, products_import, public_orders, scraper, settings as settings_route, stores
+from api.routes import auth, catalog, enrichment, events, health, images, intel, issues, jobs, newsletter, orders, products, products_import, public_orders, reviews, scraper, settings as settings_route, stores
 
 # Structured JSON logging — all lines on stdout, request_id flows via
 # ContextVar so handlers don't have to thread it through every call.
@@ -181,6 +181,11 @@ app.include_router(catalog.router, prefix="/api/v1")
 # /images/pending — register before products.router so the static segments
 # don't get caught by /products/{product_id}.
 app.include_router(images.router, prefix="/api/v1")
+# reviews adds /products/{id}/reviews. Three segments, so it cannot be
+# swallowed by /products/{product_id} — but it is registered alongside images
+# for the same reason: everything that hangs off /products goes before the
+# dynamic catcher, so the ordering rule stays one rule instead of two.
+app.include_router(reviews.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(products_import.router, prefix="/api/v1")
 app.include_router(enrichment.router, prefix="/api/v1")
@@ -190,6 +195,7 @@ app.include_router(settings_route.router, prefix="/api/v1")
 app.include_router(settings_route.public_router, prefix="/api/v1")
 app.include_router(scraper.router, prefix="/api/v1")
 app.include_router(public_orders.router, prefix="/api/v1")
+app.include_router(newsletter.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(intel.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")

@@ -130,10 +130,23 @@ async def list_products(
         text(
             f"""
             SELECT id, sku, slug, name, brand, category, specs,
-                   completeness_score, status, primary_image, min_price, available
+                   completeness_score, status, primary_image, min_price, available,
+                   badge, avg_rating, review_count
               FROM (
                 SELECT p.id, p.sku, p.slug, p.name, p.brand, p.category,
                        p.specs, p.completeness_score, p.status, p.updated_at,
+                       p.badge,
+                       -- Reviews are store-scoped, so the store is pinned
+                       -- EXPLICITLY here rather than relying on product_id
+                       -- being unique. Keyed on product_id alone this is
+                       -- correct today and silently wrong the first time an
+                       -- id is ever shared across brands.
+                       (SELECT ROUND(AVG(r.rating)::numeric, 2) FROM reviews r
+                         WHERE r.product_id = p.id AND r.store_id = p.store_id
+                           AND r.status = 'APPROVED') AS avg_rating,
+                       (SELECT COUNT(*) FROM reviews r
+                         WHERE r.product_id = p.id AND r.store_id = p.store_id
+                           AND r.status = 'APPROVED') AS review_count,
                        (SELECT url FROM product_media m
                          WHERE m.product_id = p.id AND m.is_primary AND m.status = 'STORED'
                          LIMIT 1) AS primary_image,
@@ -160,6 +173,9 @@ async def list_products(
             "primary_image": r[9],
             "min_price": r[10],
             "available": r[11] or 0,
+            "badge": r[12],
+            "avg_rating": float(r[13]) if r[13] is not None else None,
+            "review_count": r[14] or 0,
         }
         for r in rows.all()
     ]
@@ -193,7 +209,18 @@ async def get_product(
             """
             SELECT id, sku, slug, name, brand, model, category, subcategory,
                    description, specs, status, completeness_score, updated_at,
-                   barcode, mpn
+                   barcode, mpn,
+                   -- Appended at the END so every existing positional index
+                   -- below keeps its meaning.
+                   badge,
+                   (SELECT ROUND(AVG(r.rating)::numeric, 2) FROM reviews r
+                     WHERE r.product_id = products.id
+                       AND r.store_id = products.store_id
+                       AND r.status = 'APPROVED') AS avg_rating,
+                   (SELECT COUNT(*) FROM reviews r
+                     WHERE r.product_id = products.id
+                       AND r.store_id = products.store_id
+                       AND r.status = 'APPROVED') AS review_count
               FROM products WHERE id = :id AND store_id = :store_id
             """
         ),
@@ -252,6 +279,9 @@ async def get_product(
         "description": p[8], "specs": p[9], "status": p[10],
         "completeness_score": float(p[11]), "updated_at": p[12],
         "barcode": p[13], "mpn": p[14],
+        "badge": p[15],
+        "avg_rating": float(p[16]) if p[16] is not None else None,
+        "review_count": p[17] or 0,
         "offers": offers, "media": media,
     }
 
