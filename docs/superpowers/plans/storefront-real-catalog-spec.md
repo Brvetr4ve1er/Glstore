@@ -4,26 +4,36 @@
 source of truth for the data, the taxonomy and the constraints. Do not design
 against assumptions; the numbers below were measured, not estimated.
 
-## Working assumption — which brand this storefront is
+## The brand — CONFIRMED
 
-**This storefront is the appliance brand (Ghir Laffaire), not GLAIVE.**
+**This storefront is BOUAKIL ELECTRO, the real business.**
 
-The catalogue is 567 home appliances — GEANT, MIDEA, TEFAL, MOULINEX, air
-coolers, pétrins, réfrigérateurs. The live storefront is currently GLAIVE
-gaming gear: "JOUE POUR GAGNER", `/c/Headsets`, `/c/Keyboards`, punk-stripe,
-neon-yellow. Building an appliance shop under a gaming brand would be
-incoherent.
+Confirmed by the owner. GLAIVE (gaming) and Ghir Laffaire (appliances) were
+placeholders. Bouakil Electro is the actual retailer, and this 567-product
+appliance catalogue is its actual stock.
 
-This is the multi-brand architecture doing exactly what it was built for:
-`stores.theme` is per store and the storefront already boots its palette from
-`GET /storefront/theme`. **GLAIVE stays exactly as built.** Nothing in
-`db/seed_gaming.sql`, `db/seed_glaive_starter.sql` or the GLAIVE theme is
-touched.
+Structure, unchanged:
 
-> **Open, not blocking:** the CSV is named "bouakil electro". If Bouakil Electro
-> is the real business and GLAIVE / Ghir Laffaire were placeholders, that is the
-> store name and the hero copy. Assume Ghir Laffaire until told otherwise —
-> it changes `stores` seeding and copy, not architecture.
+```
+AMANATKOM            the platform  (admin console, app_name, deployment)
+  └── Bouakil Electro   the real store  ← this storefront
+```
+
+What this means for copy, concretely:
+
+- The shop is named **Bouakil Electro** — hero, footer, page titles, SEO.
+- It sells **home appliances** in Algeria: DZD, 58 wilayas, cash on delivery.
+- The GLAIVE gaming identity does not appear anywhere on this storefront.
+  "JOUE POUR GAGNER", `/c/Headsets`, `/c/Keyboards` are all wrong here.
+- **Do not invent claims.** No "25 years", no "#1 in Algeria", no warranty
+  terms, no delivery promises beyond the ones already in the codebase
+  (58 wilayas, paiement à la livraison). If you want a claim and cannot source
+  it from existing code, leave it out — the owner supplies real ones.
+
+**GLAIVE stays exactly as built.** Nothing in `db/seed_gaming.sql`,
+`db/seed_glaive_starter.sql` or the GLAIVE theme is touched. This is the
+multi-brand architecture doing its job: `stores.theme` is per store and the
+storefront already boots its palette from `GET /storefront/theme`.
 
 ## The data — measured, not assumed
 
