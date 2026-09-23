@@ -24,22 +24,28 @@
  * `classifyProductName()`; and `Rupture` is 6.7% of the catalogue, so
  * out-of-stock is a designed state, not an edge case.
  *
- * Reviews (migration 008) are wired read-only. 567/567 products have zero
- * today, so the zero state is a quiet verified line inside the fiche rather
- * than an empty "Avis" section shouting on every page.
+ * Reviews (migration 008) are wired read AND write: the list is read-only
+ * (an approved review can't be edited from here), but a labelled
+ * "Laisser un avis" form (see `ReviewForm` below) lets a shopper submit one.
+ * Every submission lands PENDING — nothing in the visible list changes until
+ * an admin approves it, so the form reports success via the API's own
+ * message rather than inserting an optimistic row. 567/567 products have
+ * zero approved reviews today, so the zero state stays a quiet verified line
+ * inside the fiche rather than an empty "Avis" section shouting on every
+ * page — the form supplements that line, it does not replace it.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check, ShoppingBag, Truck, ShieldCheck, Sparkles, AlertTriangle,
-  Minus, Plus, ThumbsUp, ThumbsDown, Quote, Star, Info,
+  Minus, Plus, ThumbsUp, ThumbsDown, Quote, Star, Info, Send, CheckCircle2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
-  fetchProduct, fetchProducts, fetchReviews,
-  type ProductDetail,
+  fetchProduct, fetchProducts, fetchReviews, submitReview,
+  type ProductDetail, type ReviewSubmission,
 } from '@/lib/api'
 import { fmtMoney } from '@/lib/format'
 import { CategoryIcon, NoImageIllustration } from '@/lib/icons'
@@ -52,7 +58,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ProductGallery } from '@/components/ProductGallery'
 import { ProductCard } from '@/components/ProductCard'
 import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/ScrollReveal'
-import { Button, Tag, EmptyState } from '@/components/ui'
+import { Button, Input, Textarea, Tag, EmptyState } from '@/components/ui'
 import { SEO } from '@/components/SEO'
 
 // Reviews client moved to `lib/api.ts` (`fetchReviews` / `submitReview` /
@@ -672,8 +678,9 @@ export default function ProductDetailPage() {
       </section>
 
       {/* ── Avis clients ──
-          Rendered only once approved reviews exist. Read-only by design: a
-          submission form would put an unlabelled input on 567 pages. */}
+          The list is rendered only once approved reviews exist; the
+          "Laisser un avis" form right below it (or below the fiche, when
+          this block is absent) is what actually collects them. */}
       {reviewItems.length > 0 && (
         <section id="avis" className="mt-16 sm:mt-20">
           <ScrollReveal variant="fade-up-sm">
@@ -716,6 +723,18 @@ export default function ProductDetailPage() {
           </div>
         </section>
       )}
+
+      {/* ── Laisser un avis ──
+          Always rendered — below the reviews list when it exists, below the
+          Fiche produit's "Aucun avis publié" line when it doesn't. Every
+          submission lands PENDING (migration 008): nothing in the list above
+          changes on success, so the form reports the API's own confirmation
+          message instead of inserting an optimistic review card. */}
+      <section className="mt-14 sm:mt-16">
+        <ScrollReveal variant="fade-up-sm">
+          <ReviewForm productId={p.id} />
+        </ScrollReveal>
+      </section>
 
       {/* ── Related products ── */}
       {relatedItems.length > 0 && (
@@ -828,6 +847,216 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
       ))}
       <span className="sr-only">{value.toFixed(1)} sur 5</span>
     </span>
+  )
+}
+
+
+/**
+ * "Laisser un avis" — submits via `submitReview` (migration 008). Every
+ * submission lands PENDING: success is reported through the API's own
+ * `message`, never by inserting a fake review card into the list above.
+ */
+function ReviewForm({ productId }: { productId: string }) {
+  const uid = useId()
+  const [name, setName] = useState('')
+  const [rating, setRating] = useState(0)
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [fieldError, setFieldError] = useState<string | null>(null)
+
+  const mut = useMutation({
+    mutationFn: (dto: ReviewSubmission) => submitReview(productId, dto),
+  })
+
+  function resetForm() {
+    setName('')
+    setRating(0)
+    setTitle('')
+    setBody('')
+    setFieldError(null)
+    mut.reset()
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      setFieldError('Votre nom est requis.')
+      return
+    }
+    if (rating < 1 || rating > 5) {
+      setFieldError('Choisissez une note d’une à cinq étoiles.')
+      return
+    }
+    setFieldError(null)
+    mut.mutate({
+      customer_name: trimmedName,
+      rating,
+      title: title.trim() || undefined,
+      body: body.trim() || undefined,
+    })
+  }
+
+  return (
+    <div className="glass p-6 sm:p-8 max-w-2xl">
+      <h2 className="font-display text-xl md:text-2xl font-black text-[var(--color-text-1)] mb-1">
+        Laisser un avis
+      </h2>
+      <p className="text-xs text-[var(--color-text-3)] mb-5 leading-relaxed">
+        Votre avis sera vérifié avant d’apparaître sur la fiche.
+      </p>
+
+      <AnimatePresence mode="wait">
+        {mut.isSuccess ? (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center text-center gap-3 py-6"
+          >
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
+              <CheckCircle2 size={26} className="text-emerald-400" />
+            </div>
+            <p className="text-sm font-bold text-[var(--color-text-1)] max-w-sm">
+              {mut.data.message}
+            </p>
+            <Button variant="outline" size="sm" onClick={resetForm}>
+              Laisser un autre avis
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.form
+            key="form"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onSubmit={onSubmit}
+            noValidate
+            className="flex flex-col gap-4"
+          >
+            <StarRatingField id={`${uid}-rating`} value={rating} onChange={setRating} />
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor={`${uid}-name`}
+                className="text-xs font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]"
+              >
+                Nom *
+              </label>
+              <Input
+                id={`${uid}-name`}
+                autoComplete="name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Votre nom"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor={`${uid}-title`}
+                className="text-xs font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]"
+              >
+                Titre
+              </label>
+              <Input
+                id={`${uid}-title`}
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Résumez votre avis en quelques mots"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor={`${uid}-body`}
+                className="text-xs font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]"
+              >
+                Commentaire
+              </label>
+              <Textarea
+                id={`${uid}-body`}
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                placeholder="Qu’avez-vous pensé de ce produit ?"
+                rows={4}
+              />
+            </div>
+
+            {(fieldError || mut.isError) && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-hot-pink)]/30 bg-[var(--color-hot-pink)]/10 p-3.5">
+                <AlertTriangle size={15} className="text-[var(--color-hot-pink)] mt-0.5 shrink-0" />
+                <p className="text-xs text-[var(--color-text-2)] leading-relaxed">
+                  {fieldError ?? (mut.error as Error).message ?? 'Une erreur est survenue. Réessayez.'}
+                </p>
+              </div>
+            )}
+
+            <Button type="submit" variant="accent" size="lg" loading={mut.isPending} className="mt-1 w-fit">
+              <Send size={14} /> Envoyer mon avis
+            </Button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+
+/**
+ * The star rating input — a real, labelled radiogroup (fieldset/legend + five
+ * radio inputs, each with its own `htmlFor`/`id` pair), not a row of clickable
+ * `<div>`s. Modelled on `FilterSidebar.tsx`'s `RadioRow` pattern: a native
+ * `<input type="radio">` per option, visually hidden with `sr-only` (so the
+ * star icon carries the visual weight) but still focusable, checked and
+ * announced like any other radio — arrow-key navigation between the five
+ * options comes for free from the browser's native radiogroup behaviour.
+ */
+function StarRatingField({
+  id, value, onChange,
+}: { id: string; value: number; onChange: (n: number) => void }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const display = hover ?? value
+
+  return (
+    <fieldset className="min-w-0">
+      <legend className="text-xs font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em] mb-1.5">
+        Note *
+      </legend>
+      <div className="flex items-center gap-1" onMouseLeave={() => setHover(null)}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <span key={n} className="relative">
+            <input
+              type="radio"
+              id={`${id}-${n}`}
+              name={id}
+              checked={value === n}
+              onChange={() => onChange(n)}
+              onFocus={() => setHover(n)}
+              onBlur={() => setHover(null)}
+              className="peer sr-only"
+            />
+            <label
+              htmlFor={`${id}-${n}`}
+              onMouseEnter={() => setHover(n)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg cursor-pointer transition-colors hover:bg-[var(--color-surface-3)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-electric-blue)]"
+            >
+              <Star
+                size={22}
+                aria-hidden
+                className={n <= display ? 'text-[var(--color-neon-yellow)]' : 'text-[var(--color-text-3)]/40'}
+                fill={n <= display ? 'currentColor' : 'none'}
+              />
+              <span className="sr-only">{n} étoile{n > 1 ? 's' : ''} sur 5</span>
+            </label>
+          </span>
+        ))}
+        {value > 0 && (
+          <span className="num text-sm font-bold text-[var(--color-text-1)] ml-1.5">{value}/5</span>
+        )}
+      </div>
+    </fieldset>
   )
 }
 

@@ -11,6 +11,7 @@ import {
   deleteProduct,
   type ProductInput,
   type OfferInput,
+  type ProductBadge,
 } from '@/lib/api'
 import { Button, Card, Input, PageHeader, Select, Spinner, Textarea } from '@/components/ui'
 
@@ -21,6 +22,16 @@ const CATEGORIES = [
 ]
 
 const STATUSES = ['RAW', 'NORMALIZED', 'CLASSIFIED', 'VERIFIED', 'ACTIVE', 'NEEDS_FIX', 'ARCHIVED']
+
+// Merchandising flag — mirrors storefront/src/components/ProductCard.tsx's
+// BADGE_LABEL so the operator sees the exact same French labels the shopper does.
+const BADGE_OPTIONS: { value: ProductBadge | ''; label: string }[] = [
+  { value: '', label: 'Aucun badge' },
+  { value: 'NEW', label: 'Nouveau' },
+  { value: 'BEST_SELLER', label: 'Meilleure vente' },
+  { value: 'PRO', label: 'Pro' },
+  { value: 'SALE', label: 'Promo' },
+]
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -38,6 +49,7 @@ interface FormState {
   barcode: string
   mpn: string
   status: string
+  badge: string
   // initial offer (only used in create-mode)
   offer_sku: string
   offer_purchase_price: string
@@ -49,7 +61,7 @@ interface FormState {
 const empty: FormState = {
   sku: '', slug: '', name: '', brand: '', model: '',
   category: '', subcategory: '', description: '',
-  barcode: '', mpn: '', status: 'NORMALIZED',
+  barcode: '', mpn: '', status: 'NORMALIZED', badge: '',
   offer_sku: '', offer_purchase_price: '', offer_retail_price: '',
   offer_sale_price: '', offer_stock: '0',
 }
@@ -85,6 +97,7 @@ export default function ProductEditor() {
       barcode: existing.barcode ?? '',
       mpn: existing.mpn ?? '',
       status: existing.status ?? 'NORMALIZED',
+      badge: existing.badge ?? '',
       offer_sku: '', offer_purchase_price: '', offer_retail_price: '',
       offer_sale_price: '', offer_stock: '0',
     })
@@ -129,7 +142,7 @@ export default function ProductEditor() {
     return Object.keys(next).length === 0
   }
 
-  function buildPayload(): ProductInput {
+  function buildPayload(): ProductInput & { badge: ProductBadge | null } {
     const offer: OfferInput | null =
       !isEdit && form.offer_sku
         ? {
@@ -157,6 +170,9 @@ export default function ProductEditor() {
       barcode: form.barcode.trim() || null,
       mpn: form.mpn.trim() || null,
       ean: null,
+      // Explicit null (never omitted) — the API only updates fields it
+      // actually receives, and a null badge means "clear it".
+      badge: (form.badge || null) as ProductBadge | null,
       ...(offer ? { initial_offer: offer } : {}),
     }
   }
@@ -302,6 +318,24 @@ export default function ProductEditor() {
               onChange={e => update('subcategory', e.target.value)}
               placeholder="Smart TV"
             />
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="product-badge"
+                className="text-xs font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]"
+              >
+                Badge
+              </label>
+              <select
+                id="product-badge"
+                value={form.badge}
+                onChange={e => update('badge', e.target.value)}
+                className="h-10 px-3 rounded-lg bg-[var(--color-surface-3)] border border-[var(--color-surface-4)] text-sm text-[var(--color-text-1)] transition-colors focus:border-[var(--color-electric-blue)] outline-none cursor-pointer"
+              >
+                {BADGE_OPTIONS.map(o => (
+                  <option key={o.value || 'none'} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
             {isEdit && (
               <Select
                 label="Status"
