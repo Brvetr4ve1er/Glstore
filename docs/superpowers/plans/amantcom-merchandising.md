@@ -1,17 +1,17 @@
-# Plan: AMANATKOM — merchandising features + platform rebrand
+# Plan: AMANTCOM — merchandising features + platform rebrand
 
 ## Working assumption (correct me if wrong)
 
-**AMANATKOM is the PLATFORM name, not a replacement for GLAIVE.**
+**AMANTCOM is the PLATFORM name, not a replacement for GLAIVE.**
 
 This repo already hosts several brands you own: one row in `stores` per brand,
-each with its own domain, catalog, theme, order numbering and orders. AMANATKOM
+each with its own domain, catalog, theme, order numbering and orders. AMANTCOM
 becomes the umbrella over those brands — the admin console, `app_name`, the
 README, the deployment. GLAIVE stays exactly as it is: brand #1, gaming gear,
 its own storefront identity. Ghir Laffaire stays queued as brand #2.
 
 Nothing GLAIVE-facing gets renamed — not the hero copy, not the logo, not the
-brand tokens. If you actually meant "rename the storefront to AMANATKOM too",
+brand tokens. If you actually meant "rename the storefront to AMANTCOM too",
 say so before Phase 0 and it is a small change to this plan, not a large one.
 
 ## Source of the feature list
@@ -94,7 +94,7 @@ These get lost across subagents. They are not optional.
 
 Cheap, self-contained, independent of every feature below. One commit.
 
-- `api/core/config.py:10` — `app_name: str = "GLstore API"` → AMANATKOM.
+- `api/core/config.py:10` — `app_name: str = "GLstore API"` → AMANTCOM.
 - `admin/index.html:7-8` — title and meta currently say "Ghir Laffaire — Admin
   Console". That is brand #2's name sitting on the platform console.
 - `README.md`, `CLAUDE.md` §1, `DEPLOY.md` header.

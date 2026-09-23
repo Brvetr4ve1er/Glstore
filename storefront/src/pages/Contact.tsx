@@ -1,5 +1,5 @@
 /**
- * Contact — AMANATKOM.
+ * Contact — AMANTCOM.
  *
  * Ordered deliberately: real contact channels first, the form second.
  * Algerian retail shoppers default to phone, not web forms — but this
@@ -95,7 +95,7 @@ export default function ContactPage() {
     <div className="page-enter max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <SEO
         title="Contact"
-        description="Contactez AMANATKOM — coordonnées, livraison dans les 58 wilayas et formulaire de contact."
+        description="Contactez AMANTCOM — coordonnées, livraison dans les 58 wilayas et formulaire de contact."
       />
       <Breadcrumbs items={[{ label: 'Contact' }]} />
 

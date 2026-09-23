@@ -1,5 +1,5 @@
 /**
- * FAQ — AMANATKOM.
+ * FAQ — AMANTCOM.
  *
  * Answers only what is already true elsewhere in this codebase. Every answer
  * below is traceable to a specific file, listed in its comment. Two claims
@@ -165,7 +165,7 @@ export default function FaqPage() {
     <div className="page-enter max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <SEO
         title="Questions fréquentes"
-        description="Commande, paiement à la livraison, couverture des 58 wilayas, suivi de commande et catégories du catalogue AMANATKOM."
+        description="Commande, paiement à la livraison, couverture des 58 wilayas, suivi de commande et catégories du catalogue AMANTCOM."
       />
       <Breadcrumbs items={[{ label: 'Questions fréquentes' }]} />
 
@@ -178,7 +178,7 @@ export default function FaqPage() {
             <span className="punk-stripe">Questions fréquentes</span>
           </h1>
           <p className="text-sm text-[var(--color-text-3)] mt-1 max-w-xl leading-relaxed">
-            Commande, livraison et suivi — l’essentiel avant d’acheter chez AMANATKOM.
+            Commande, livraison et suivi — l’essentiel avant d’acheter chez AMANTCOM.
           </p>
         </div>
       </div>

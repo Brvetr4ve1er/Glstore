@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion'
 
 /**
- * AMANATKOM brand mark.
+ * AMANTCOM brand mark.
  *
- * AMANATKOM (أماناتكم) means "your trusts" — things placed in someone's care
- * to be kept safe and returned intact. The mark is built on that rather than
- * on appliances: a shield for safekeeping, and inside it a chevron reading as
- * an A, sheltering a single dot — the thing entrusted.
+ * The mark is built around safekeeping rather than appliances: a shield,
+ * and inside it a chevron reading as an A, sheltering a single dot — the
+ * thing entrusted. (An earlier version of this comment glossed the name
+ * against an Arabic word meaning "your trusts" — that gloss matched the
+ * brand's PREVIOUS spelling letter-for-letter, but does not verifiably
+ * correspond to "AMANTCOM", so it is not repeated here rather than risk
+ * asserting an etymology that no longer holds.)
  *
  * It replaces a GLAIVE gaming mark (an angular glaive-blade hexagon with an
  * upward blade and an RGB spark) that shipped in the navbar, the mobile drawer
@@ -45,7 +48,7 @@ export function BrandLogo({
           width={size}
           height={size}
           role="img"
-          aria-label="AMANATKOM"
+          aria-label="AMANTCOM"
         >
           {/* Shield — safekeeping. Soft shoulders, not a weapon silhouette. */}
           <path

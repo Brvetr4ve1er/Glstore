@@ -1,5 +1,5 @@
 /**
- * Home — AMANATKOM.
+ * Home — AMANTCOM.
  *
  * This page used to sell gaming gear ("JOUE POUR GAGNER", casques, claviers).
  * The storefront now serves the appliance brand, so the words changed and the
@@ -117,7 +117,7 @@ export default function Home() {
   return (
     <div className="page-enter">
       <SEO
-        title="AMANATKOM — Électroménager en Algérie"
+        title="AMANTCOM — Électroménager en Algérie"
         description="Cuisson, froid, lavage, préparation culinaire et petit déjeuner. Prix en dinars, paiement à la livraison, dans les 58 wilayas."
       />
 
@@ -132,7 +132,7 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 pt-16 pb-12 md:pt-24 md:pb-16">
           <ScrollReveal variant="fade-up-sm" className="flex flex-col items-center text-center gap-6">
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-sm text-xs font-black uppercase tracking-[0.18em] text-[var(--color-neon-yellow)]">
-              <Store size={12} /> AMANATKOM · Électroménager en Algérie
+              <Store size={12} /> AMANTCOM · Électroménager en Algérie
             </div>
 
             {/*
@@ -395,7 +395,7 @@ export default function Home() {
                     les 58 wilayas.
                   </p>
                   <p className="text-xs text-[var(--color-text-3)] mt-3">
-                    AMANATKOM est la marque de Bouakil Electro.
+                    AMANTCOM est la marque de Bouakil Electro.
                   </p>
                 </div>
               </div>

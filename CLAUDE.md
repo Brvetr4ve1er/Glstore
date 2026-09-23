@@ -1,4 +1,4 @@
-# AMANATKOM — Project Anchor
+# AMANTCOM — Project Anchor
 
 > **Read this first.** Single source of truth for what this repo is, where things live, and how the parts talk. Existing docs in `docs/` are deep-dive references — this file is the index + the seam map.
 

@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # Service
-    app_name: str = "AMANATKOM API"
+    app_name: str = "AMANTCOM API"
     environment: str = Field("development", pattern="^(development|staging|production)$")
     debug: bool = False
 

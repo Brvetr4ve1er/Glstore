@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Migration 008: merchandising — reviews, badges, newsletter capture
 --
--- Phase 1 of docs/superpowers/plans/amanatkom-merchandising.md.
+-- Phase 1 of docs/superpowers/plans/amantcom-merchandising.md.
 --
 -- One migration rather than three: one advisory-lock cycle, one checksum, one
 -- `apply_migrations.py --dry-run` for the operator.

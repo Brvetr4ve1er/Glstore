@@ -6,28 +6,28 @@ against assumptions; the numbers below were measured, not estimated.
 
 ## The brand — CONFIRMED
 
-**The customer-facing brand is AMANATKOM. Put AMANATKOM on the page.**
+**The customer-facing brand is AMANTCOM. Put AMANTCOM on the page.**
 
 Two names, two jobs — do not mix them up:
 
 | Name | What it is | Where it appears |
 |---|---|---|
-| **AMANATKOM** | the **brand** customers see | hero, logo, nav, footer, page titles, SEO, emails |
+| **AMANTCOM** | the **brand** customers see | hero, logo, nav, footer, page titles, SEO, emails |
 | **Bouakil Electro** | the **operating company** | legal/company fine print only — never as the shop's name |
 
 This is the ordinary company-vs-brand split: Bouakil Electro is the real
-business that owns and runs the shop; AMANATKOM (أماناتكم — "your trusts") is
-what it trades under. A shopper should see AMANATKOM everywhere and encounter
+business that owns and runs the shop; AMANTCOM (أماناتكم — "your trusts") is
+what it trades under. A shopper should see AMANTCOM everywhere and encounter
 "Bouakil Electro" only where a legal entity is genuinely required.
 
-AMANATKOM is also the platform name, which is fine and not a conflict: the
+AMANTCOM is also the platform name, which is fine and not a conflict: the
 platform hosts brands, and today it hosts one — its own. GLAIVE remains a
 second brand the architecture supports; it is simply not what this storefront
 serves.
 
 What this means for copy, concretely:
 
-- The shop is named **AMANATKOM** — hero, footer, page titles, SEO, logo alt.
+- The shop is named **AMANTCOM** — hero, footer, page titles, SEO, logo alt.
 - It sells **home appliances** in Algeria: DZD, 58 wilayas, cash on delivery.
 - The GLAIVE gaming identity appears nowhere here. "JOUE POUR GAGNER",
   `/c/Headsets`, `/c/Keyboards` are all wrong for this storefront.
@@ -36,7 +36,7 @@ What this means for copy, concretely:
   (58 wilayas, paiement à la livraison). With a real brand on the page,
   invented marketing claims stop being a design smell and become a liability.
   If you want a claim and cannot source it from existing code, leave it out.
-- **Do not translate or transliterate the brand.** It is written AMANATKOM in
+- **Do not translate or transliterate the brand.** It is written AMANTCOM in
   Latin script throughout. Do not render it in Arabic script, and do not
   "correct" the spelling.
 
@@ -195,6 +195,6 @@ multiple families" and "inconsistent stroke widths":
 ## Out of scope for this fleet
 
 Financing, customer accounts, OTP, applications, documents, signatures, POS
-partners — all planned in `amanatkom-financing.md` and deliberately parked.
+partners — all planned in `amantcom-financing.md` and deliberately parked.
 Nothing in this fleet touches them. No database import happens here; the
 operator runs imports.

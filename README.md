@@ -1,9 +1,9 @@
-# AMANATKOM — Commerce Intelligence Platform
+# AMANTCOM — Commerce Intelligence Platform
 
 > *Fast. Reliable. Yours.*
 > Inspired by Shibuya punk · Built for Algeria.
 
-**AMANATKOM is the platform.** It hosts several brands you own — one row in
+**AMANTCOM is the platform.** It hosts several brands you own — one row in
 `stores` per brand, each with its own domain, catalog, theme, pricing and order
 numbering, all managed from one login. Today those are **GLAIVE** (gaming gear)
 and **Ghir Laffaire** (home appliances). It is not a marketplace: no

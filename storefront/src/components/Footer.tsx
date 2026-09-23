@@ -75,7 +75,7 @@ export function Footer() {
         <div>
           <BrandLogo size={36} />
           <p className="text-xs text-[var(--color-text-3)] mt-4 leading-relaxed max-w-xs">
-            AMANATKOM — l’électroménager pour toute la maison, livré partout en Algérie.
+            AMANTCOM — l’électroménager pour toute la maison, livré partout en Algérie.
             Paiement à la livraison.
           </p>
           <NewsletterForm className="mt-5 max-w-xs" />
@@ -118,7 +118,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-[var(--color-surface-4)] py-5 text-center text-xs text-[var(--color-text-3)] uppercase tracking-[0.18em]">
-        © AMANATKOM · Bouakil Electro
+        © AMANTCOM · Bouakil Electro
       </div>
     </footer>
   )

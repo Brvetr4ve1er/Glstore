@@ -1,4 +1,4 @@
-# Plan: AMANATKOM v2 — financing-led commerce
+# Plan: AMANTCOM v2 — financing-led commerce
 
 ## This is not a rewrite
 
@@ -7,7 +7,7 @@ listing, product detail, category/brand/price filters, admin product entry" as
 **Phase 1**. That is finished. Measured against the blueprint's suggested data
 model, the platform already has:
 
-| Blueprint wants | AMANATKOM has |
+| Blueprint wants | AMANTCOM has |
 |---|---|
 | `products`, `product_images`, `product_specs` | `products` + `specs` jsonb + `product_media` |
 | `product_variants` | `offers` (variant_sku, variant_attrs) |
@@ -24,8 +24,8 @@ from `c01c331` all carry forward untouched.
 Three genuinely new layers: **identity**, **financing**, **partners**.
 
 > **Naming question, not blocking.** The blueprint lives in
-> `Pictures/el yusr project/`. Are AMANATKOM and El Yusr the same product, or a
-> platform/brand pair like AMANATKOM/GLAIVE? It changes `stores` seeding, not
+> `Pictures/el yusr project/`. Are AMANTCOM and El Yusr the same product, or a
+> platform/brand pair like AMANTCOM/GLAIVE? It changes `stores` seeding, not
 > architecture, so it is not a blocker — but answer it before Phase D.
 
 ## Decision 1 — Identity is phone-first, and `customers` is already it
@@ -197,7 +197,7 @@ unbounded:
 - **CMS tables** (`homepage_sections`, `faqs` as data) — copy stays in code
   until there is a reason it should not.
 - **Arabic category taxonomy** — the blueprint's six categories are QivoPay's.
-  If AMANATKOM wants Arabic categories they are operator-supplied content, not
+  If AMANTCOM wants Arabic categories they are operator-supplied content, not
   something translated out of a competitor's site.
 
 ## Global constraints

@@ -93,7 +93,7 @@ export function Navbar() {
             </button>
 
             {/* Logo */}
-            <Link to="/" className="shrink-0" aria-label="AMANATKOM — Accueil">
+            <Link to="/" className="shrink-0" aria-label="AMANTCOM — Accueil">
               <BrandLogo size={36} />
             </Link>
 
