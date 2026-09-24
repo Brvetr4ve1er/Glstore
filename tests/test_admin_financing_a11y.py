@@ -23,6 +23,7 @@ SCREENS = [
     ADMIN / "pages" / "FinancingApplication.tsx",
     ADMIN / "pages" / "FinancingRules.tsx",
     ADMIN / "components" / "FinancingBits.tsx",
+    ADMIN / "pages" / "Partners.tsx",
 ]
 
 _OPEN = re.compile(r"<(Button|button)\b")

@@ -42,6 +42,7 @@ const COLS: FooterCol[] = [
       { to: '/order/track', label: 'Suivre ma commande' },
       { to: '/account',      label: 'Mon compte' },
       { to: '/financement',  label: 'Financement' },
+      { to: '/partenaires',  label: 'Devenir partenaire' },
       { to: '/faq',          label: 'Questions fréquentes' },
       { to: '/contact',      label: 'Contact' },
     ],

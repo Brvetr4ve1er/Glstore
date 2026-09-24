@@ -34,6 +34,7 @@ const ContactInbox       = lazy(() => import('@/pages/ContactInbox'))
 const FinancingQueue       = lazy(() => import('@/pages/FinancingQueue'))
 const FinancingApplication = lazy(() => import('@/pages/FinancingApplication'))
 const FinancingRules       = lazy(() => import('@/pages/FinancingRules'))
+const Partners             = lazy(() => import('@/pages/Partners'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthed } = useAuth()
@@ -86,6 +87,7 @@ function AppRoutes() {
             <Route path="financing/applications"     element={<FinancingQueue />} />
             <Route path="financing/applications/:id" element={<FinancingApplication />} />
             <Route path="financing/rules"            element={<FinancingRules />} />
+            <Route path="partners"                   element={<Partners />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

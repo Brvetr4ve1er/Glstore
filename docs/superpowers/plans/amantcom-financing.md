@@ -322,6 +322,29 @@ files, each unit reviewed; 0 blockers / 0 majors; wired and fixed after):
 `partners`, `partner_locations`, `partner_applications`. Public
 `/partners/apply` form + admin queue. Smallest and most independent.
 
+**Phase E as built (migration 014):**
+
+- Tables store-scoped with composite FKs; an application carries a
+  `partner_id` exactly when it is APPROVED (CHECK). No partner ships.
+- Activity is a small factual enum (électroménager, multimédia, meuble,
+  généraliste, autre). Landlines are accepted — a shop answers on a fixed
+  line. No commune codes: the reference data does not exist here.
+- No uniqueness on the applicant's phone: "already applied" would leak who
+  applied. Every submission gets the same answer; the admin queue shows
+  earlier applications from the same number instead.
+- `POST /partners/apply` (public), `/partner-applications` queue with
+  start-review / approve / reject (note required), `/partners` list with
+  an active switch. Approve creates the partner and its first location in
+  one transaction; a lost race rolls back with a 409.
+- Storefront `/partenaires` (footer "Devenir partenaire"): no benefits,
+  commissions, counts, logos or response times. Admin "Partners" page,
+  covered by the icon-only-button guard.
+
+**Not built:** partner user accounts (`partner_users`) and the blueprint's
+merchant dashboard (product upload, stock, orders, settlement) — a separate
+epic; editing partner details or adding locations after approval; a public
+partner/store locator (publishing a partner's address needs their consent).
+
 ### Phase F — Prove it moved
 
 Re-run the 10-dimension audit, **plus** a compliance checklist derived from §10:

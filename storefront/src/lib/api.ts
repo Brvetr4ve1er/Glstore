@@ -359,6 +359,36 @@ export interface ContactSubmission {
 export const submitContactMessage = (dto: ContactSubmission) =>
   req<{ id: string; created_at: string; message: string }>('POST', '/contact', dto)
 
+// ── Partner applications (migration 014) ────────────────────────
+export type PartnerActivity = 'ELECTROMENAGER' | 'MULTIMEDIA' | 'MEUBLE' | 'GENERALISTE' | 'AUTRE'
+
+export const PARTNER_ACTIVITY_LABELS: Record<PartnerActivity, string> = {
+  ELECTROMENAGER: 'Électroménager',
+  MULTIMEDIA: 'Multimédia',
+  MEUBLE: 'Meuble',
+  GENERALISTE: 'Commerce généraliste',
+  AUTRE: 'Autre activité',
+}
+
+export interface PartnerApplicationInput {
+  business_name: string
+  activity: PartnerActivity
+  contact_name: string
+  owner_name?: string | null
+  /** Landlines accepted — at least 8 digits. */
+  phone: string
+  email?: string | null
+  /** "01"…"58" */
+  wilaya_code: string
+  commune: string
+  address: string
+  reason?: string | null
+}
+
+/** Always the same success message, first application or repeat. 422: invalid field. */
+export const applyAsPartner = (dto: PartnerApplicationInput) =>
+  req<{ message: string }>('POST', '/partners/apply', dto)
+
 // ══ Phase D — customer identity, financing, account ══════════════
 // Every type below mirrors a backend response field for field. Money that
 // the financing API returns is a decimal STRING (exact); format it with

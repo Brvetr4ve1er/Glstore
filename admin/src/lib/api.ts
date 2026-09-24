@@ -1077,3 +1077,68 @@ export async function downloadApplicationDocument(id: string, doc: ApplicationDo
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
+
+// ── Partners (migration 014) ────────────────────────────────────
+export type PartnerActivity = 'ELECTROMENAGER' | 'MULTIMEDIA' | 'MEUBLE' | 'GENERALISTE' | 'AUTRE'
+export type PartnerApplicationStatus = 'NEW' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'
+
+export const PARTNER_ACTIVITY_LABELS: Record<PartnerActivity, string> = {
+  ELECTROMENAGER: 'Électroménager',
+  MULTIMEDIA: 'Multimédia',
+  MEUBLE: 'Meuble',
+  GENERALISTE: 'Généraliste',
+  AUTRE: 'Autre',
+}
+
+export interface PartnerApplication {
+  id: string
+  business_name: string
+  activity: PartnerActivity
+  contact_name: string
+  owner_name: string | null
+  phone: string
+  email: string | null
+  wilaya_code: string
+  commune: string
+  address: string
+  reason: string | null
+  status: PartnerApplicationStatus
+  review_note: string | null
+  reviewed_at: string | null
+  partner_id: string | null
+  created_at: string | null
+  /** Earlier applications from the same phone in this store. */
+  prior_applications: number
+}
+
+export interface PartnerApplicationQueue {
+  status: PartnerApplicationStatus
+  counts: Partial<Record<PartnerApplicationStatus, number>>
+  page: number
+  page_size: number
+  items: PartnerApplication[]
+}
+
+export interface Partner {
+  id: string
+  name: string
+  activity: PartnerActivity
+  contact_name: string
+  phone: string
+  email: string | null
+  is_active: boolean
+  created_at: string | null
+  locations: { id: string; wilaya_code: string; commune: string; address: string; is_active: boolean }[]
+}
+
+export const fetchPartnerApplications = (status: PartnerApplicationStatus = 'NEW', page = 1) =>
+  req<PartnerApplicationQueue>('GET', `/partner-applications?status=${status}&page=${page}`)
+export const startPartnerReview = (id: string) =>
+  req<{ status: string }>('POST', `/partner-applications/${id}/start-review`)
+export const approvePartnerApplication = (id: string, note?: string) =>
+  req<{ status: string; partner_id: string }>('POST', `/partner-applications/${id}/approve`, { note: note || null })
+export const rejectPartnerApplication = (id: string, note: string) =>
+  req<{ status: string }>('POST', `/partner-applications/${id}/reject`, { note })
+export const fetchPartners = () => req<{ items: Partner[] }>('GET', '/partners')
+export const setPartnerActive = (id: string, isActive: boolean) =>
+  req<{ id: string; is_active: boolean }>('PATCH', `/partners/${id}`, { is_active: isActive })

@@ -32,6 +32,7 @@ const ApplicationDetail = lazy(() => import('@/pages/account/ApplicationDetail')
 const Simulate          = lazy(() => import('@/pages/Simulate'))
 const Financing         = lazy(() => import('@/pages/Financing'))
 const Apply             = lazy(() => import('@/pages/apply/Apply'))
+const Partners          = lazy(() => import('@/pages/Partners'))
 
 
 function PageFallback() {
@@ -67,6 +68,7 @@ function RoutedShell() {
               <Route path="/login"                     element={<Login />} />
               <Route path="/simulate"                  element={<Simulate />} />
               <Route path="/financement"               element={<Financing />} />
+              <Route path="/partenaires"               element={<Partners />} />
               <Route path="/account"                   element={<RequireCustomer><Account /></RequireCustomer>} />
               <Route path="/account/orders"            element={<RequireCustomer><Orders /></RequireCustomer>} />
               <Route path="/account/orders/:id"        element={<RequireCustomer><OrderDetail /></RequireCustomer>} />

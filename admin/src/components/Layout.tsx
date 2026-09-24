@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Package, ShoppingCart, LogOut, Sparkles, Stethoscope, Settings as SettingsIcon, Activity, Network, Images, Store as StoreIcon, ChevronsUpDown,
-  MessageSquareText, Mail, Landmark, Scale,
+  MessageSquareText, Mail, Landmark, Scale, Handshake,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
@@ -20,6 +20,7 @@ const NAV = [
   { to: '/contact-messages',  label: 'Messages',        icon: Mail },
   { to: '/financing/applications', label: 'Financing',       icon: Landmark },
   { to: '/financing/rules',        label: 'Financing Rules', icon: Scale },
+  { to: '/partners',               label: 'Partners',        icon: Handshake },
   { to: '/jobs',              label: 'Jobs Console',    icon: Activity },
   { to: '/graph',             label: 'Catalog Graph',   icon: Network },
   { to: '/settings',          label: 'Settings',        icon: SettingsIcon },
