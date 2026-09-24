@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search, SlidersHorizontal, Image as ImageIcon, Plus, Upload, Sparkles, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { fetchProducts, enrichAll, type ProductListItem } from '@/lib/api'
+import { fetchProducts, enrichAll, mediaUrl, type ProductListItem } from '@/lib/api'
 import { Button, EmptyState, PageHeader, Spinner, Select } from '@/components/ui'
 import { fmtMoney, fmtPercent } from '@/lib/utils'
 
@@ -196,7 +196,7 @@ export default function Products() {
                       {/* Thumb */}
                       <div className="flex items-center">
                         {p.primary_image
-                          ? <img src={p.primary_image} alt="" className="w-8 h-8 rounded-md object-cover bg-[var(--color-surface-3)]" loading="lazy" />
+                          ? <img src={mediaUrl(p.primary_image)} alt="" className="w-8 h-8 rounded-md object-cover bg-[var(--color-surface-3)]" loading="lazy" />
                           : <div className="w-8 h-8 rounded-md bg-[var(--color-surface-3)] flex items-center justify-center">
                               <ImageIcon size={12} className="text-[var(--color-text-3)]" />
                             </div>

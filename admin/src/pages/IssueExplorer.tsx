@@ -6,7 +6,7 @@ import {
   AlertTriangle, AlertCircle, Info, Image as ImageIcon, ArrowRight, Sparkles,
 } from 'lucide-react'
 import {
-  fetchIssuesSummary, fetchIssuesList,
+  fetchIssuesSummary, fetchIssuesList, mediaUrl,
   type IssueCode, type IssueListItem,
 } from '@/lib/api'
 import { Card, EmptyState, PageHeader, Spinner } from '@/components/ui'
@@ -147,7 +147,7 @@ function IssueRows({ items, totalShown, totalAll }: { items: IssueListItem[]; to
           >
             <div className="flex items-center">
               {p.primary_image
-                ? <img src={p.primary_image} alt="" className="w-8 h-8 rounded-md object-cover" loading="lazy" />
+                ? <img src={mediaUrl(p.primary_image)} alt="" className="w-8 h-8 rounded-md object-cover" loading="lazy" />
                 : <div className="w-8 h-8 rounded-md bg-[var(--color-surface-3)] flex items-center justify-center">
                     <ImageIcon size={12} className="text-[var(--color-text-3)]" />
                   </div>

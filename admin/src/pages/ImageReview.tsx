@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import {
   fetchProductImages, approveImage, rejectImage,
-  fetchPendingImages, fetchPendingImagesSummary, fetchProduct,
+  fetchPendingImages, fetchPendingImagesSummary, fetchProduct, mediaUrl,
   type ProductImage,
 } from '@/lib/api'
 import { Button, Card, EmptyState, PageHeader, Spinner, StatCard } from '@/components/ui'
@@ -205,7 +205,7 @@ function ImageCard({
           </div>
         ) : (
           <img
-            src={img.url}
+            src={mediaUrl(img.url)}
             alt={img.alt_text ?? ''}
             className="w-full h-full object-contain p-3"
             loading="lazy"
@@ -482,7 +482,7 @@ function QueueItemCard({
             URL inaccessible
           </div>
         ) : (
-          <img src={item.url} alt={item.alt_text ?? ''} loading="lazy"
+          <img src={mediaUrl(item.url)} alt={item.alt_text ?? ''} loading="lazy"
                onError={() => setBroken(true)}
                className="w-full h-full object-contain p-3" />
         )}

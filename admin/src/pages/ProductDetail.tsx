@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ImageIcon, Pencil, Sparkles, Globe, Images } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { fetchProduct, enrichProduct, enqueueIntel, fetchIntelJob } from '@/lib/api'
+import { fetchProduct, enrichProduct, enqueueIntel, fetchIntelJob, mediaUrl } from '@/lib/api'
 import { Badge, Button, Card, Spinner, EmptyState } from '@/components/ui'
 import { IssuePanel } from '@/components/IssuePanel'
 import { PRODUCT_STATUS_COLORS, fmtMoney, fmtDate, fmtPercent } from '@/lib/utils'
@@ -136,7 +136,7 @@ export default function ProductDetail() {
         <div className="flex flex-col gap-3">
           <div className="glass aspect-square flex items-center justify-center overflow-hidden rounded-2xl">
             {heroImg
-              ? <img src={heroImg} alt={p.name} className="w-full h-full object-contain p-4" />
+              ? <img src={mediaUrl(heroImg)} alt={p.name} className="w-full h-full object-contain p-4" />
               : <div className="flex flex-col items-center gap-2 opacity-20">
                   <ImageIcon size={48} />
                   <span className="text-xs">No image</span>
@@ -151,7 +151,7 @@ export default function ProductDetail() {
                   onClick={() => setActiveImg(i)}
                   className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImg ? 'border-[var(--color-brand)]' : 'border-[var(--color-surface-4)] hover:border-[var(--color-surface-3)]'}`}
                 >
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <img src={mediaUrl(img.url)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

@@ -113,8 +113,9 @@ cross-brand application line is unrepresentable rather than merely checked.
 
 ## Phases
 
-> **Migration numbers shifted by one.** 009 went to `contact_messages` before
-> Phase A started, so Identity is 010, Financing core 011, Workflow 012.
+> **Migration numbers shifted.** 009 went to `contact_messages` before Phase A
+> started and 012 to the pilot product media, so Identity is 010, Financing
+> core 011, Workflow 013.
 
 ### Phase A — Identity (migration 010)
 
@@ -204,7 +205,7 @@ live there and get tested properly.
   any trigger function, so the two trigger bodies in 011 were not checked
   internally. First real `apply_migrations.py` run will.
 
-### Phase C — Application workflow (migration 012)
+### Phase C — Application workflow (migration 013)
 
 `financial_profiles`, `employment_profiles`, `required_documents`,
 `uploaded_documents`.

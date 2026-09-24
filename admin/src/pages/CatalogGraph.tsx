@@ -35,7 +35,7 @@ import {
   Pin, PinOff, Tag, Layers, Box,
 } from 'lucide-react'
 import {
-  fetchCatalogGraph, fetchProducts,
+  fetchCatalogGraph, fetchProducts, mediaUrl,
   type GraphNode, type GraphEdgeKind,
 } from '@/lib/api'
 import { Button, EmptyState, PageHeader, Spinner } from '@/components/ui'
@@ -1351,7 +1351,7 @@ function DrawerBody({ node, onClose, onTogglePin }: { node: SimNode; onClose: ()
                 <li key={p.id} className="glass-sm flex items-center gap-3 px-3 py-2">
                   <div className="w-10 h-10 rounded-md overflow-hidden flex items-center justify-center shrink-0 bg-[var(--color-surface-3)]">
                     {p.primary_image
-                      ? <img src={p.primary_image} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      ? <img src={mediaUrl(p.primary_image)} alt="" className="w-full h-full object-cover" loading="lazy" />
                       : <ImageIcon size={14} className="text-[var(--color-text-3)] opacity-40" />}
                   </div>
                   <div className="flex-1 min-w-0">

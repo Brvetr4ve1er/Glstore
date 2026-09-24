@@ -5,6 +5,14 @@
 // the live store. Requires that origin in the API's CORS_ORIGINS.
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 
+/** Root-relative media (`/media/products/x.webp`) ships inside the storefront
+ *  build, which Vercel serves from the same origin as the API — not from this
+ *  admin app's origin. Resolve it there; absolute (R2) URLs pass through. */
+export function mediaUrl(url: string): string {
+  if (!url.startsWith('/') || url.startsWith('//')) return url
+  return new URL(url, new URL(BASE, window.location.origin)).toString()
+}
+
 function getToken() {
   return localStorage.getItem('gl_token')
 }
