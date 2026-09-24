@@ -45,6 +45,9 @@ import { Button, EmptyState } from '@/components/ui'
 import { SearchBox } from '@/components/SearchBox'
 import { BrandLogo } from '@/components/BrandLogo'
 import { SEO } from '@/components/SEO'
+import { HeroFinancingActions } from '@/components/home/HeroFinancingActions'
+import { HomeFinancingBand } from '@/components/home/HomeFinancingBand'
+import { HomeAccountBand } from '@/components/home/HomeAccountBand'
 
 /** The public list endpoint's hard ceiling — `api/routes/products.py:86`. */
 const SWEEP_PAGE_SIZE = 120
@@ -164,11 +167,10 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-3 justify-center mt-2">
-              <Link to="/c/all">
-                <Button variant="accent" size="lg">
-                  Voir le catalogue <ArrowRight size={16} />
-                </Button>
-              </Link>
+              {/* Catalogue + (once a rule is active) "Simuler un financement":
+                  the blueprint's two hero actions. `contents` lets its links
+                  join this row instead of nesting a second flex row. */}
+              <HeroFinancingActions className="contents" />
               {/*
                 An anchor, not <Link><Button> — this scrolls within the page, and
                 a <button> nested inside an <a> is invalid interactive content.
@@ -178,7 +180,7 @@ export default function Home() {
                 href="#categories"
                 className="inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-150 tracking-wide text-base px-6 py-3 border border-[var(--color-surface-4)] text-[var(--color-text-1)] hover:border-[var(--color-electric-blue)] hover:bg-[var(--color-electric-blue)]/5 focus-visible:ring-2 focus-visible:ring-[var(--color-electric-blue)]"
               >
-                <LayoutGrid size={16} /> Parcourir par catégorie
+                <LayoutGrid size={16} aria-hidden="true" /> Parcourir par catégorie
               </a>
             </div>
           </ScrollReveal>
@@ -374,6 +376,9 @@ export default function Home() {
         )}
       </section>
 
+      {/* ── Financing — renders nothing until an operator activates a rule ── */}
+      <HomeFinancingBand />
+
       {/* ── Brand callout ── */}
       <section className="max-w-[1400px] mx-auto px-6 mb-24">
         <ScrollReveal variant="zoom-in">
@@ -408,6 +413,9 @@ export default function Home() {
           </div>
         </ScrollReveal>
       </section>
+
+      {/* ── Account: follow orders and financing requests ── */}
+      <HomeAccountBand />
     </div>
   )
 }

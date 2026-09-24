@@ -28,11 +28,14 @@ export function clearSessionToken(): void {
 export class ApiError extends Error {
   status: number
   detail: unknown
-  constructor(status: number, message: string, detail: unknown) {
+  /** Seconds from the server's Retry-After header (429s), when it sent one. */
+  retryAfter: number | null
+  constructor(status: number, message: string, detail: unknown, retryAfter: number | null = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.detail = detail
+    this.retryAfter = retryAfter
   }
 }
 
@@ -69,7 +72,8 @@ async function send<T>(method: string, path: string, init: RequestInit, signal?:
       clearSessionToken()
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
     }
-    throw new ApiError(res.status, msg, detail)
+    const retry = Number(res.headers.get('Retry-After'))
+    throw new ApiError(res.status, msg, detail, Number.isFinite(retry) && retry > 0 ? retry : null)
   }
   if (res.status === 204) return undefined as unknown as T
   return res.json() as Promise<T>
@@ -90,6 +94,18 @@ async function req<T>(
 /** multipart/form-data: no Content-Type header, the browser sets the boundary. */
 async function reqMultipart<T>(path: string, form: FormData, signal?: AbortSignal): Promise<T> {
   return send<T>('POST', path, { body: form }, signal)
+}
+
+/** One path segment. Every id or slug that reaches a URL path goes through
+ *  this: a route param like `..%2F..%2Fauth%2Fcustomer%2Flogout` would
+ *  otherwise walk the request — carrying the session token — to another
+ *  endpoint. Encoded, it stays one (invalid) segment and the API rejects it. */
+function seg(v: string): string {
+  // "." and ".." survive encodeURIComponent, and the URL parser treats even
+  // "%2e%2e" as a parent-directory segment — so a pure-dot segment is replaced
+  // outright with one no route can match.
+  if (/^\.+$/.test(v)) return '_'
+  return encodeURIComponent(v)
 }
 
 // ── Catalog types ────────────────────────────────────────────
@@ -175,7 +191,7 @@ export const fetchProducts = (params: Record<string, string | number | undefined
 }
 
 export const fetchProduct = (idOrSlug: string) =>
-  req<ProductDetail>('GET', `/products/${idOrSlug}`)
+  req<ProductDetail>('GET', `/products/${seg(idOrSlug)}`)
 
 // ── Order ────────────────────────────────────────────────────
 export interface OrderLineInput {
@@ -321,11 +337,11 @@ export interface ReviewSubmission {
 }
 
 export const fetchReviews = (productId: string, pageSize = 6) =>
-  req<ReviewList>('GET', `/products/${productId}/reviews?page_size=${pageSize}`)
+  req<ReviewList>('GET', `/products/${seg(productId)}/reviews?page_size=${pageSize}`)
 
 export const submitReview = (productId: string, dto: ReviewSubmission) =>
   req<{ id: string; status: string; created_at: string; message: string }>(
-    'POST', `/products/${productId}/reviews`, dto,
+    'POST', `/products/${seg(productId)}/reviews`, dto,
   )
 
 // ── Newsletter (migration 008) ──────────────────────────────────
@@ -503,7 +519,7 @@ export const fetchMyApplications = () =>
   req<FinancingPresentation & { items: ApplicationSummary[] }>('GET', '/financing/applications')
 
 export const fetchMyApplication = (id: string) =>
-  req<ApplicationDetail>('GET', `/financing/applications/${id}`)
+  req<ApplicationDetail>('GET', `/financing/applications/${seg(id)}`)
 
 export type EmploymentType = 'CDI' | 'CDD' | 'FONCTIONNAIRE' | 'INDEPENDANT' | 'RETRAITE' | 'AUTRE'
 
@@ -538,11 +554,11 @@ export interface ApplicationProfileInput {
 }
 
 export const fetchApplicationProfile = (id: string) =>
-  req<ApplicationProfile>('GET', `/financing/applications/${id}/profile`)
+  req<ApplicationProfile>('GET', `/financing/applications/${seg(id)}/profile`)
 
 /** DRAFT only (409 once submitted). */
 export const saveApplicationProfile = (id: string, body: ApplicationProfileInput) =>
-  req<ApplicationProfile>('PUT', `/financing/applications/${id}/profile`, body)
+  req<ApplicationProfile>('PUT', `/financing/applications/${seg(id)}/profile`, body)
 
 // ── Documents ──
 /** Accepted by the server, which checks the real bytes — this is only for
@@ -576,18 +592,18 @@ export const fetchRequiredDocuments = () =>
   req<{ items: RequiredDocumentType[] }>('GET', '/financing/required-documents')
 
 export const fetchApplicationDocuments = (id: string) =>
-  req<DocumentChecklist>('GET', `/financing/applications/${id}/documents`)
+  req<DocumentChecklist>('GET', `/financing/applications/${seg(id)}/documents`)
 
 /** 413 too large · 415 not PDF/JPEG/PNG/WebP · 409 not DRAFT or too many
  *  files · 503 document storage not configured on this deployment. */
 export const uploadApplicationDocument = (id: string, code: string, file: File) => {
   const form = new FormData()
   form.append('file', file)
-  return reqMultipart<UploadedDocument>(`/financing/applications/${id}/documents/${encodeURIComponent(code)}`, form)
+  return reqMultipart<UploadedDocument>(`/financing/applications/${seg(id)}/documents/${seg(code)}`, form)
 }
 
 export const deleteApplicationDocument = (id: string, documentId: string) =>
-  req<void>('DELETE', `/financing/applications/${id}/documents/${documentId}`)
+  req<void>('DELETE', `/financing/applications/${seg(id)}/documents/${seg(documentId)}`)
 
 /** 422 lists EVERYTHING missing at once in `ApiError.detail`:
  *  `{message, missing_profile?, missing_documents?: {code,label}[], reasons?: FinancingReason[]}`.
@@ -601,7 +617,7 @@ export interface SubmitProblems {
 
 export const submitApplication = (id: string) =>
   req<{ id: string; reference: string; status: ApplicationStatus; status_label: string }>(
-    'POST', `/financing/applications/${id}/submit`,
+    'POST', `/financing/applications/${seg(id)}/submit`,
   )
 
 // ── Account orders (api/routes/customer_account.py) ──
@@ -618,4 +634,4 @@ export interface MyOrderSummary {
 export const fetchMyOrders = () => req<{ items: MyOrderSummary[] }>('GET', '/account/orders')
 
 /** Same shape as the public tracking lookup. */
-export const fetchMyOrder = (id: string) => req<TrackedOrder>('GET', `/account/orders/${id}`)
+export const fetchMyOrder = (id: string) => req<TrackedOrder>('GET', `/account/orders/${seg(id)}`)

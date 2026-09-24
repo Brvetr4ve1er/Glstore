@@ -60,6 +60,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { ScrollReveal, STAGGER_CONTAINER, STAGGER_ITEM } from '@/components/ScrollReveal'
 import { Button, Input, Textarea, Tag, EmptyState } from '@/components/ui'
 import { SEO } from '@/components/SEO'
+import { SimulatorPanel } from '@/components/financing/SimulatorPanel'
 
 // Reviews client moved to `lib/api.ts` (`fetchReviews` / `submitReview` /
 // `ReviewItem` / `ReviewList`) — this page used to carry a local fetch here
@@ -345,6 +346,7 @@ export default function ProductDetailPage() {
                     <button
                       key={o.id}
                       type="button"
+                      aria-pressed={active}
                       disabled={oos2}
                       onClick={() => { setSelectedOfferId(o.id); setQty(1) }}
                       className={`px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
@@ -427,6 +429,18 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Financing estimate for this exact variant and quantity. Renders
+              nothing until an operator has activated a rule; keyed on the offer
+              so switching variant starts a fresh estimate. */}
+          {offer && !oos && (
+            <SimulatorPanel
+              key={offer.id}
+              compact
+              lines={[{ offer_id: offer.id, quantity: qty }]}
+              returnTo={`/simulate?product=${encodeURIComponent(p.slug)}&offer=${encodeURIComponent(offer.id)}&qty=${qty}`}
+            />
+          )}
 
           {/* Trust strip */}
           <div className="grid grid-cols-3 gap-2">

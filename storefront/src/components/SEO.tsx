@@ -20,7 +20,10 @@ interface SEOProps {
   noIndex?: boolean
 }
 
-const DEFAULT_DESC = 'Matériel gaming pro en Algérie — casques, claviers, souris, manettes. Livraison rapide. Paiement à la livraison.'
+// Only claims the storefront already makes elsewhere: 58 wilayas, cash on
+// delivery. (The GLAIVE gaming text that sat here also promised "livraison
+// rapide", which nothing backs.)
+const DEFAULT_DESC = 'AMANTCOM — l’électroménager pour toute la maison. Prix en dinars, paiement à la livraison, dans les 58 wilayas.'
 const SITE_NAME = 'AMANTCOM'
 
 export function SEO({

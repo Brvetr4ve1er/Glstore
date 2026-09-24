@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Menu, X as XIcon, ChevronDown, Truck, Shield, Home } from 'lucide-react'
+import { ShoppingBag, Menu, X as XIcon, ChevronDown, Truck, Shield, Home, User, Landmark } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useCart } from '@/lib/cart'
+import { fetchFinancingTerms } from '@/lib/api'
+import { useCustomer } from '@/lib/session'
 import { categoryIcon } from '@/lib/format'
 import { CATEGORIES, categoryBySlug, type Category } from '@/lib/taxonomy'
 import { BrandLogo } from './BrandLogo'
@@ -56,6 +59,18 @@ const TOP_LINKS: { to: string; label: string }[] = [
 
 export function Navbar() {
   const { count } = useCart()
+  const { signedIn } = useCustomer()
+  // Same key as the financing pages share, so this costs one request per
+  // session. The link only appears once an operator has activated a rule.
+  const { data: terms } = useQuery({
+    queryKey: ['financing', 'terms'],
+    queryFn: fetchFinancingTerms,
+    staleTime: 5 * 60_000,
+  })
+  const financingAvailable = terms?.available === true
+  const account = signedIn
+    ? { to: '/account', label: 'Mon compte' }
+    : { to: '/login', label: 'Se connecter' }
   const [megaOpen, setMegaOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const megaRef = useRef<HTMLDivElement>(null)
@@ -102,8 +117,16 @@ export function Navbar() {
               <SearchBox variant="navbar" />
             </div>
 
-            {/* Cart */}
+            {/* Account + cart */}
             <div className="ml-auto flex items-center gap-2">
+              <Link
+                to={account.to}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--color-surface-4)] hover:border-[var(--color-electric-blue)] transition-colors"
+                aria-label={account.label}
+              >
+                <User size={16} aria-hidden="true" className="text-[var(--color-text-2)]" />
+                <span className="text-sm font-bold text-[var(--color-text-1)] hidden sm:inline">{account.label}</span>
+              </Link>
               <Link
                 to="/cart"
                 className="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-electric-blue)]/10 border border-[var(--color-electric-blue)]/25 hover:bg-[var(--color-electric-blue)]/20 transition-colors"
@@ -159,6 +182,20 @@ export function Navbar() {
                 {l.label}
               </NavLink>
             ))}
+            {financingAvailable && (
+              <NavLink
+                to="/financement"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                    isActive
+                      ? 'text-[var(--color-electric-blue)] bg-[var(--color-electric-blue)]/8'
+                      : 'text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)]'
+                  }`
+                }
+              >
+                <Landmark size={13} aria-hidden="true" /> Financement
+              </NavLink>
+            )}
 
             {/* Mega menu */}
             <AnimatePresence>
@@ -223,8 +260,26 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)]"
                 >
-                  <Menu size={18} className="text-[var(--color-electric-blue)]" />
+                  <Menu size={18} aria-hidden="true" className="text-[var(--color-electric-blue)]" />
                   Tout le catalogue
+                </Link>
+                {financingAvailable && (
+                  <Link
+                    to="/financement"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)]"
+                  >
+                    <Landmark size={18} aria-hidden="true" className="text-[var(--color-electric-blue)]" />
+                    Financement
+                  </Link>
+                )}
+                <Link
+                  to={account.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--color-text-1)] hover:bg-[var(--color-surface-3)]"
+                >
+                  <User size={18} aria-hidden="true" className="text-[var(--color-electric-blue)]" />
+                  {account.label}
                 </Link>
                 <div className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text-3)]">
                   Catégories

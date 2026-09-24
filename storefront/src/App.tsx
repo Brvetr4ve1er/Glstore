@@ -6,7 +6,7 @@ import { MotionConfig } from 'framer-motion'
 
 import { queryClient } from '@/lib/query'
 import { CartProvider } from '@/lib/cart'
-import { CustomerProvider } from '@/lib/session'
+import { CustomerProvider, RequireCustomer } from '@/lib/session'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { Spinner } from '@/components/ui'
@@ -23,6 +23,15 @@ const OrderTracking     = lazy(() => import('@/pages/OrderTracking'))
 const Contact           = lazy(() => import('@/pages/Contact'))
 const Faq                = lazy(() => import('@/pages/Faq'))
 const NotFound          = lazy(() => import('@/pages/NotFound'))
+const Login             = lazy(() => import('@/pages/account/Login'))
+const Account           = lazy(() => import('@/pages/account/Account'))
+const Orders            = lazy(() => import('@/pages/account/Orders'))
+const OrderDetail       = lazy(() => import('@/pages/account/OrderDetail'))
+const Applications      = lazy(() => import('@/pages/account/Applications'))
+const ApplicationDetail = lazy(() => import('@/pages/account/ApplicationDetail'))
+const Simulate          = lazy(() => import('@/pages/Simulate'))
+const Financing         = lazy(() => import('@/pages/Financing'))
+const Apply             = lazy(() => import('@/pages/apply/Apply'))
 
 
 function PageFallback() {
@@ -55,14 +64,15 @@ function RoutedShell() {
               <Route path="/order/track"               element={<OrderTracking />} />
               <Route path="/contact"                   element={<Contact />} />
               <Route path="/faq"                       element={<Faq />} />
-              {/* Phase D routes, mounted after the fleet lands their pages:
-                    /login                        pages/account/Login.tsx
-                    /account                      pages/account/Account.tsx          (RequireCustomer)
-                    /account/orders[/:id]         pages/account/Orders.tsx, OrderDetail.tsx
-                    /account/applications[/:id]   pages/account/Applications.tsx, ApplicationDetail.tsx
-                    /simulate                     pages/Simulate.tsx
-                    /financement                  pages/Financing.tsx
-                    /apply/:id                    pages/apply/Apply.tsx              (RequireCustomer) */}
+              <Route path="/login"                     element={<Login />} />
+              <Route path="/simulate"                  element={<Simulate />} />
+              <Route path="/financement"               element={<Financing />} />
+              <Route path="/account"                   element={<RequireCustomer><Account /></RequireCustomer>} />
+              <Route path="/account/orders"            element={<RequireCustomer><Orders /></RequireCustomer>} />
+              <Route path="/account/orders/:id"        element={<RequireCustomer><OrderDetail /></RequireCustomer>} />
+              <Route path="/account/applications"      element={<RequireCustomer><Applications /></RequireCustomer>} />
+              <Route path="/account/applications/:id"  element={<RequireCustomer><ApplicationDetail /></RequireCustomer>} />
+              <Route path="/apply/:id"                 element={<RequireCustomer><Apply /></RequireCustomer>} />
               <Route path="*"                          element={<NotFound />} />
             </Routes>
           </Suspense>
