@@ -146,6 +146,10 @@ of the merchandising plan had to fake with `localStorage`.
   `legacy_phone_keys` or merge the rows. Switching checkout to the canonical
   key is the real fix; it changes live checkout behaviour, so it is the
   operator's call.
+  **Resolved for order history in Phase D:** `GET /account/orders`
+  (`api/routes/customer_account.py`) unions across every legacy key, so all
+  of a shopper's COD orders show in their account. Switching checkout itself
+  to the canonical key is still the operator's call.
 - **`hash_requester` is keyed with `jwt_secret`.** Key reuse across purposes,
   and rotating the JWT secret silently resets per-address OTP counts. Give it
   its own `OTP_HMAC_KEY`.
@@ -271,6 +275,47 @@ superseded for sequencing only; its content still stands.
 
 This is the parallelisable phase and the right place to offer a multi-agent
 workflow.
+
+**Phase D as built** (foundation inline, then an eight-agent fleet on disjoint
+files, each unit reviewed; 0 blockers / 0 majors; wired and fixed after):
+
+- Foundation: session layer (`lib/session.tsx`: CustomerProvider,
+  useCustomer, RequireCustomer, open-redirect-safe `safeNext`), every Phase
+  D call typed in `lib/api.ts`, `EstimateLabel` as the only caption a
+  financing figure gets, `GET /account/orders[/{id}]` across legacy phone
+  keys, labels tied to fields in `ui.tsx`, and a vitest that fails
+  hand-written credit copy or an uncaptioned monthly figure.
+- Pages: `/login`, `/account`, `/account/orders[/:id]`,
+  `/account/applications[/:id]`, `/simulate` (+ `SimulatorPanel` on every
+  product page), `/apply/:id` (4 steps), `/financement`. Home: financing
+  CTA and band (only once a rule is active), account band.
+- Security fix found in review: every id in an API path is one encoded
+  segment (`seg()` in api.ts) — a crafted `/apply/..%2F..` link could
+  otherwise send a request carrying the session token to another endpoint.
+- The site-wide default SEO description still carried the old GLAIVE
+  gaming copy and a "livraison rapide" claim; replaced.
+- Verified in the browser WITHOUT a backend (redirects, error states,
+  labels, 375px). The signed-in flows have never run against a live API.
+
+**Phase D follow-ups:**
+
+- **Not built:** brand pages (the catalogue's brand filter covers it for
+  now); legal pages (deliberately — CGV/privacy/legal notice are operator
+  copy; no public "à venir" page); wishlist and saved addresses (no backend;
+  the merchandising plan chose localStorage).
+- **Reviewer minors left (accessibility first):** focus drops to `<body>`
+  when the Login code field locks and when a StepDocuments upload disables
+  its input; `aria-current="step"` on a read-only application history and
+  no current marker on terminal order states; the Simulator announces an
+  ineligible result twice; the Login "valable X" line does not count down;
+  local date/format helpers duplicated across pages; link-styled buttons
+  copy Button's classes by hand.
+- **Pre-existing, not Phase D:** two `<Link><Button>` nestings on Home
+  (Sélection "Tout voir", brand callout "Découvrir") — invalid interactive
+  nesting; `TVA incluse` on the product page is an unverified claim.
+- **Still open from the top of this plan:** are El Yusr and AMANTCOM the
+  same product? It was to be answered before Phase D and decides `stores`
+  seeding.
 
 ### Phase E — Partners
 
