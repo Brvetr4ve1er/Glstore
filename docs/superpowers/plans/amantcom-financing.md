@@ -352,6 +352,35 @@ what is gated, what is labelled an estimate, what still needs approved copy.
 That checklist is the artefact that lets the operator walk into a legal
 conversation prepared rather than improvising.
 
+**Phase F as built:**
+
+- **Audit:** `audit/Phase_F_Delta.md`. 61 → 67 since the merchandising
+  baseline. Brand (4) and Content (3) do not move: `docker-compose.yml`
+  still mounts `seed_gaming.sql` (SteelSeries-derived names) and
+  `seed_glaive_starter.sql` (15 invented products, ACTIVE). That is catalog
+  data, not code.
+- **Checklist:** `docs/compliance/financing-compliance-checklist.md`, one
+  section per §10 caution, then personal data (law 18-07) and 13 questions for
+  counsel. Its main finding: consent (text *and* a place to record it),
+  privacy notice and retention do not exist. `ON DELETE RESTRICT` means an
+  application cannot be deleted at all today.
+- **Fixed, because the audit found them:**
+  - "Ghir Laffaire" in 5 storefront SEO descriptions.
+  - The empty cart's "livraison offerte dès 50 000 DZD".
+  - The admin's old logo, login wordmark and theme-preset label.
+  - Audit Criticals C3 and C4, which were still open: image-queue icon buttons and the login toggle.
+  - Highs H5, H6 (admin) and H8: Modal dialog semantics and focus, error announcements, reduced motion.
+  - No `<h1>` on the empty Cart and Checkout pages.
+- **New guards:**
+  - `storefront/src/__tests__/brand-copy.test.ts`: retired brands; delivery, price, warranty and refund promises; speed promises (§10 "instant approval").
+  - The admin icon-button naming rule now covers all 151 buttons, not five screens.
+- **Not done, recorded in the audit:**
+  - Contrast H7: `--color-text-3` scores 3.3–4.0:1. Passing values are given; it is the operator's visual call.
+  - Skip link.
+  - Bundle +7.6 kB gzip.
+  - `ProductDetail.tsx` at 1 164 lines.
+  - The Modal focus trap has not been exercised in a browser, because every admin dialog needs a live API.
+
 ## Explicitly NOT in this pass
 
 The blueprint lists 40+ tables and 30+ routes. Without a boundary this is

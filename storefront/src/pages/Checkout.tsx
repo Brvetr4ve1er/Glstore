@@ -51,12 +51,13 @@ export default function CheckoutPage() {
   if (cart.items.length === 0) {
     return (
       <div className="page-enter max-w-[1400px] mx-auto px-6 py-12">
-        <SEO title="Commande" description="Finaliser votre commande — Ghir Laffaire" noIndex />
+        <SEO title="Commande" description="Finaliser votre commande — AMANTCOM" noIndex />
         <Breadcrumbs items={[{ to: '/cart', label: 'Panier' }, { label: 'Commande' }]} />
         <div className="mt-12">
           <EmptyState
             icon={<ShoppingBag size={32} className="text-[var(--color-neon-yellow)] opacity-70" />}
             title="Aucun article à commander"
+            titleAs="h1"
             desc="Votre panier est vide."
             action={<Link to="/c/all"><Button variant="accent">Explorer le catalogue</Button></Link>}
           />
@@ -110,7 +111,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="page-enter max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
-      <SEO title="Commande" description="Finaliser votre commande — Ghir Laffaire" noIndex />
+      <SEO title="Commande" description="Finaliser votre commande — AMANTCOM" noIndex />
       <Breadcrumbs items={[{ to: '/cart', label: 'Panier' }, { label: 'Commande' }]} />
 
       <div className="mt-4 mb-6 flex items-center justify-between gap-4 flex-wrap">

@@ -1,7 +1,7 @@
 /* Unified UI primitives — Ghir Laffaire brand
  * Button · Badge · Input · Select · Spinner · Modal · EmptyState · Card · StatCard · PageHeader
  */
-import { type ReactNode, forwardRef, Fragment, useId } from 'react'
+import { type ReactNode, forwardRef, Fragment, useEffect, useId, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
@@ -92,6 +92,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
         ref={ref}
         id={fieldId}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${fieldId}-error` : undefined}
         className={cn(
           'h-10 px-3 rounded-lg bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors',
           error
@@ -102,7 +103,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
         )}
         {...props}
       />
-      {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
+      {error && <p id={`${fieldId}-error`} className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
     )
   },
@@ -125,6 +126,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
         ref={ref}
         id={fieldId}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${fieldId}-error` : undefined}
         className={cn(
           'min-h-[88px] px-3 py-2.5 rounded-lg bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors resize-y',
           error
@@ -135,7 +137,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
         )}
         {...props}
       />
-      {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
+      {error && <p id={`${fieldId}-error`} className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
     )
   },
@@ -232,11 +234,47 @@ export function StatCard({
 }
 
 // ── Modal ─────────────────────────────────────────────────────
+// Dialog semantics and focus (audit High #5): announced as a dialog named by
+// its title; focus moves in on open, Tab stays inside, Escape closes, and
+// focus goes back to whatever opened it.
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function useDialogFocus(open: boolean, onClose: () => void) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
+  useEffect(() => { closeRef.current = onClose })
+
+  useEffect(() => {
+    if (!open) return
+    const opener = document.activeElement as HTMLElement | null
+    const panel = panelRef.current
+    ;(bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panel)?.focus()
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.stopPropagation(); closeRef.current(); return }
+      if (e.key !== 'Tab' || !panel) return
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE))
+      if (items.length === 0) { e.preventDefault(); return }
+      const first = items[0], last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey); opener?.focus?.() }
+  }, [open])
+
+  return { panelRef, bodyRef }
+}
+
 export function Modal({
   open, onClose, title, children, maxWidth = 'max-w-lg',
 }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode; maxWidth?: string
 }) {
+  const titleId = useId()
+  const { panelRef, bodyRef } = useDialogFocus(open, onClose)
   return (
     <AnimatePresence>
       {open && (
@@ -251,7 +289,12 @@ export function Modal({
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
-              className={cn('glass w-full flex flex-col max-h-[90vh] relative', maxWidth)}
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              tabIndex={-1}
+              className={cn('glass w-full flex flex-col max-h-[90vh] relative outline-none', maxWidth)}
               initial={{ scale: 0.94, y: 16, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.96, y: 8, opacity: 0 }}
@@ -260,13 +303,13 @@ export function Modal({
             >
               <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-[var(--color-electric-blue)] via-[var(--color-neon-yellow)] to-[var(--color-hot-pink)]" />
               <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-surface-4)]">
-                <h2 className="text-base font-bold text-[var(--color-text-1)]">{title}</h2>
+                <h2 id={titleId} className="text-base font-bold text-[var(--color-text-1)]">{title}</h2>
                 <button onClick={onClose} aria-label="Fermer"
                   className="p-1.5 rounded-lg hover:bg-[var(--color-surface-3)] text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)] transition-colors">
-                  <X size={16} />
+                  <X size={16} aria-hidden="true" />
                 </button>
               </div>
-              <div className="overflow-y-auto px-6 py-5 flex-1">{children}</div>
+              <div ref={bodyRef} className="overflow-y-auto px-6 py-5 flex-1">{children}</div>
             </motion.div>
           </motion.div>
         </Fragment>

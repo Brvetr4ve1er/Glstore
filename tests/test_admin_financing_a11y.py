@@ -80,6 +80,66 @@ def test_icons_inside_buttons_are_decorative(path):
             )
 
 
+ALL_ADMIN = sorted(ADMIN.rglob("*.tsx"))
+
+
+@pytest.mark.parametrize("path", ALL_ADMIN, ids=lambda p: p.name)
+def test_every_admin_button_has_an_accessible_name(path):
+    """The naming rule, console-wide. The Phase F re-audit found audit
+    Critical #3 still open — the image queue's compact card kept its three
+    icon-only buttons — plus seven more unnamed icons (zoom, close, reset)
+    on screens this guard did not cover."""
+    for attrs, body in _buttons(path):
+        visible = _SELF_CLOSING_TAG.sub("", body).strip()
+        if not visible:
+            assert "aria-label" in attrs, f"{path.name}: icon-only button without aria-label:\n{attrs[:200]}"
+
+
+def test_the_console_wide_scan_is_not_vacuous():
+    assert sum(len(_buttons(p)) for p in ALL_ADMIN) > 140
+
+
+def test_the_login_password_toggle_is_reachable_and_named():
+    """Audit Critical #4: the toggle had tabIndex={-1} and no name."""
+    login = (ADMIN / "pages" / "Login.tsx").read_text(encoding="utf-8")
+    assert "tabIndex={-1}" not in login
+    assert "aria-label={showPw ?" in login
+    assert 'htmlFor="admin-password"' in login and 'id="admin-password"' in login
+    assert 'role="alert"' in login
+
+
+def test_field_errors_are_described():
+    """Audit Critical #2: an error shown under a field is tied to it."""
+    ui = (ADMIN / "components" / "ui.tsx").read_text(encoding="utf-8")
+    assert ui.count("aria-describedby={error ? `${fieldId}-error` : undefined}") == 2
+    assert ui.count("id={`${fieldId}-error`}") == 2
+
+
+def test_the_shared_modal_is_a_real_dialog():
+    """Audit High #5: every admin dialog is this Modal, and it had no dialog
+    role, no focus management and no way out by keyboard."""
+    ui = (ADMIN / "components" / "ui.tsx").read_text(encoding="utf-8")
+    modal = ui[ui.index("function useDialogFocus"):ui.index("// ── EmptyState")]
+    for needle in ('role="dialog"', 'aria-modal="true"', "aria-labelledby={titleId}", "id={titleId}",
+                   "e.key === 'Escape'", "e.key !== 'Tab'", "opener?.focus?.()"):
+        assert needle in modal, needle
+
+
+def test_error_boundaries_announce_themselves():
+    """Audit High #6: the crash fallback was silent to a screen reader."""
+    for app in ("admin", "storefront"):
+        eb = (ADMIN.parents[1] / app / "src" / "components" / "ErrorBoundary.tsx").read_text(encoding="utf-8")
+        assert 'role="alert"' in eb, app
+
+
+def test_admin_honours_reduced_motion():
+    """Audit High #8: the admin had no reduced-motion accommodation."""
+    app = (ADMIN / "App.tsx").read_text(encoding="utf-8")
+    css = (ADMIN / "index.css").read_text(encoding="utf-8")
+    assert '<MotionConfig reducedMotion="user">' in app
+    assert "prefers-reduced-motion: reduce" in app and "prefers-reduced-motion: reduce" in css
+
+
 def test_the_scan_finds_every_button_including_ones_with_deep_handlers():
     """Exact counts ON PURPOSE: a scanner that silently skips a button is how
     the two above would pass while missing it. Adding a button fails this —

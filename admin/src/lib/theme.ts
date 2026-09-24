@@ -138,7 +138,7 @@ export interface PresetMeta {
 
 export const PRESETS: Record<string, PresetMeta> = {
   default: {
-    label: 'Ghir Laffaire (canon)',
+    label: 'AMANTCOM (canon)',
     emoji: '⚡',
     tags: ['dark', 'punk'],
     mode: 'dark',

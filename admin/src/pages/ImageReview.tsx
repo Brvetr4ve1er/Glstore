@@ -502,14 +502,17 @@ function QueueItemCard({
         </div>
       </div>
       <div className="border-t border-[var(--color-surface-4)] p-2 grid grid-cols-3 gap-1">
-        <Button variant="outline" size="sm" loading={pending} onClick={onReject}>
-          <XIcon size={11} />
+        <Button variant="outline" size="sm" loading={pending} onClick={onReject}
+          aria-label={`Rejeter l'image de ${item.product_name}`} title="Rejeter">
+          <XIcon size={11} aria-hidden="true" />
         </Button>
-        <Button variant="ghost" size="sm" loading={pending} onClick={() => onApprove(false)}>
-          <Check size={11} />
+        <Button variant="ghost" size="sm" loading={pending} onClick={() => onApprove(false)}
+          aria-label={`Approuver l'image de ${item.product_name} (galerie)`} title="Approuver (galerie)">
+          <Check size={11} aria-hidden="true" />
         </Button>
-        <Button variant="accent" size="sm" loading={pending} onClick={() => onApprove(true)}>
-          <Star size={11} />
+        <Button variant="accent" size="sm" loading={pending} onClick={() => onApprove(true)}
+          aria-label={`Approuver l'image de ${item.product_name} comme principale`} title="Approuver comme image principale">
+          <Star size={11} aria-hidden="true" />
         </Button>
       </div>
     </motion.div>

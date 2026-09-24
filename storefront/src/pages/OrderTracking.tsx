@@ -63,7 +63,7 @@ export default function OrderTrackingPage() {
     <div className="page-enter max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <SEO
         title="Suivre ma commande"
-        description="Suivez l’état de votre commande Ghir Laffaire avec votre numéro et téléphone."
+        description="Suivez l’état de votre commande AMANTCOM avec votre numéro et téléphone."
         noIndex
       />
       <Breadcrumbs items={[{ label: 'Suivi de commande' }]} />

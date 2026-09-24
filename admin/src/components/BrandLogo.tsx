@@ -1,20 +1,21 @@
 import { motion } from 'framer-motion'
 
+/**
+ * AMANTCOM brand mark — the same shield as storefront/src/components/BrandLogo.tsx:
+ * a shield, a chevron reading as an A, and the dot it keeps safe.
+ *
+ * It replaces the Ghir Laffaire mark (cart, mystery box, crown) that the admin
+ * console still showed after the storefront was rebranded. Colours are
+ * `var(--color-*)` tokens so the mark follows the admin theme.
+ */
 interface BrandLogoProps {
   size?: number
   showWordmark?: boolean
   className?: string
-  /** include "Fast. Reliable. Yours." tagline beneath the wordmark */
+  /** A small "Console" label beneath the wordmark. */
   showTagline?: boolean
 }
 
-/**
- * GHIR LAFFAIRE brand mark:
- *   – Bold-blue cart        (trust + commerce)
- *   – Neon-yellow mystery box with `?`  (mystery & fun)
- *   – Hot-pink crown        (punk energy)
- *   – Electric-blue speed sparkles (momentum)
- */
 export function BrandLogo({
   size = 36,
   showWordmark = true,
@@ -26,63 +27,38 @@ export function BrandLogo({
       <motion.div
         className="relative shrink-0"
         style={{ width: size, height: size }}
-        whileHover={{ rotate: -6, scale: 1.06 }}
+        whileHover={{ rotate: -4, scale: 1.06 }}
         transition={{ type: 'spring', stiffness: 320, damping: 18 }}
       >
-        <svg viewBox="0 0 64 64" width={size} height={size} aria-label="Ghir Laffaire">
-          {/* speed lines (yellow) */}
-          <g stroke="#FFD400" strokeWidth="2.4" strokeLinecap="round">
-            <line x1="2"  y1="22" x2="14" y2="22" opacity="0.85" />
-            <line x1="0"  y1="34" x2="10" y2="34" opacity="0.55" />
-            <line x1="3"  y1="46" x2="12" y2="46" opacity="0.75" />
-          </g>
-
-          {/* cart body (bold blue) */}
+        <svg viewBox="0 0 64 64" width={size} height={size} role="img" aria-label="AMANTCOM">
           <path
-            d="M16 18 L52 18 L46 44 L22 44 Z"
-            fill="#1E466B"
-            stroke="#0D0D0D"
-            strokeWidth="2"
+            d="M32 4 L55 13 V32 C55 45 45 55 32 60 C19 55 9 45 9 32 V13 Z"
+            fill="var(--color-surface-2)"
+            stroke="var(--color-brand)"
+            strokeWidth="2.5"
             strokeLinejoin="round"
           />
-          <line x1="16" y1="18" x2="12" y2="10" stroke="#0D0D0D" strokeWidth="2.5" strokeLinecap="round" />
-
-          {/* wheels */}
-          <circle cx="26" cy="52" r="3.4" fill="#0D0D0D" />
-          <circle cx="44" cy="52" r="3.4" fill="#0D0D0D" />
-
-          {/* mystery box (yellow w/ ?) */}
-          <rect x="26" y="14" width="20" height="20" rx="2.5"
-            fill="#FFD400" stroke="#0D0D0D" strokeWidth="2" />
-          <text x="36" y="29" textAnchor="middle"
-            fontFamily="Bricolage Grotesque, Inter, sans-serif"
-            fontWeight="900" fontSize="14" fill="#0D0D0D">?</text>
-
-          {/* crown (pink) */}
           <path
-            d="M28 12 L31 6 L34 11 L37 5 L40 11 L43 6 L46 12 Z"
-            fill="#FF2E7A" stroke="#0D0D0D" strokeWidth="1.5" strokeLinejoin="round"
-            className="crown-bounce origin-center"
+            d="M22 40 L32 19 L42 40"
+            fill="none"
+            stroke="var(--color-brand)"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-
-          {/* sparkles (electric blue) */}
-          <g fill="#3DA9FC">
-            <path d="M54 10 L55 13 L58 14 L55 15 L54 18 L53 15 L50 14 L53 13 Z" className="sparkle-pulse" />
-            <path d="M58 38 L59 40 L61 41 L59 42 L58 44 L57 42 L55 41 L57 40 Z"
-              className="sparkle-pulse" style={{ animationDelay: '0.6s' }} />
-          </g>
+          <path d="M26.5 33 H37.5" stroke="var(--color-brand)" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="32" cy="46.5" r="3.2" fill="var(--color-accent)" />
         </svg>
       </motion.div>
 
       {showWordmark && (
         <div className="flex flex-col leading-none">
-          <span className="headline-italic text-[15px] text-[var(--color-text-1)]">
-            <span className="text-[var(--color-electric-blue)]">GHiR</span>{' '}
-            <span className="text-[var(--color-text-1)]">LAFFAiRE</span>
+          <span className="headline-italic text-[15px] tracking-tight text-[var(--color-text-1)]">
+            <span className="text-[var(--color-brand)]">A</span>MANTCOM
           </span>
           {showTagline && (
-            <span className="text-[9px] tracking-[0.2em] uppercase text-[var(--color-neon-yellow)] mt-1 font-bold">
-              Fast · Reliable · Yours
+            <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--color-text-2)] mt-1 font-bold">
+              Console
             </span>
           )}
         </div>

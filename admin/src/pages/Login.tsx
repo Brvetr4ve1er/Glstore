@@ -65,11 +65,10 @@ export default function Login() {
           <BrandLogo size={56} showWordmark={false} />
           <div className="text-center flex flex-col gap-1">
             <div className="headline-italic text-xl text-[var(--color-text-1)]">
-              <span className="text-[var(--color-electric-blue)]">GHiR</span>{' '}
-              <span>LAFFAiRE</span>
+              <span className="text-[var(--color-brand)]">A</span>MANTCOM
             </div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-[var(--color-neon-yellow)] font-bold">
-              Fast · Reliable · Yours
+            <div className="text-[10px] tracking-[0.25em] uppercase text-[var(--color-text-2)] font-bold">
+              Console
             </div>
             <div className="text-xs text-[var(--color-text-3)] mt-2">
               Admin console — sign in to continue
@@ -82,18 +81,19 @@ export default function Login() {
           <Input
             label="Email"
             type="email"
-            placeholder="admin@ghirlaffaire.dz"
+            placeholder="nom@exemple.dz"
             autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+            <label htmlFor="admin-password" className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
               Password
             </label>
             <div className="relative">
               <input
+                id="admin-password"
                 type={showPw ? 'text' : 'password'}
                 placeholder="••••••••"
                 autoComplete="current-password"
@@ -104,17 +104,19 @@ export default function Login() {
               />
               <button
                 type="button"
-                tabIndex={-1}
                 onClick={() => setShowPw(v => !v)}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+                aria-pressed={showPw}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-3)] hover:text-[var(--color-electric-blue)]"
               >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPw ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
               </button>
             </div>
           </div>
 
           {err && (
             <motion.p
+              role="alert"
               className="text-xs text-[var(--color-hot-pink)] bg-[var(--color-hot-pink)]/10 px-3 py-2 rounded-lg border border-[var(--color-hot-pink)]/25 font-medium"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -127,12 +129,6 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
-
-        <div className="px-8 pb-6 text-center">
-          <p className="text-[10px] text-[var(--color-text-3)] tracking-wide">
-            Inspired by Shibuya punk · Built for Algeria
-          </p>
-        </div>
       </motion.div>
     </div>
   )

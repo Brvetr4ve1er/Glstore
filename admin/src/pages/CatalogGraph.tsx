@@ -424,11 +424,11 @@ export default function CatalogGraph() {
             <Button variant="outline" size="sm" onClick={() => setShowSettings(v => !v)} title="Réglages physiques (Ctrl+,)">
               <SettingsIcon size={13} /> Physique
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.min(z * 1.25, 3))}>
-              <ZoomIn size={14} />
+            <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.min(z * 1.25, 3))} aria-label="Zoom avant">
+              <ZoomIn size={14} aria-hidden="true" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(z / 1.25, 0.4))}>
-              <ZoomOut size={14} />
+            <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(z / 1.25, 0.4))} aria-label="Zoom arrière">
+              <ZoomOut size={14} aria-hidden="true" />
             </Button>
             <Button variant="ghost" size="sm" onClick={resetView}>
               <RotateCcw size={13} /> Reset vue
@@ -539,9 +539,10 @@ export default function CatalogGraph() {
                   )}
                   <button
                     onClick={() => { setSearch(''); setShowSearch(false) }}
+                    aria-label="Fermer la recherche"
                     className="text-[var(--color-text-3)] hover:text-[var(--color-text-1)]"
                   >
-                    <XIcon size={14} />
+                    <XIcon size={14} aria-hidden="true" />
                   </button>
                 </motion.div>
               )}
@@ -560,7 +561,7 @@ export default function CatalogGraph() {
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-2)] flex items-center gap-2">
                       <Layers size={12} /> Physique du graphe
                     </h3>
-                    <button onClick={() => setShowSettings(false)}><XIcon size={14} /></button>
+                    <button onClick={() => setShowSettings(false)} aria-label="Fermer les réglages"><XIcon size={14} aria-hidden="true" /></button>
                   </div>
 
                   <SettingSlider

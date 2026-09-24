@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
-        <div className="glass-strong p-8 max-w-lg w-full relative overflow-hidden">
+        <div role="alert" className="glass-strong p-8 max-w-lg w-full relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 brand-stripe" />
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-[var(--color-hot-pink)]/15 flex items-center justify-center shrink-0">

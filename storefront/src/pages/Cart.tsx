@@ -76,13 +76,14 @@ export default function CartPage() {
   if (cart.items.length === 0) {
     return (
       <div className="page-enter max-w-[1400px] mx-auto px-6 py-8">
-        <SEO title="Panier" description="Votre panier — Ghir Laffaire" noIndex />
+        <SEO title="Panier" description="Votre panier — AMANTCOM" noIndex />
         <Breadcrumbs items={[{ label: 'Panier' }]} />
         <div className="mt-12">
           <EmptyState
             icon={<ShoppingBag size={32} className="text-[var(--color-neon-yellow)] opacity-70" />}
             title="Votre panier est vide"
-            desc="Ajoutez des produits pour passer commande. La livraison est offerte dès 50 000 DZD."
+            titleAs="h1"
+            desc="Ajoutez des produits pour passer commande."
             action={<Link to="/c/all"><Button variant="accent">Explorer le catalogue</Button></Link>}
           />
         </div>
@@ -98,7 +99,7 @@ export default function CartPage() {
 
   return (
     <div className="page-enter max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
-      <SEO title="Panier" description="Votre panier — Ghir Laffaire" noIndex />
+      <SEO title="Panier" description="Votre panier — AMANTCOM" noIndex />
       <Breadcrumbs items={[{ label: 'Panier' }]} />
 
       <h1 className="text-3xl md:text-4xl font-black text-[var(--color-text-1)] mt-4 mb-6">

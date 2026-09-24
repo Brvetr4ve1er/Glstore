@@ -460,7 +460,7 @@ function TypographyTab({ draft, setDraft }: TabProps) {
                 className="mt-2 text-base"
                 style={{ fontFamily: value || t.fallback }}
               >
-                Ghir Laffaire — Aperçu de la police · The quick brown fox jumps · 1234567890
+                AMANTCOM — Aperçu de la police · The quick brown fox jumps · 1234567890
               </div>
             </div>
           )
@@ -846,8 +846,9 @@ function ColorTokenRow({ t, draft, setDraft }: TabProps & { t: TokenSpec }) {
           onClick={() => setDraft(withOverride(draft, t.key, undefined))}
           className="text-[10px] text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)] shrink-0"
           title="Reset to preset/default"
+          aria-label={`Reset ${t.label} to preset/default`}
         >
-          <RotateCcw size={11} />
+          <RotateCcw size={11} aria-hidden="true" />
         </button>
       )}
     </div>
@@ -887,10 +888,13 @@ function NumericTokenRow({ t, draft, setDraft }: TabProps & { t: TokenSpec }) {
           <span className="num text-[10px] text-[var(--color-electric-blue)]">{liveStr}</span>
           {overrideVal && (
             <button
+              type="button"
               onClick={() => setDraft(withOverride(draft, t.key, undefined))}
+              title="Reset to preset/default"
+              aria-label={`Reset ${t.label} to preset/default`}
               className="text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)]"
             >
-              <RotateCcw size={10} />
+              <RotateCcw size={10} aria-hidden="true" />
             </button>
           )}
         </div>

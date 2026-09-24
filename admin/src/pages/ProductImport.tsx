@@ -210,8 +210,8 @@ function PreviewBlock({
             {Math.round(file.size / 1024)} KB · delimiter <code className="px-1 bg-[var(--color-surface-3)] rounded">{d.delimiter === '\t' ? '\\t' : d.delimiter}</code> · {d.headers.length} columns · {d.parsed_rows} rows parsed
           </div>
         </div>
-        <button onClick={onReset} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-3)] text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)] transition-colors">
-          <XIcon size={14} />
+        <button onClick={onReset} aria-label="Remove file" className="p-1.5 rounded-lg hover:bg-[var(--color-surface-3)] text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)] transition-colors">
+          <XIcon size={14} aria-hidden="true" />
         </button>
       </div>
 

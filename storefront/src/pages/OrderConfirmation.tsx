@@ -21,7 +21,7 @@ export default function OrderConfirmationPage() {
   // confirm with a generic success view based on the URL id.
   return (
     <div className="page-enter max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <SEO title="Commande confirmée" description="Votre commande a été enregistrée — Ghir Laffaire" noIndex />
+      <SEO title="Commande confirmée" description="Votre commande a été enregistrée — AMANTCOM" noIndex />
       <Breadcrumbs items={[{ label: 'Confirmation' }]} />
 
       <motion.div

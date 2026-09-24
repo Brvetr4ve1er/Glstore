@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
+import { MotionConfig } from 'framer-motion'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import { queryClient } from '@/lib/query'
@@ -103,6 +104,7 @@ export default function App() {
       easing: 'ease-out-cubic',
       once: true,
       offset: 20,
+      disable: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     })
     // Cross-tab theme sync: when another admin tab saves a new theme,
     // mirror it here too so the active preset stays consistent.
@@ -113,9 +115,13 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <ErrorBoundary>
-            <AppRoutes />
-          </ErrorBoundary>
+          {/* Honour the OS "reduce motion" setting for every framer-motion
+              animation; CSS animations are covered in index.css. */}
+          <MotionConfig reducedMotion="user">
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
+          </MotionConfig>
         </BrowserRouter>
         <Toaster
           position="bottom-right"

@@ -201,14 +201,16 @@ export function Tag({ label, tone = 'muted' }: { label: string; tone?: TagTone }
 
 // ── EmptyState ────────────────────────────────────────────────
 export function EmptyState({
-  title, desc, action, icon,
+  title, desc, action, icon, titleAs: Title = 'p',
 }: {
   title: string; desc?: string; action?: ReactNode; icon?: ReactNode
+  /** 'h1' when the empty state IS the page (an empty cart) — the page needs a heading. */
+  titleAs?: 'p' | 'h1' | 'h2'
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
       {icon ?? <div className="text-5xl opacity-30">◇</div>}
-      <p className="text-base font-bold text-[var(--color-text-1)]">{title}</p>
+      <Title className="text-base font-bold text-[var(--color-text-1)]">{title}</Title>
       {desc && <p className="text-sm text-[var(--color-text-3)] max-w-md leading-relaxed">{desc}</p>}
       {action}
     </div>

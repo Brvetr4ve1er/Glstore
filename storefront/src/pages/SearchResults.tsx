@@ -39,7 +39,7 @@ export default function SearchResults() {
     <div className="page-enter max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
       <SEO
         title={q ? `Recherche : ${q}` : 'Recherche'}
-        description={q ? `Résultats pour "${q}" sur Ghir Laffaire.` : undefined}
+        description={q ? `Résultats pour "${q}" sur AMANTCOM.` : undefined}
         noIndex
       />
       <Breadcrumbs items={[{ label: q ? `Recherche : "${q}"` : 'Recherche' }]} />
