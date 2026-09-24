@@ -5,35 +5,91 @@
 // needed. Set VITE_API_URL to an absolute base only if you split them apart.
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 
+// ── Customer session token ───────────────────────────────────
+// An opaque token from POST /auth/customer/verify (never a JWT; see
+// api/routes/customer_auth.py). Held here rather than in lib/session.tsx so
+// the request helper can attach it without a React import cycle.
+const SESSION_KEY = 'amc.session'
+export const SESSION_EXPIRED_EVENT = 'amc:session-expired'
+
+export function getSessionToken(): string | null {
+  try { return localStorage.getItem(SESSION_KEY) } catch { return null }
+}
+export function setSessionToken(token: string): void {
+  try { localStorage.setItem(SESSION_KEY, token) } catch { /* private mode */ }
+}
+export function clearSessionToken(): void {
+  try { localStorage.removeItem(SESSION_KEY) } catch { /* private mode */ }
+}
+
+/** A failed request. `detail` is the server's raw payload: a string, a list
+ *  of validation errors, or — on the financing routes — an object such as
+ *  `{message, missing_profile, missing_documents, reasons}`. */
+export class ApiError extends Error {
+  status: number
+  detail: unknown
+  constructor(status: number, message: string, detail: unknown) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.detail = detail
+  }
+}
+
+function detailMessage(detail: unknown, fallback: string): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map(d => (d && typeof d === 'object' && 'msg' in d ? String(d.msg) : '')).filter(Boolean).join(' · ') || fallback
+  }
+  if (detail && typeof detail === 'object' && 'message' in detail) {
+    return String((detail as { message: unknown }).message)
+  }
+  return fallback
+}
+
+async function send<T>(method: string, path: string, init: RequestInit, signal?: AbortSignal): Promise<T> {
+  const headers = new Headers(init.headers)
+  headers.set('x-request-id', crypto.randomUUID())
+  const token = getSessionToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  const res = await fetch(`${BASE}${path}`, { ...init, method, headers, signal })
+  if (!res.ok) {
+    const text = await res.text()
+    let detail: unknown = undefined
+    let msg = `HTTP ${res.status}`
+    try {
+      const parsed = JSON.parse(text)
+      detail = parsed?.detail ?? parsed?.error
+      msg = detailMessage(detail, msg)
+    } catch {
+      /* noop */
+    }
+    if (res.status === 401 && token) {
+      clearSessionToken()
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    }
+    throw new ApiError(res.status, msg, detail)
+  }
+  if (res.status === 204) return undefined as unknown as T
+  return res.json() as Promise<T>
+}
+
 async function req<T>(
   method: string,
   path: string,
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-request-id': crypto.randomUUID(),
-  }
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
+  return send<T>(method, path, {
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
-    signal,
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    let msg = `HTTP ${res.status}`
-    try {
-      const parsed = JSON.parse(text)
-      msg = parsed?.detail ?? parsed?.error ?? msg
-    } catch {
-      /* noop */
-    }
-    throw new Error(msg)
-  }
-  if (res.status === 204) return undefined as unknown as T
-  return res.json() as Promise<T>
+  }, signal)
+}
+
+/** multipart/form-data: no Content-Type header, the browser sets the boundary. */
+async function reqMultipart<T>(path: string, form: FormData, signal?: AbortSignal): Promise<T> {
+  return send<T>('POST', path, { body: form }, signal)
 }
 
 // ── Catalog types ────────────────────────────────────────────
@@ -286,3 +342,280 @@ export interface ContactSubmission {
 
 export const submitContactMessage = (dto: ContactSubmission) =>
   req<{ id: string; created_at: string; message: string }>('POST', '/contact', dto)
+
+// ══ Phase D — customer identity, financing, account ══════════════
+// Every type below mirrors a backend response field for field. Money that
+// the financing API returns is a decimal STRING (exact); format it with
+// fmtMoney(Number(v)) only at render time.
+
+// ── Customer sign-in (migration 010, api/routes/customer_auth.py) ──
+export interface Customer {
+  id: string
+  phone: string
+  full_name: string | null
+  email: string | null
+  phone_verified_at: string | null
+}
+
+export interface OtpRequestResult {
+  sent: boolean
+  expires_in: number
+  resend_after: number
+}
+
+export interface CustomerSession {
+  token: string
+  token_type: string
+  expires_in: number
+  customer: Customer
+}
+
+/** 202 on success. 422: not an Algerian mobile. 429: throttled (Retry-After).
+ *  503: SMS not configured on this deployment. */
+export const requestOtp = (phone: string) =>
+  req<OtpRequestResult>('POST', '/auth/customer/request-otp', { phone })
+
+/** 400: wrong/expired code (detail says which). 429: too many attempts. */
+export const verifyOtp = (phone: string, code: string) =>
+  req<CustomerSession>('POST', '/auth/customer/verify', { phone, code })
+
+export const fetchMe = () => req<Customer>('GET', '/auth/customer/me')
+export const logoutCustomer = () => req<void>('POST', '/auth/customer/logout')
+
+// ── Financing presentation (FINANCING_TERMS_PUBLIC) ──
+/** Present on every financing response. While `kind === 'ESTIMATE'` every
+ *  figure is an estimate and must be shown with `label` beside it — render
+ *  it through <EstimateLabel>, never as hand-written copy. */
+export interface FinancingPresentation {
+  terms_public: boolean
+  kind: 'ESTIMATE' | 'TERMS'
+  label: string
+}
+
+/** No rule active → `available: false` and nothing else. Markups are never
+ *  exposed here; a figure only exists as a computed /simulate result. */
+export interface FinancingTerms extends FinancingPresentation {
+  available: boolean
+  rule_version?: number
+  durations?: number[]
+  min_down_payment_pct?: string
+  min_financed?: string
+  max_financed?: string
+}
+
+export const fetchFinancingTerms = () => req<FinancingTerms>('GET', '/financing/terms')
+
+export interface FinancingLineInput {
+  offer_id: string
+  quantity: number
+}
+
+/** Prices are never sent: the server reads them from the catalogue. Offers
+ *  must be unique across `lines` (duplicate → 422). */
+export interface FinancingRequestInput {
+  lines: FinancingLineInput[]
+  down_payment: string
+  duration_months: number
+}
+
+export type FinancingReasonCode =
+  | 'NO_ITEMS' | 'NOTHING_TO_FINANCE' | 'DOWN_PAYMENT_BELOW_MINIMUM'
+  | 'BELOW_MIN_FINANCED' | 'ABOVE_MAX_FINANCED' | 'DURATION_NOT_OFFERED' | 'DEBT_RATIO_EXCEEDED'
+
+export interface FinancingReason {
+  code: FinancingReasonCode
+  label: string
+}
+
+export interface FinancingDecision {
+  eligible: boolean
+  reasons: FinancingReason[]
+  rule_version: number
+  cash_total: string
+  down_payment: string
+  minimum_down_payment: string
+  financed_amount: string
+  duration_months: number
+  markup_pct: string | null
+  markup_amount: string | null
+  total_repayable: string | null
+  monthly_instalment: string | null
+  schedule: string[]
+  debt_ratio_assessed: boolean
+}
+
+export interface SimulationResult extends FinancingPresentation {
+  simulation_id: string
+  decision: FinancingDecision
+}
+
+/** 404: financing unavailable or an offer not found/inactive. 422: bad input.
+ *  An ineligible cart still answers 200 with `decision.reasons`. */
+export const simulateFinancing = (body: FinancingRequestInput) =>
+  req<SimulationResult>('POST', '/financing/simulate', body)
+
+// ── Applications (migrations 011/013) ──
+export type ApplicationStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SIGNED'
+
+export interface ApplicationSummary {
+  id: string
+  reference: string
+  status: ApplicationStatus
+  /** Server-worded; never "approuvé" while terms are not public. Show as-is. */
+  status_label: string
+  cash_total: string
+  down_payment: string
+  financed_amount: string
+  markup_amount: string
+  total_repayable: string
+  duration_months: number
+  monthly_instalment: string
+  created_at: string | null
+  submitted_at: string | null
+}
+
+export interface ApplicationLine {
+  offer_id: string
+  product_id: string
+  product_name: string
+  variant_sku: string
+  unit_price: string
+  quantity: number
+  line_total?: string
+}
+
+export interface ApplicationCreated extends FinancingPresentation, ApplicationSummary {
+  items: ApplicationLine[]
+  decision: FinancingDecision
+}
+
+export interface ApplicationDetail extends FinancingPresentation, ApplicationSummary {
+  items: ApplicationLine[]
+  history: { status: ApplicationStatus; label: string; at: string | null }[]
+}
+
+/** Needs a session (401 otherwise). 422 with `detail.decision` when the cart
+ *  cannot be financed as asked. */
+export const createApplication = (body: FinancingRequestInput) =>
+  req<ApplicationCreated>('POST', '/financing/applications', body)
+
+export const fetchMyApplications = () =>
+  req<FinancingPresentation & { items: ApplicationSummary[] }>('GET', '/financing/applications')
+
+export const fetchMyApplication = (id: string) =>
+  req<ApplicationDetail>('GET', `/financing/applications/${id}`)
+
+export type EmploymentType = 'CDI' | 'CDD' | 'FONCTIONNAIRE' | 'INDEPENDANT' | 'RETRAITE' | 'AUTRE'
+
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  CDI: 'Salarié en CDI',
+  CDD: 'Salarié en CDD',
+  FONCTIONNAIRE: 'Fonctionnaire',
+  INDEPENDANT: 'Indépendant / commerçant',
+  RETRAITE: 'Retraité',
+  AUTRE: 'Autre situation',
+}
+
+export interface ApplicationProfile {
+  financial: { monthly_income: string; monthly_obligations: string; dependents: number | null } | null
+  employment: {
+    employment_type: EmploymentType
+    employer_name: string | null
+    job_title: string | null
+    employed_since: string | null
+  } | null
+}
+
+export interface ApplicationProfileInput {
+  financial: { monthly_income: string; monthly_obligations: string; dependents: number | null }
+  employment: {
+    employment_type: EmploymentType
+    employer_name: string | null
+    job_title: string | null
+    /** YYYY-MM-DD, not in the future. */
+    employed_since: string | null
+  }
+}
+
+export const fetchApplicationProfile = (id: string) =>
+  req<ApplicationProfile>('GET', `/financing/applications/${id}/profile`)
+
+/** DRAFT only (409 once submitted). */
+export const saveApplicationProfile = (id: string, body: ApplicationProfileInput) =>
+  req<ApplicationProfile>('PUT', `/financing/applications/${id}/profile`, body)
+
+// ── Documents ──
+/** Accepted by the server, which checks the real bytes — this is only for
+ *  the file picker and an early size check. */
+export const DOCUMENT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
+export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024
+
+export interface RequiredDocumentType {
+  code: string
+  label: string
+  description: string | null
+}
+
+export interface UploadedDocument {
+  id: string
+  original_filename: string
+  content_type: string
+  byte_size: number
+  status: 'UPLOADED' | 'ACCEPTED' | 'REJECTED'
+  status_label: string
+  uploaded_at: string | null
+}
+
+export interface DocumentChecklist {
+  items: (RequiredDocumentType & { uploaded: UploadedDocument[] })[]
+  complete: boolean
+}
+
+/** Operator-configured. An empty list means nothing is required. */
+export const fetchRequiredDocuments = () =>
+  req<{ items: RequiredDocumentType[] }>('GET', '/financing/required-documents')
+
+export const fetchApplicationDocuments = (id: string) =>
+  req<DocumentChecklist>('GET', `/financing/applications/${id}/documents`)
+
+/** 413 too large · 415 not PDF/JPEG/PNG/WebP · 409 not DRAFT or too many
+ *  files · 503 document storage not configured on this deployment. */
+export const uploadApplicationDocument = (id: string, code: string, file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return reqMultipart<UploadedDocument>(`/financing/applications/${id}/documents/${encodeURIComponent(code)}`, form)
+}
+
+export const deleteApplicationDocument = (id: string, documentId: string) =>
+  req<void>('DELETE', `/financing/applications/${id}/documents/${documentId}`)
+
+/** 422 lists EVERYTHING missing at once in `ApiError.detail`:
+ *  `{message, missing_profile?, missing_documents?: {code,label}[], reasons?: FinancingReason[]}`.
+ *  409: already submitted, or the terms it was opened under were retired. */
+export interface SubmitProblems {
+  message: string
+  missing_profile?: boolean
+  missing_documents?: { code: string; label: string }[]
+  reasons?: FinancingReason[]
+}
+
+export const submitApplication = (id: string) =>
+  req<{ id: string; reference: string; status: ApplicationStatus; status_label: string }>(
+    'POST', `/financing/applications/${id}/submit`,
+  )
+
+// ── Account orders (api/routes/customer_account.py) ──
+export interface MyOrderSummary {
+  id: string
+  order_number: string
+  status: string
+  total: number
+  currency: string
+  created_at: string | null
+  item_count: number
+}
+
+export const fetchMyOrders = () => req<{ items: MyOrderSummary[] }>('GET', '/account/orders')
+
+/** Same shape as the public tracking lookup. */
+export const fetchMyOrder = (id: string) => req<TrackedOrder>('GET', `/account/orders/${id}`)

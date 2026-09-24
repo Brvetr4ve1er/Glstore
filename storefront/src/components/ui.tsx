@@ -1,5 +1,5 @@
 /* Storefront UI primitives — Button, Input, Select, Tag, Spinner, EmptyState, Card */
-import { type ReactNode, forwardRef } from 'react'
+import { type ReactNode, forwardRef, useId } from 'react'
 import { cn } from '@/lib/format'
 import type { TagTone } from '@/lib/tags'
 
@@ -58,11 +58,18 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   leftIcon?: ReactNode
   rightIcon?: ReactNode
 }
+// Every field component ties its <label> to the control (htmlFor/id) and its
+// error or hint to it (aria-describedby): an unassociated label is only text
+// to a screen reader, and the field above it has no name.
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, leftIcon, rightIcon, className, ...props }, ref) => (
+  ({ label, error, hint, leftIcon, rightIcon, className, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    const noteId = error || hint ? `${fieldId}-note` : undefined
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
@@ -74,6 +81,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           ref={ref}
+          id={fieldId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={noteId}
           className={cn(
             'h-11 w-full rounded-xl bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors outline-none',
             leftIcon ? 'pl-10' : 'pl-3.5',
@@ -91,10 +101,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </span>
         )}
       </div>
-      {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
-      {!error && hint && <p className="text-xs text-[var(--color-text-3)]">{hint}</p>}
+      {error && <p id={noteId} role="alert" className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
+      {!error && hint && <p id={noteId} className="text-xs text-[var(--color-text-3)]">{hint}</p>}
     </div>
-  ),
+    )
+  },
 )
 Input.displayName = 'Input'
 
@@ -104,15 +115,22 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string
 }
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, className, children, ...props }, ref) => (
+  ({ label, error, className, children, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    const noteId = error ? `${fieldId}-note` : undefined
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
       <select
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={noteId}
         className={cn(
           'h-11 px-3.5 rounded-xl bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] transition-colors outline-none cursor-pointer',
           error
@@ -124,23 +142,31 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       >
         {children}
       </select>
-      {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
+      {error && <p id={noteId} role="alert" className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
-  ),
+    )
+  },
 )
 Select.displayName = 'Select'
 
 // ── Textarea ───────────────────────────────────────────────────
 export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string }>(
-  ({ label, error, className, ...props }, ref) => (
+  ({ label, error, className, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    const noteId = error ? `${fieldId}-note` : undefined
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
       <textarea
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={noteId}
         className={cn(
           'min-h-[88px] px-3.5 py-3 rounded-xl bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors resize-y outline-none',
           error
@@ -150,9 +176,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
         )}
         {...props}
       />
-      {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
+      {error && <p id={noteId} role="alert" className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
-  ),
+    )
+  },
 )
 Textarea.displayName = 'Textarea'
 

@@ -6,6 +6,7 @@ import { MotionConfig } from 'framer-motion'
 
 import { queryClient } from '@/lib/query'
 import { CartProvider } from '@/lib/cart'
+import { CustomerProvider } from '@/lib/session'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { Spinner } from '@/components/ui'
@@ -54,6 +55,14 @@ function RoutedShell() {
               <Route path="/order/track"               element={<OrderTracking />} />
               <Route path="/contact"                   element={<Contact />} />
               <Route path="/faq"                       element={<Faq />} />
+              {/* Phase D routes, mounted after the fleet lands their pages:
+                    /login                        pages/account/Login.tsx
+                    /account                      pages/account/Account.tsx          (RequireCustomer)
+                    /account/orders[/:id]         pages/account/Orders.tsx, OrderDetail.tsx
+                    /account/applications[/:id]   pages/account/Applications.tsx, ApplicationDetail.tsx
+                    /simulate                     pages/Simulate.tsx
+                    /financement                  pages/Financing.tsx
+                    /apply/:id                    pages/apply/Apply.tsx              (RequireCustomer) */}
               <Route path="*"                          element={<NotFound />} />
             </Routes>
           </Suspense>
@@ -68,6 +77,7 @@ function RoutedShell() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <CustomerProvider>
       <CartProvider>
         <MotionConfig reducedMotion="user">
           <BrowserRouter>
@@ -96,6 +106,7 @@ export default function App() {
           />
         </MotionConfig>
       </CartProvider>
+      </CustomerProvider>
     </QueryClientProvider>
   )
 }
