@@ -15,7 +15,7 @@ from api.core.db import SessionLocal, engine
 from api.core.logging import bind_request_id, setup_logging
 from api.core.migrations import MigrationLockBusy, run_pending_migrations
 from api.core.ratelimit import RateLimiter, client_key
-from api.routes import auth, catalog, contact, customer_auth, enrichment, financing, financing_admin, events, health, images, intel, internal, issues, jobs, newsletter, orders, products, products_export, products_import, public_orders, reviews, scraper, settings as settings_route, stores
+from api.routes import auth, catalog, contact, customer_auth, enrichment, financing, financing_admin, financing_review, financing_workflow, events, health, images, intel, internal, issues, jobs, newsletter, orders, products, products_export, products_import, public_orders, reviews, scraper, settings as settings_route, stores
 
 # Structured JSON logging — all lines on stdout, request_id flows via
 # ContextVar so handlers don't have to thread it through every call.
@@ -179,6 +179,8 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(customer_auth.router, prefix="/api/v1")
 app.include_router(financing.router, prefix="/api/v1")
 app.include_router(financing_admin.router, prefix="/api/v1")
+app.include_router(financing_workflow.router, prefix="/api/v1")
+app.include_router(financing_review.router, prefix="/api/v1")
 app.include_router(catalog.router, prefix="/api/v1")
 # IMPORTANT: images router uses static paths /products/{id}/images and
 # /images/pending — register before products.router so the static segments

@@ -31,6 +31,9 @@ const GlobalImageQueue   = lazy(() => import('@/pages/ImageReview').then(m => ({
 const ThemeStudio        = lazy(() => import('@/pages/ThemeStudio'))
 const ReviewQueue        = lazy(() => import('@/pages/ReviewQueue'))
 const ContactInbox       = lazy(() => import('@/pages/ContactInbox'))
+const FinancingQueue       = lazy(() => import('@/pages/FinancingQueue'))
+const FinancingApplication = lazy(() => import('@/pages/FinancingApplication'))
+const FinancingRules       = lazy(() => import('@/pages/FinancingRules'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthed } = useAuth()
@@ -80,6 +83,9 @@ function AppRoutes() {
             <Route path="settings/theme"  element={<ThemeStudio />} />
             <Route path="reviews"         element={<ReviewQueue />} />
             <Route path="contact-messages" element={<ContactInbox />} />
+            <Route path="financing/applications"     element={<FinancingQueue />} />
+            <Route path="financing/applications/:id" element={<FinancingApplication />} />
+            <Route path="financing/rules"            element={<FinancingRules />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -82,6 +82,16 @@ class Settings(BaseSettings):
     # the legal conversation has happened — never code, never a default.
     financing_terms_public: bool = False
 
+    # Applicant documents (ID, payslips…) — see api/services/documents/.
+    # "local" writes under local_documents_dir and is refused anywhere but
+    # development. "r2" needs a PRIVATE bucket distinct from r2_bucket, which
+    # backs a public CDN (r2_public_base) and must never hold these files.
+    documents_storage: str = "local"
+    r2_documents_bucket: str = ""
+    local_documents_dir: str = ".local_documents"
+    document_max_bytes: int = 10 * 1024 * 1024
+    max_documents_per_application: int = 20
+
 
 @lru_cache
 def get_settings() -> Settings:

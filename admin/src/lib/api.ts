@@ -61,12 +61,35 @@ async function req<T>(
   if (!res.ok) {
     const text = await res.text()
     let msg = `HTTP ${res.status}`
-    try { msg = JSON.parse(text)?.detail ?? msg } catch { /* noop */ }
+    try { msg = detailMessage(JSON.parse(text)?.detail, msg) } catch { /* noop */ }
     throw new Error(msg)
   }
 
   if (res.status === 204) return undefined as unknown as T
   return res.json() as Promise<T>
+}
+
+/** FastAPI `detail` is a string, a list of validation errors, or — on the
+ *  financing routes — `{message, problems|errors|missing_documents|reasons}`.
+ *  Passing an object to `new Error` renders "[object Object]" in the toast. */
+function detailMessage(detail: unknown, fallback: string): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map(d => (d && typeof d === 'object' && 'msg' in d ? String(d.msg) : '')).filter(Boolean).join(' · ') || fallback
+  }
+  if (detail && typeof detail === 'object') {
+    const d = detail as Record<string, unknown>
+    const list = (v: unknown) => (Array.isArray(v) ? v : [])
+    const parts = [
+      d.message,
+      ...list(d.problems),
+      ...list(d.errors),
+      ...list(d.missing_documents).map(x => (x as { label?: string }).label),
+      ...list(d.reasons).map(x => (x as { label?: string }).label),
+    ]
+    return parts.filter((p): p is string => typeof p === 'string' && p.length > 0).join(' · ') || fallback
+  }
+  return fallback
 }
 
 async function reqMultipart<T>(
@@ -891,3 +914,166 @@ export const fetchContactInbox = (status: 'NEW' | 'READ' | 'ARCHIVED' = 'NEW', p
 
 export const moderateContactMessage = (messageId: string, status: 'READ' | 'ARCHIVED') =>
   req<{ id: string; status: string }>('PATCH', `/contact-messages/${messageId}`, { status })
+
+// ── Financing: rules (migration 011) ────────────────────────────
+// Every figure is operator-supplied business terms; nothing is defaulted here.
+export interface FinancingTerm { months: number; markup_pct: string }
+
+export interface FinancingRule {
+  id: string
+  version: number
+  status: 'DRAFT' | 'ACTIVE' | 'RETIRED'
+  min_financed: string
+  max_financed: string
+  min_down_payment_pct: string
+  max_debt_ratio_pct: string | null
+  terms: FinancingTerm[]
+  notes: string | null
+  created_at: string | null
+  activated_at: string | null
+  retired_at: string | null
+}
+
+export interface FinancingRuleInput {
+  min_financed: string
+  max_financed: string
+  min_down_payment_pct: string
+  max_debt_ratio_pct: string | null
+  terms: FinancingTerm[]
+  notes?: string | null
+}
+
+export const fetchFinancingRules = () => req<{ items: FinancingRule[] }>('GET', '/financing/rules')
+export const createFinancingRule = (body: FinancingRuleInput) => req<FinancingRule>('POST', '/financing/rules', body)
+export const activateFinancingRule = (id: string) => req<FinancingRule>('POST', `/financing/rules/${id}/activate`)
+export const retireFinancingRule = (id: string) => req<FinancingRule>('POST', `/financing/rules/${id}/retire`)
+export const deleteFinancingRule = (id: string) => req<void>('DELETE', `/financing/rules/${id}`)
+
+// ── Financing: required documents (migration 013) ───────────────
+export interface RequiredDocument {
+  id: string
+  code: string
+  label: string
+  description: string | null
+  is_active: boolean
+  sort_order: number
+}
+
+export const fetchRequiredDocuments = () =>
+  req<{ items: RequiredDocument[] }>('GET', '/financing/review/required-documents')
+export const createRequiredDocument = (body: { code: string; label: string; description?: string | null; sort_order?: number }) =>
+  req<RequiredDocument>('POST', '/financing/review/required-documents', body)
+export const updateRequiredDocument = (
+  id: string,
+  body: Partial<Pick<RequiredDocument, 'label' | 'description' | 'is_active' | 'sort_order'>>,
+) => req<RequiredDocument>('PATCH', `/financing/review/required-documents/${id}`, body)
+
+// ── Financing: review queue (migration 013) ─────────────────────
+export type ApplicationStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SIGNED'
+
+export interface ApplicationQueueItem {
+  id: string
+  reference: string
+  status: ApplicationStatus
+  status_label: string
+  financed_amount: string
+  monthly_instalment: string
+  duration_months: number
+  created_at: string | null
+  submitted_at: string | null
+  customer_phone: string
+  customer_name: string | null
+}
+
+export interface ApplicationQueue {
+  status: ApplicationStatus
+  counts: Partial<Record<ApplicationStatus, number>>
+  page: number
+  items: ApplicationQueueItem[]
+}
+
+export interface ApplicationDocument {
+  id: string
+  code: string
+  label: string
+  original_filename: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  status: 'UPLOADED' | 'ACCEPTED' | 'REJECTED'
+  status_label: string
+  rejection_reason: string | null
+  reviewed_at: string | null
+  uploaded_at: string | null
+}
+
+export interface ApplicationDetail {
+  id: string
+  reference: string
+  status: ApplicationStatus
+  status_label: string
+  figures: {
+    cash_total: string; down_payment: string; financed_amount: string; markup_amount: string
+    total_repayable: string; duration_months: number; monthly_instalment: string
+  }
+  submission_decision: {
+    rule_version: number; monthly_income: string; monthly_obligations: string
+    debt_ratio_pct: string | null; max_debt_ratio_pct: string | null; debt_ratio_assessed: boolean
+  } | null
+  dates: Record<'created_at' | 'submitted_at' | 'review_started_at' | 'decided_at' | 'signed_at', string | null>
+  rejection_reason: string | null
+  signature_sha256: string | null
+  customer: { phone: string; full_name: string | null; email: string | null; phone_verified_at: string | null } | null
+  items: {
+    product_name: string; variant_sku: string; unit_price: string; quantity: number
+    line_total: string; available_now: number | null; offer_active: boolean | null
+  }[]
+  profile: {
+    financial: { monthly_income: string; monthly_obligations: string; dependents: number | null } | null
+    employment: { employment_type: string; employer_name: string | null; job_title: string | null; employed_since: string | null } | null
+  }
+  documents: ApplicationDocument[]
+  history: { from_status: string | null; to_status: string; actor_type: string; actor_id: string | null; note: string | null; at: string | null }[]
+}
+
+const REVIEW = '/financing/review/applications'
+
+export const fetchApplicationQueue = (status: ApplicationStatus = 'SUBMITTED', page = 1) =>
+  req<ApplicationQueue>('GET', `${REVIEW}?status=${status}&page=${page}`)
+export const fetchApplicationDetail = (id: string) => req<ApplicationDetail>('GET', `${REVIEW}/${id}`)
+export const startApplicationReview = (id: string) => req<{ status: string }>('POST', `${REVIEW}/${id}/start-review`)
+export const approveApplication = (id: string, note?: string) =>
+  req<{ status: string }>('POST', `${REVIEW}/${id}/approve`, { note: note || null })
+export const rejectApplication = (id: string, reason: string) =>
+  req<{ status: string }>('POST', `${REVIEW}/${id}/reject`, { reason })
+export const markApplicationSigned = (id: string, signatureSha256?: string, note?: string) =>
+  req<{ status: string }>('POST', `${REVIEW}/${id}/mark-signed`, {
+    signature_sha256: signatureSha256 || null,
+    note: note || null,
+  })
+export const acceptApplicationDocument = (id: string, docId: string) =>
+  req<{ status: string }>('POST', `${REVIEW}/${id}/documents/${docId}/accept`)
+export const rejectApplicationDocument = (id: string, docId: string, reason: string) =>
+  req<{ status: string }>('POST', `${REVIEW}/${id}/documents/${docId}/reject`, { reason })
+
+/** Documents need the JWT, so an <a href> cannot fetch them: download as a
+ *  blob and hand the browser a short-lived object URL. */
+export async function downloadApplicationDocument(id: string, doc: ApplicationDocument): Promise<void> {
+  const headers: Record<string, string> = { 'x-request-id': crypto.randomUUID() }
+  const token = getToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const storeId = getSelectedStoreId()
+  if (storeId) headers['x-store-id'] = storeId
+  const res = await fetch(`${BASE}${REVIEW}/${id}/documents/${doc.id}/file`, { headers })
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`
+    try { msg = detailMessage(JSON.parse(await res.text())?.detail, msg) } catch { /* noop */ }
+    throw new Error(msg)
+  }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = doc.original_filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}

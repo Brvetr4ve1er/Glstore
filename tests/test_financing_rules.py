@@ -192,6 +192,34 @@ def test_a_rule_with_no_debt_ratio_cap_does_not_assess_even_with_a_profile():
     assert d.eligible and d.debt_ratio_assessed is False
 
 
+# ── Affordability on its own (used at submission, no re-pricing) ──────────
+
+def test_affordability_alone_agrees_with_the_full_evaluation():
+    profile = r.Profile(monthly_income=D("60000"), monthly_obligations=D("10000"))
+    full = _eval(_cart(("120000.00", 1)), "12000.00", profile=profile)
+    assessed, refusals = r.assess_affordability(full.monthly_instalment, profile, RULE)
+    assert assessed == full.debt_ratio_assessed
+    assert refusals == (r.DEBT_RATIO_EXCEEDED,)
+
+
+def test_affordability_passes_under_the_ceiling():
+    assert r.assess_affordability(D("9450.00"), r.Profile(D("60000"), D("5000")), RULE) == (True, ())
+
+
+def test_a_rule_without_a_debt_ratio_cap_assesses_nothing():
+    rule = r.Rule(1, RULE.min_financed, RULE.max_financed, RULE.min_down_payment_pct, None, RULE.terms)
+    assert r.assess_affordability(D("9450.00"), r.Profile(D("0")), rule) == (False, ())
+
+
+def test_the_debt_ratio_is_reported_to_the_centime():
+    # (10 000 + 9 450) / 60 000 = 32.4166… %
+    assert r.debt_ratio_pct(D("9450.00"), r.Profile(D("60000"), D("10000"))) == D("32.42")
+
+
+def test_the_debt_ratio_is_undefined_without_income_not_zero():
+    assert r.debt_ratio_pct(D("9450.00"), r.Profile(D("0"))) is None
+
+
 # ── Inputs the API layer must never pass ──────────────────────────────────
 
 def test_a_negative_down_payment_is_a_programming_error():

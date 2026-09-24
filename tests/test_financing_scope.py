@@ -57,14 +57,9 @@ def _table_block(table: str) -> str:
 
 
 def _sql_literals_for(path: Path, table: str) -> list[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"))
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            v = _norm(node.value)
-            if re.search(rf"\b(FROM|INTO|UPDATE|JOIN)\s+{table}\b", v, re.I):
-                out.append(v)
-    return out
+    from tests.sqlscan import statements_touching
+
+    return statements_touching(path, table)
 
 
 def _dep_names(path: Path, func: str) -> set[str]:

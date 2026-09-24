@@ -166,6 +166,35 @@ def validate_rule(rule: Rule) -> list[str]:
     return errors
 
 
+# ── Affordability ─────────────────────────────────────────────────────────
+
+def debt_ratio_pct(monthly_instalment: Decimal, profile: Profile) -> Decimal | None:
+    """Share of declared income that would go to repayments, new instalment
+    included. None when no income was declared — the ratio is undefined, not 0."""
+    if profile.monthly_income <= 0:
+        return None
+    ratio = (profile.monthly_obligations + monthly_instalment) * HUNDRED / profile.monthly_income
+    return ratio.quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def assess_affordability(
+    monthly_instalment: Decimal, profile: Profile, rule: Rule,
+) -> tuple[bool, tuple[str, ...]]:
+    """The debt-ratio verdict for an instalment that is ALREADY priced.
+
+    Returns (assessed, refusals). Submission uses this directly: the figures
+    were snapshotted at DRAFT and must not be re-priced, only judged against
+    the profile declared since. A rule with no debt-ratio cap assesses
+    nothing and refuses nothing.
+    """
+    if rule.max_debt_ratio_pct is None:
+        return False, ()
+    ceiling = profile.monthly_income * rule.max_debt_ratio_pct / HUNDRED
+    if profile.monthly_obligations + monthly_instalment > ceiling:
+        return True, (DEBT_RATIO_EXCEEDED,)
+    return True, ()
+
+
 # ── Evaluation ────────────────────────────────────────────────────────────
 
 def evaluate(
@@ -219,11 +248,10 @@ def evaluate(
         schedule = split_evenly(total_repayable, term.months)
         monthly = schedule[0]
 
-    assessed = profile is not None and rule.max_debt_ratio_pct is not None and monthly is not None
-    if assessed:
-        ceiling = profile.monthly_income * rule.max_debt_ratio_pct / HUNDRED
-        if profile.monthly_obligations + monthly > ceiling:
-            reasons.append(DEBT_RATIO_EXCEEDED)
+    assessed = False
+    if profile is not None and monthly is not None:
+        assessed, refusals = assess_affordability(monthly, profile, rule)
+        reasons.extend(refusals)
 
     return Decision(
         eligible=not reasons,

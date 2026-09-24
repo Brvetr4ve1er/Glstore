@@ -1,7 +1,7 @@
 /* Unified UI primitives — Ghir Laffaire brand
  * Button · Badge · Input · Select · Spinner · Modal · EmptyState · Card · StatCard · PageHeader
  */
-import { type ReactNode, forwardRef, Fragment } from 'react'
+import { type ReactNode, forwardRef, Fragment, useId } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
@@ -75,16 +75,23 @@ export function Badge({ label, colorClass }: { label: string; colorClass?: strin
 }
 
 // ── Input ─────────────────────────────────────────────────────
+// Labels are tied to their control (htmlFor/id): an unassociated <label> is
+// just text to a screen reader, and the field it sits above has no name.
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }>(
-  ({ label, error, className, ...props }, ref) => (
+  ({ label, error, className, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
       <input
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
         className={cn(
           'h-10 px-3 rounded-lg bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors',
           error
@@ -97,21 +104,27 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
       />
       {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
-  ),
+    )
+  },
 )
 Input.displayName = 'Input'
 
 // ── Textarea ──────────────────────────────────────────────────
 export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string }>(
-  ({ label, error, className, ...props }, ref) => (
+  ({ label, error, className, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
       <textarea
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
         className={cn(
           'min-h-[88px] px-3 py-2.5 rounded-lg bg-[var(--color-surface-3)] border text-sm text-[var(--color-text-1)] placeholder:text-[var(--color-text-3)] transition-colors resize-y',
           error
@@ -124,21 +137,26 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
       />
       {error && <p className="text-xs text-[var(--color-hot-pink)]">{error}</p>}
     </div>
-  ),
+    )
+  },
 )
 Textarea.displayName = 'Textarea'
 
 // ── Select ────────────────────────────────────────────────────
 export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string }>(
-  ({ label, className, children, ...props }, ref) => (
+  ({ label, className, children, id, ...props }, ref) => {
+    const autoId = useId()
+    const fieldId = id ?? autoId
+    return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
+        <label htmlFor={fieldId} className="text-[10px] font-bold text-[var(--color-text-2)] uppercase tracking-[0.18em]">
           {label}
         </label>
       )}
       <select
         ref={ref}
+        id={fieldId}
         className={cn(
           'h-10 px-3 rounded-lg bg-[var(--color-surface-3)] border border-[var(--color-surface-4)] text-sm text-[var(--color-text-1)] transition-colors focus:border-[var(--color-electric-blue)] outline-none cursor-pointer',
           className,
@@ -148,7 +166,8 @@ export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<H
         {children}
       </select>
     </div>
-  ),
+    )
+  },
 )
 Select.displayName = 'Select'
 
@@ -242,7 +261,7 @@ export function Modal({
               <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-[var(--color-electric-blue)] via-[var(--color-neon-yellow)] to-[var(--color-hot-pink)]" />
               <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-surface-4)]">
                 <h2 className="text-base font-bold text-[var(--color-text-1)]">{title}</h2>
-                <button onClick={onClose}
+                <button onClick={onClose} aria-label="Fermer"
                   className="p-1.5 rounded-lg hover:bg-[var(--color-surface-3)] text-[var(--color-text-3)] hover:text-[var(--color-hot-pink)] transition-colors">
                   <X size={16} />
                 </button>

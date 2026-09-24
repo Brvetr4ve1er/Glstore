@@ -19,3 +19,6 @@ storefront/dist/
 # Local tooling / scratch
 .superpowers/
 .vercel/
+
+# Applicant documents written by the development-only local store
+.local_documents/

@@ -60,6 +60,68 @@ async def load_active_rule(db: AsyncSession, store_id: UUID) -> tuple[UUID, Rule
     return None if row is None else (row.id, rule_from_row(row))
 
 
+async def transition(
+    db: AsyncSession,
+    *,
+    store_id: UUID,
+    application_id: UUID,
+    from_status: str,
+    to_status: str,
+    actor_type: str,
+    actor_id: UUID | None,
+    note: str | None = None,
+    extra_set: str = "",
+    extra_params: dict[str, Any] | None = None,
+) -> None:
+    """Move an application one step, and record it — the only way status changes.
+
+    Compare-and-swap on the current status: if someone else moved it first,
+    nothing matches and the caller gets a 409 instead of a double transition.
+    The event is written in the same transaction, so there is never a status
+    change without its audit row. Migration 013's trigger rejects any
+    transition that is not in the plan's machine, whatever calls it.
+
+    `extra_set` is a code-supplied SQL fragment (", decided_at = NOW()"),
+    never user input.
+    """
+    moved = (await db.execute(
+        text(f"""
+            UPDATE applications
+               SET status = CAST(:to_status AS application_status_enum),
+                   updated_at = NOW(){extra_set}
+             WHERE id = :aid AND store_id = :sid
+               AND status = CAST(:from_status AS application_status_enum)
+            RETURNING id
+        """),
+        {
+            "aid": application_id, "sid": store_id,
+            "from_status": from_status, "to_status": to_status,
+            **(extra_params or {}),
+        },
+    )).first()
+    if moved is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cette demande a changé d'état entre-temps.")
+
+    await db.execute(
+        text("""
+            INSERT INTO application_status_events
+                (store_id, application_id, from_status, to_status, actor_type, actor_id, note)
+            VALUES (
+                :sid, :aid,
+                CAST(:from_status AS application_status_enum),
+                CAST(:to_status AS application_status_enum),
+                CAST(:actor_type AS application_actor_enum),
+                :actor_id, :note
+            )
+        """),
+        {
+            "sid": store_id, "aid": application_id,
+            "from_status": from_status, "to_status": to_status,
+            "actor_type": actor_type, "actor_id": actor_id, "note": note,
+        },
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PricedLine:
     offer_id: UUID

@@ -222,6 +222,46 @@ Document storage: reuse whatever `product_media` uses. **Verify first** — a gr
 of `api/services/` found no obvious uploader, so it may live in `workers/` or be
 R2-direct. Read before writing.
 
+**Phase C as built:**
+
+- Migration 013: `financial_profiles` and `employment_profiles` (one per
+  application, editable only while DRAFT — trigger), `required_documents`
+  (operator-configured, none shipped), `uploaded_documents` (content
+  immutable; added/removed only while DRAFT; reviewed only while
+  UNDER_REVIEW — trigger). `applications` gains review columns and a guard
+  trigger: legal transitions only, figures frozen, never deleted.
+- Documents: there was no uploader anywhere (product_media is URL-only), so
+  this is the platform's first. Through the API, 10 MB cap, type sniffed from
+  magic bytes (PDF/JPEG/PNG/WebP), SHA-256, id-only object keys, PRIVATE
+  bucket, fail-closed like SMS, served to admins as attachments only.
+- Submission re-judges affordability with the declared profile under the
+  application's OWN rule, which must still be ACTIVE; it never re-prices.
+- Admin: queue, full file (with live stock beside the snapshot), document
+  review, approve (blocked until every file is examined and each required
+  type has an accepted one), reject (reason required, internal), mark signed
+  (optional SHA-256 of the signed contract). Rules and required-documents
+  screens. Every control named; a static test enforces it.
+
+**Phase C — decisions that are the owner's, currently defaulted:**
+
+- **Roles.** OPERATOR may open files and examine documents; only
+  SUPER_ADMIN / ADMIN approve, reject, sign or change lending policy.
+- **Signature.** "Signed" is recorded by an admin, with an optional hash of
+  the signed contract file. No e-signature provider (plan: not in this pass).
+- **Refusal wording.** The rejection reason is internal; the customer sees
+  only "Non retenue". What a refused applicant is told is approved copy.
+- **Zero required documents.** Until the operator configures some, a
+  submission needs none.
+- **Retention.** How long identity documents and refused files are kept is a
+  personal-data-law question (Algerian law 18-07) for Phase F — nothing is
+  deleted automatically today.
+- **R2 must be provisioned** (a separate private bucket) before any document
+  can be uploaded on the live site.
+
+**Not built (follow-ups):** converting a SIGNED application into an order
+and reserving its stock; a "request more documents" state (today a reviewer
+refuses and the customer re-applies); notifications of status changes.
+
 ### Phase D — Storefront
 
 Simulator page, `/apply` stepper, `/account/*`, and the QivoPay section rhythm
