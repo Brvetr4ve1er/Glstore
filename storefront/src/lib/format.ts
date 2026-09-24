@@ -17,6 +17,12 @@ export function fmtMoney(amount: number | null | undefined, currency = 'DZD'): s
   }).format(amount)
 }
 
+/** Money the financing API returns as an exact decimal string ("9450.00"). */
+export function fmtAmount(v: string | number | null | undefined, currency = 'DZD'): string {
+  if (v == null || v === '') return '—'
+  return fmtMoney(typeof v === 'number' ? v : Number(v), currency)
+}
+
 export function fmtNumber(n: number): string {
   return new Intl.NumberFormat('fr-DZ').format(n)
 }
