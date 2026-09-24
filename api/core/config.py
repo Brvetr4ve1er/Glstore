@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     otp_max_per_store_per_hour: int = 300
     customer_session_ttl_days: int = 30
 
+    # Financing (plan, Decision 2). While False, every public figure is an
+    # ESTIMATE and no status reads as approved. The OPERATOR flips this, after
+    # the legal conversation has happened — never code, never a default.
+    financing_terms_public: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:

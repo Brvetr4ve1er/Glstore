@@ -173,6 +173,37 @@ this whole plan that can have genuine, high-coverage unit tests, because it
 needs no Postgres. Eligibility, instalment maths, caps and refusal reasons all
 live there and get tested properly.
 
+**Phase B as built:**
+
+- Migration 011: `financing_rules` (versioned, one ACTIVE per store, terms
+  frozen by a trigger — a change is a new version), `financing_simulations`,
+  `applications` (figures snapshotted, arithmetic restated as CHECKs),
+  `application_items` (price snapshot; composite FK pins the line to its
+  store, product AND offer), `application_status_events` (append-only by
+  trigger). No rule is seeded.
+- Engine: flat markup per duration on the financed amount, whole-centime
+  arithmetic, schedule sums exactly, every refusal reported at once,
+  affordability assessed only when a profile and a debt-ratio cap exist.
+- API: public `/financing/terms` + `/financing/simulate`; signed-in
+  `/financing/applications` (open DRAFT, list, detail); admin
+  `/financing/rules` (create, activate, retire, delete draft).
+
+**Phase B follow-ups (not blocking):**
+
+- **No admin UI for rules yet.** The operator creates rules through the API
+  until the Phase C admin screens land.
+- **`financing_simulations` has no retention.** Anonymous and rate-limited
+  only by the global POST limiter. How long "what estimate was shown" must be
+  kept is a compliance question — decide before adding a prune.
+- **Stock is not checked** when a DRAFT is opened; reserving stock belongs at
+  approval/conversion to an order (Phase C).
+- **No cap on open drafts per customer.** A verified phone is required, which
+  bounds abuse; revisit if drafts pile up.
+- **Trigger bodies are syntax-unverified.** Every migration parses with the
+  real Postgres parser (pglast), but its PL/pgSQL JSON output is broken for
+  any trigger function, so the two trigger bodies in 011 were not checked
+  internally. First real `apply_migrations.py` run will.
+
 ### Phase C — Application workflow (migration 012)
 
 `financial_profiles`, `employment_profiles`, `required_documents`,
