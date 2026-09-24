@@ -80,6 +80,9 @@ def test_icons_inside_buttons_are_decorative(path):
 
 
 def test_the_scan_finds_every_button_including_ones_with_deep_handlers():
+    """Exact counts ON PURPOSE: a scanner that silently skips a button is how
+    the two above would pass while missing it. Adding a button fails this —
+    confirm the new one is found and named, THEN update the number."""
     counts = {p.name: len(_buttons(p)) for p in SCREENS}
     assert counts["FinancingRules.tsx"] == 8, counts
     assert counts["FinancingApplication.tsx"] == 11, counts

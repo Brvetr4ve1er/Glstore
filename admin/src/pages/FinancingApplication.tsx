@@ -55,6 +55,13 @@ export default function FinancingApplication() {
     qc.invalidateQueries({ queryKey: ['financing-queue'] })
   }
   const failed = (e: Error) => toast.error(e.message)
+  // One reset for every way a dialog closes, so a refusal reason typed and
+  // abandoned never pre-fills the next dialog.
+  const closeDialog = () => {
+    setDialog(null)
+    setText('')
+    setSignature('')
+  }
 
   const startMut = useMutation({ mutationFn: () => startApplicationReview(id), onSuccess: done('Étude ouverte'), onError: failed })
   const approveMut = useMutation({ mutationFn: () => approveApplication(id, text), onSuccess: done('Demande acceptée'), onError: failed })
@@ -245,7 +252,7 @@ export default function FinancingApplication() {
         )}
       </Section>
 
-      <Modal open={dialog?.kind === 'approve'} onClose={() => setDialog(null)} title="Accepter la demande">
+      <Modal open={dialog?.kind === 'approve'} onClose={closeDialog} title="Accepter la demande">
         <div className="flex flex-col gap-4">
           <p className="text-sm text-[var(--color-text-2)]">
             Tant que les conditions ne sont pas publiées, le client voit « accord de principe, sous réserve ».
@@ -257,7 +264,7 @@ export default function FinancingApplication() {
         </div>
       </Modal>
 
-      <Modal open={dialog?.kind === 'reject'} onClose={() => setDialog(null)} title="Refuser la demande">
+      <Modal open={dialog?.kind === 'reject'} onClose={closeDialog} title="Refuser la demande">
         <div className="flex flex-col gap-4">
           <Textarea label="Motif (interne, obligatoire)" value={text} onChange={e => setText(e.target.value)} maxLength={2000} />
           <Button variant="danger" disabled={!text.trim()} loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
@@ -266,7 +273,7 @@ export default function FinancingApplication() {
         </div>
       </Modal>
 
-      <Modal open={dialog?.kind === 'sign'} onClose={() => setDialog(null)} title="Enregistrer la signature">
+      <Modal open={dialog?.kind === 'sign'} onClose={closeDialog} title="Enregistrer la signature">
         <div className="flex flex-col gap-4">
           <Input
             label="Empreinte SHA-256 du contrat signé (facultative)"
@@ -284,7 +291,7 @@ export default function FinancingApplication() {
 
       <Modal
         open={dialog?.kind === 'reject-document'}
-        onClose={() => setDialog(null)}
+        onClose={closeDialog}
         title={dialog?.kind === 'reject-document' ? `Non conforme : ${dialog.doc.label}` : 'Document non conforme'}
       >
         <div className="flex flex-col gap-4">

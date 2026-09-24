@@ -130,7 +130,7 @@ def test_the_scoping_guard_sees_reassembled_fstrings():
 
 
 def test_status_only_changes_through_the_audited_transition_helper():
-    for path in (WORKFLOW, REVIEW, REPO.parent / "GLstore" / "api" / "routes" / "financing.py"):
+    for path in (WORKFLOW, REVIEW, REPO / "api" / "routes" / "financing.py"):
         src = " ".join(path.read_text(encoding="utf-8").split())
         assert not re.search(r"UPDATE applications SET status", src, re.I), \
             f"{path.name} changes application status without repo.transition()"
@@ -163,7 +163,7 @@ def test_credit_decisions_and_lending_policy_need_decision_roles(func):
     assert "DECISION_ROLES" in deps and not deps & {"READ_ROLES", "REVIEW_ROLES"}
 
 
-@pytest.mark.parametrize("func", ["start_review", "accept_document", "reject_document", "document_file"])
+@pytest.mark.parametrize("func", ["review_detail", "start_review", "accept_document", "reject_document", "document_file"])
 def test_opening_identity_documents_excludes_viewers(func):
     deps = _dep_names(REVIEW, func)
     assert "REVIEW_ROLES" in deps and "READ_ROLES" not in deps

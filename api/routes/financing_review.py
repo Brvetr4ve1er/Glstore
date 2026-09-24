@@ -179,7 +179,9 @@ async def review_queue(
 @router.get("/financing/review/applications/{application_id}")
 async def review_detail(
     application_id: UUID,
-    store: Store = Depends(require_admin_store_for(require_role(*READ_ROLES))),
+    # The file holds declared income, employer, dependents and document
+    # names — identity data, so not VIEWER, same as opening the documents.
+    store: Store = Depends(require_admin_store_for(require_role(*REVIEW_ROLES))),
     db: AsyncSession = Depends(get_db),
 ):
     a = await _application(db, store.id, application_id)
