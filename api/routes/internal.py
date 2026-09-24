@@ -104,17 +104,29 @@ async def run_maintenance(
     released = (await db.execute(text("SELECT fn_expire_stale_reservations()"))).scalar_one()
 
     pruned: int | None = None
+    pruned_identity: int | None = None
     if prune:
         pruned = (
             await db.execute(
                 text("SELECT fn_prune_observations(:days)"), {"days": retain_days}
             )
         ).scalar_one()
+        # Spent OTP challenges and dead customer sessions (migration 010).
+        pruned_identity = (await db.execute(text("SELECT fn_prune_identity()"))).scalar_one()
 
     await db.commit()
 
     log.info(
         "cron maintenance complete",
-        extra={"released": released, "pruned": pruned, "event": "cron.maintenance"},
+        extra={
+            "released": released,
+            "pruned": pruned,
+            "pruned_identity": pruned_identity,
+            "event": "cron.maintenance",
+        },
     )
-    return {"released_reservations": released, "pruned_observations": pruned}
+    return {
+        "released_reservations": released,
+        "pruned_observations": pruned,
+        "pruned_identity": pruned_identity,
+    }

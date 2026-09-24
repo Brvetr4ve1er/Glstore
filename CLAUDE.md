@@ -83,6 +83,7 @@ All mounted under `/api/v1` (except `/healthz`, `/readyz`). Auth roles: `SUPER_A
 | File | Mount | Highlights |
 |---|---|---|
 | [api/routes/auth.py](api/routes/auth.py) | `/auth` | JWT login. Per-account lockout + per-IP fail tracker (⚠️ in-memory, not multi-replica safe) |
+| [api/routes/customer_auth.py](api/routes/customer_auth.py) | `/auth/customer` | Shopper sign-in: phone OTP → opaque session token (migration 010). Host-scoped; throttles are DB-backed, not in-memory. SMS via `api/services/sms/` — console sender is dev-only, 503 elsewhere until a provider is wired |
 | [api/routes/catalog.py](api/routes/catalog.py) | `/` | Public facets: categories, brands, price-bounds, featured, graph |
 | [api/routes/products.py](api/routes/products.py) | `/products` | Public list/detail + admin CRUD + offer CRUD |
 | [api/routes/products_import.py](api/routes/products_import.py) | `/products/import` | CSV preview + commit |

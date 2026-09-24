@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.db import get_db
+from api.core.phone import normalize_phone as _normalize_phone
 from api.core.store_context import Store, require_store
 
 router = APIRouter(tags=["storefront-public"])
@@ -112,10 +113,6 @@ async def offers_availability(
 class OrderTrackRequest(BaseModel):
     order_number: str = Field(min_length=4, max_length=40)
     phone:        str = Field(min_length=6, max_length=30)
-
-
-def _normalize_phone(raw: str) -> str:
-    return "".join(ch for ch in raw if ch.isdigit())
 
 
 # Stable failure shape so existence/timing don't leak whether the order_number is real.

@@ -8,15 +8,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.config import get_settings
+from api.core.phone import normalize_phone as _normalize_phone
 from api.core.store_context import Store
 from api.models.schemas import OrderCreate
 from api.services.events import emit_event
 
 _settings = get_settings()
-
-
-def _normalize_phone(raw: str) -> str:
-    return "".join(ch for ch in raw if ch.isdigit())
 
 
 async def _upsert_customer(db: AsyncSession, dto: OrderCreate, store_id: UUID) -> UUID:
@@ -30,6 +27,16 @@ async def _upsert_customer(db: AsyncSession, dto: OrderCreate, store_id: UUID) -
     )
     existing = row.first()
     if existing:
+        # A shopper who verified their phone before ever ordering has no name
+        # yet (migration 010), and orders carry no name of their own — so the
+        # first checkout is where it gets filled. Never overwrites a real one.
+        await db.execute(
+            text(
+                "UPDATE customers SET full_name = :name, updated_at = NOW() "
+                "WHERE id = :id AND store_id = :sid AND full_name IS NULL"
+            ),
+            {"name": dto.customer_name, "id": existing[0], "sid": store_id},
+        )
         return existing[0]
     new_id = uuid4()
     await db.execute(

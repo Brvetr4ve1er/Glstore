@@ -64,6 +64,19 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_per_minute: int = 60
 
+    # Customer identity (phone OTP) — see api/routes/customer_auth.py.
+    # "console" prints codes to the local terminal and is refused anywhere but
+    # development; no real provider is wired yet (procurement, not code).
+    sms_provider: str = "console"
+    otp_ttl_seconds: int = 300
+    otp_max_attempts: int = 5
+    otp_resend_cooldown_seconds: int = 60
+    otp_max_per_phone_per_hour: int = 5
+    otp_max_per_ip_per_hour: int = 10
+    # Cost backstop: an attacker rotating numbers AND addresses still stops here.
+    otp_max_per_store_per_hour: int = 300
+    customer_session_ttl_days: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -113,7 +113,10 @@ cross-brand application line is unrepresentable rather than merely checked.
 
 ## Phases
 
-### Phase A — Identity (migration 009)
+> **Migration numbers shifted by one.** 009 went to `contact_messages` before
+> Phase A started, so Identity is 010, Financing core 011, Workflow 012.
+
+### Phase A — Identity (migration 010)
 
 Tables: `otp_challenges` (phone, code_hash, expires_at, attempts, consumed_at),
 `customer_sessions` (token_hash, customer_id, expires_at, revoked_at).
@@ -131,7 +134,33 @@ Endpoints: `POST /auth/customer/request-otp`, `POST /auth/customer/verify`,
 Unlocks for real: wishlist, saved addresses, order history — the things Phase 2
 of the merchandising plan had to fake with `localStorage`.
 
-### Phase B — Financing core (migration 010)
+**Phase A follow-ups (not blocking, decide before Phase D):**
+
+- **Checkout still splits one phone into several customers.** COD checkout
+  keys by digits-only (`normalize_phone`), so `0555…`, `+213555…` and `555…`
+  are three customers. Verify reads across all of them (`legacy_phone_keys`)
+  and binds to the oldest, so no history is lost at sign-in — but a shopper
+  with two legacy rows is bound to one, and the other's orders stay
+  unattached. Phase D order history must either union across
+  `legacy_phone_keys` or merge the rows. Switching checkout to the canonical
+  key is the real fix; it changes live checkout behaviour, so it is the
+  operator's call.
+- **`hash_requester` is keyed with `jwt_secret`.** Key reuse across purposes,
+  and rotating the JWT secret silently resets per-address OTP counts. Give it
+  its own `OTP_HMAC_KEY`.
+- **The `customers` name backfill in `api/services/orders.py`** is outside the
+  guard suite (which scans `api/routes/`). It is scoped correctly today;
+  extending the guard to `api/services/` is cheap.
+- **The per-address cap trusts the leftmost `X-Forwarded-For`**, like the
+  existing limiter. Spoofable if the platform does not overwrite it; the
+  per-store hourly ceiling is the backstop either way.
+- **`OTP_MAX_PER_IP_PER_HOUR=10` may be tight behind carrier-grade NAT.**
+  Algerian mobile carriers commonly put many subscribers behind one public
+  address, so on a busy day real shoppers could share one bucket. Watch 429s
+  on `/auth/customer/request-otp` once live and raise it if they come from
+  real traffic; the per-phone and per-store caps still bound cost.
+
+### Phase B — Financing core (migration 011)
 
 Tables: `financing_rules` (**versioned** — rules change, and an application must
 forever reference the version it was evaluated under), `financing_simulations`
@@ -144,7 +173,7 @@ this whole plan that can have genuine, high-coverage unit tests, because it
 needs no Postgres. Eligibility, instalment maths, caps and refusal reasons all
 live there and get tested properly.
 
-### Phase C — Application workflow (migration 011)
+### Phase C — Application workflow (migration 012)
 
 `financial_profiles`, `employment_profiles`, `required_documents`,
 `uploaded_documents`.

@@ -51,9 +51,11 @@ async def _prune_pass() -> None:
                 {"days": PRUNE_RETAIN_DAYS},
             )
             deleted = row.scalar_one() or 0
+            identity = (await db.execute(text("SELECT fn_prune_identity()"))).scalar_one() or 0
             await db.commit()
             log.info("prune_observations: deleted %d rows older than %d days",
                      deleted, PRUNE_RETAIN_DAYS)
+            log.info("prune_identity: deleted %d spent OTP challenges / dead sessions", identity)
     except Exception:
         log.exception("prune pass failed")
 
