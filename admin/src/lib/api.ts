@@ -490,6 +490,8 @@ export interface OrderDetail extends OrderListItem {
   payment_method: string
   subtotal: number; shipping_cost: number; discount_amount: number; tax_amount: number
   items: OrderItem[]
+  /** Whether the stock is still held for this order; null when no hold was ever made. */
+  stock_hold: 'held' | 'released' | 'consumed' | null
 }
 
 export const fetchOrders = (params: Record<string, string | number>) => {

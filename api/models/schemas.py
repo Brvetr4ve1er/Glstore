@@ -122,8 +122,9 @@ class OrderCreate(BaseModel):
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
     shipping_address: ShippingAddress
     payment_method: Literal["COD", "CARD", "BANK_TRANSFER", "WALLET"] = "COD"
-    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
-    discount_amount: Decimal = Field(default=Decimal("0"), ge=0)
+    # No price component is accepted from the client: shipping and discount
+    # are decided server-side (api/services/orders.py). A client-supplied
+    # discount let a shopper set their own total (audit 2026-09-27 §2.1).
     notes: str | None = None
     idempotency_key: str | None = Field(default=None, max_length=120)
 

@@ -58,6 +58,20 @@ export const ORDER_STATUS_COLORS: Record<string, string> = {
   FAILED:    PINK,
 }
 
+// What happened to the stock held for an order (api/services/orders.py
+// stock_hold). "released" is the one to look at before ringing the customer:
+// the hold expired, and confirming will re-check the shelf.
+export const STOCK_HOLD_LABELS: Record<string, string> = {
+  held:     'Stock held',
+  released: 'Stock released',
+  consumed: 'Stock consumed',
+}
+export const STOCK_HOLD_COLORS: Record<string, string> = {
+  held:     ELECTRIC,
+  released: YELLOW,
+  consumed: SUCCESS,
+}
+
 export const PAYMENT_STATUS_COLORS: Record<string, string> = {
   UNPAID:   NEUTRAL,
   PENDING:  YELLOW,

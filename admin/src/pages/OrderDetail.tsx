@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useState } from 'react'
 import { fetchOrder, confirmOrder, cancelOrder } from '@/lib/api'
 import { Badge, Button, Card, Modal, Spinner, EmptyState, PageHeader } from '@/components/ui'
-import { ORDER_STATUS_COLORS, PAYMENT_STATUS_COLORS, fmtMoney, fmtDate, fmtAgo } from '@/lib/utils'
+import { ORDER_STATUS_COLORS, PAYMENT_STATUS_COLORS, STOCK_HOLD_COLORS, STOCK_HOLD_LABELS, fmtMoney, fmtDate, fmtAgo } from '@/lib/utils'
 
 const ORDER_FLOW = ['PENDING','RESERVED','CONFIRMED','PACKED','SHIPPED','DELIVERED']
 
@@ -164,7 +164,15 @@ export default function OrderDetail() {
               <Badge label={order.status} colorClass={ORDER_STATUS_COLORS[order.status]} />
               <Badge label={order.payment_status} colorClass={PAYMENT_STATUS_COLORS[order.payment_status]} />
               <Badge label={order.payment_method} />
+              {order.stock_hold && (
+                <Badge label={STOCK_HOLD_LABELS[order.stock_hold]} colorClass={STOCK_HOLD_COLORS[order.stock_hold]} />
+              )}
             </div>
+            {order.stock_hold === 'released' && order.status === 'RESERVED' && (
+              <p className="mt-3 text-xs text-[var(--color-text-2)]">
+                The hold on this order's stock expired. Confirming re-checks the shelf and is refused if the stock is gone.
+              </p>
+            )}
           </Card>
 
           <Card data-aos="fade-up-sm" data-aos-delay="60">

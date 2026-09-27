@@ -213,8 +213,6 @@ export interface OrderCreateInput {
   items: OrderLineInput[]
   shipping_address: ShippingAddressInput
   payment_method?: 'COD' | 'CARD' | 'BANK_TRANSFER' | 'WALLET'
-  shipping_cost?: number
-  discount_amount?: number
   notes?: string
   idempotency_key?: string
 }

@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.config import get_settings
@@ -128,9 +129,12 @@ async def create_order(db: AsyncSession, dto: OrderCreate, store: Store) -> dict
             (uuid4(), item.offer_id, o[1], o[6], o[2], unit_price, qty, line_total)
         )
 
-    total = (subtotal + dto.shipping_cost - dto.discount_amount).quantize(Decimal("0.01"))
-    if total < 0:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "total cannot be negative")
+    # Price components are the server's. Until a delivery model exists
+    # (audit 2026-09-27 §2.3) shipping is 0 and no discount applies; taking
+    # either from the client let a shopper set their own total (§2.1).
+    shipping_cost = Decimal("0")
+    discount_amount = Decimal("0")
+    total = (subtotal + shipping_cost - discount_amount).quantize(Decimal("0.01"))
 
     await db.execute(
         text(
@@ -153,8 +157,8 @@ async def create_order(db: AsyncSession, dto: OrderCreate, store: Store) -> dict
             "cust": customer_id,
             "pm": dto.payment_method,
             "sub": subtotal,
-            "ship": dto.shipping_cost,
-            "disc": dto.discount_amount,
+            "ship": shipping_cost,
+            "disc": discount_amount,
             "tot": total,
             "cur": store.currency,
             "addr": dto.shipping_address.model_dump_json(),
@@ -225,14 +229,31 @@ async def confirm_order(db: AsyncSession, order_id: UUID, store_id: UUID) -> dic
             f"cannot confirm order in status {cur[0]}",
         )
 
-    res_rows = await db.execute(
-        text(
-            "SELECT id FROM inventory_reservations "
-            "WHERE order_id = :o AND status = 'ACTIVE' FOR UPDATE"
-        ),
-        {"o": order_id},
-    )
-    for (rid,) in res_rows.all():
+    # Holds still ACTIVE, locked so the expiry sweep (SKIP LOCKED) leaves them
+    # to us. A hold older than RESERVATION_TTL_MINUTES has already been
+    # expired and its stock put back on the shelf — and COD orders are
+    # confirmed by phone hours later, so that is the common case, not the
+    # edge. Every such line is reserved again now, or the confirm is refused:
+    # an order is never CONFIRMED with nothing taken from stock (audit
+    # 2026-09-27 §2.2).
+    held = {
+        item_id: rid
+        for rid, item_id in (await db.execute(
+            text(
+                "SELECT id, order_item_id FROM inventory_reservations "
+                "WHERE order_id = :o AND status = 'ACTIVE' FOR UPDATE"
+            ),
+            {"o": order_id},
+        )).all()
+    }
+    items = (await db.execute(
+        text("SELECT id, offer_id, quantity FROM order_items WHERE order_id = :o AND store_id = :sid"),
+        {"o": order_id, "sid": store_id},
+    )).all()
+    for item_id, offer_id, qty in items:
+        rid = held.get(item_id)
+        if rid is None:
+            rid = await _reserve_again(db, offer_id, order_id, item_id, qty)
         await db.execute(text("SELECT fn_consume_reservation(:r)"), {"r": rid})
 
     await db.execute(
@@ -248,6 +269,45 @@ async def confirm_order(db: AsyncSession, order_id: UUID, store_id: UUID) -> dic
         entity_id=order_id, correlation_id=order_id, store_id=store_id,
     )
     return await fetch_order(db, order_id, store_id)
+
+
+async def _reserve_again(db: AsyncSession, offer_id: UUID, order_id: UUID, item_id: UUID, qty: int) -> UUID:
+    """Re-take the stock of a line whose hold expired. `fn_reserve_stock`
+    raises when the shelf no longer has it; that is the operator's 409."""
+    try:
+        return (await db.execute(
+            text("SELECT fn_reserve_stock(:offer, :order, :item, :qty, :ttl)"),
+            {
+                "offer": offer_id, "order": order_id, "item": item_id,
+                "qty": qty, "ttl": _settings.reservation_ttl_minutes,
+            },
+        )).scalar_one()
+    except DBAPIError as exc:
+        if "insufficient stock" not in str(exc):
+            raise
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Le stock réservé pour cette commande a été libéré et n'est plus "
+            "disponible. Vérifiez le stock avant de confirmer.",
+        ) from exc
+
+
+def stock_hold(rows: list[Any]) -> str | None:
+    """One word for the operator about this order's stock, from a
+    (status, count) breakdown of its reservations:
+      'held'      every line still has an ACTIVE hold
+      'released'  a hold expired or was released — confirm re-checks stock
+      'consumed'  the stock was taken (confirmed); earlier expiries are history
+      None        no reservation was ever made
+    """
+    statuses = {r[0] for r in rows}
+    if not statuses:
+        return None
+    if "ACTIVE" in statuses:
+        return "released" if statuses & {"EXPIRED", "RELEASED"} else "held"
+    if "CONSUMED" in statuses:
+        return "consumed"
+    return "released"
 
 
 async def cancel_order(db: AsyncSession, order_id: UUID, reason: str | None, store_id: UUID) -> dict:
@@ -330,10 +390,15 @@ async def fetch_order(db: AsyncSession, order_id: UUID, store_id: UUID | None = 
         }
         for r in items_rows.all()
     ]
+    holds = (await db.execute(
+        text("SELECT status, COUNT(*) AS n FROM inventory_reservations WHERE order_id = :id GROUP BY status"),
+        {"id": order_id},
+    )).all()
     return {
         "id": o[0], "order_number": o[1], "status": o[2],
         "payment_status": o[3], "payment_method": o[4],
         "subtotal": o[5], "shipping_cost": o[6], "discount_amount": o[7],
         "tax_amount": o[8], "total": o[9], "currency": o[10],
         "created_at": o[11], "items": items,
+        "stock_hold": stock_hold(holds),
     }
