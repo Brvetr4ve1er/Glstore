@@ -106,7 +106,7 @@
   function navMarkup() {
     const cols = CATEGORIES.map((c) => `<a href="shop.html?cat=${encodeURIComponent(c.name)}">${c.name}</a>`).join('');
     return `
-    <div class="topbar">Free 2-day shipping over $50 · 25 years of For Glory · Members get early drops</div>
+    <div class="topbar">Free shipping over $50 · Members get early drops</div>
     <header class="header">
       <div class="container nav">
         <a class="brand" href="index.html"><span class="mark">▲</span>GLAIVE</a>
@@ -114,13 +114,13 @@
           <li class="nav-item" data-mega="shop">
             <button aria-haspopup="true" aria-expanded="false">Shop ${ICON.chevron}</button>
             <div class="megamenu"><div class="container">
-              <div class="mega-col"><h4>Audio</h4><a href="shop.html?cat=Headsets">Gaming Headsets</a><a href="shop.html?cat=Accessories">GameDAC</a><a href="shop.html?cat=Headsets">Wireless</a></div>
+              <div class="mega-col"><h4>Audio</h4><a href="shop.html?cat=Headsets">Gaming Headsets</a><a href="shop.html?cat=Accessories">GLAIVE DAC</a><a href="shop.html?cat=Headsets">Wireless</a></div>
               <div class="mega-col"><h4>Desk</h4><a href="shop.html?cat=Keyboards">Keyboards</a><a href="shop.html?cat=Mice">Mice</a><a href="shop.html?cat=Mousepads">Mousepads</a></div>
               <div class="mega-col"><h4>Console</h4><a href="shop.html?cat=Controllers">Controllers</a><a href="shop.html?cat=Headsets">PlayStation</a><a href="shop.html?cat=Headsets">Xbox</a></div>
               <div class="mega-col"><h4>Collections</h4><a href="shop.html?sort=new">New Arrivals</a><a href="shop.html?tag=pro">Pro Series</a><a href="shop.html?sort=price-asc">Under $50</a><a href="quiz.html">Find your gear →</a></div>
               <div class="mega-feature">
-                <div><span class="eyebrow">Flagship</span><h3>Arctis Nova Elite</h3><p class="muted">Hi-Res wireless, redefined.</p></div>
-                <a class="btn btn--primary" href="product.html?id=arctis-nova-elite">Discover</a>
+                <div><span class="eyebrow">Flagship</span><h3>Aurel Elite</h3><p class="muted">Hi-Res wireless, redefined.</p></div>
+                <a class="btn btn--primary" href="product.html?id=aurel-elite">Discover</a>
               </div>
             </div></div>
           </li>
@@ -153,7 +153,7 @@
         <div class="footer-grid">
           <div class="footer-brand">
             <a class="brand" href="index.html"><span class="mark">▲</span>GLAIVE</a>
-            <p>Pro-grade gaming gear engineered with and for the world’s best players. For Glory.</p>
+            <p>Pro-grade gaming gear built for competitive play.</p>
             <div class="socials">
               <a href="#" aria-label="X">${ICON.twitter}</a>
               <a href="#" aria-label="YouTube">${ICON.youtube}</a>
@@ -162,12 +162,12 @@
             </div>
           </div>
           <div><h4>Shop</h4><a href="shop.html?cat=Headsets">Headsets</a><a href="shop.html?cat=Keyboards">Keyboards</a><a href="shop.html?cat=Mice">Mice</a><a href="shop.html?cat=Mousepads">Mousepads</a><a href="shop.html?cat=Controllers">Controllers</a></div>
-          <div><h4>Software</h4><a href="software.html">GLAIVE GG</a><a href="software.html">Sonar Audio</a><a href="software.html">Engine</a><a href="software.html">Moments</a></div>
+          <div><h4>Software</h4><a href="software.html">GLAIVE Hub</a><a href="software.html">Audio mixer</a><a href="software.html">Lighting</a><a href="software.html">Clips</a></div>
           <div><h4>Support</h4><a href="index.html#support">Help Center</a><a href="index.html#support">Warranty</a><a href="index.html#support">Downloads</a><a href="index.html#support">Register Product</a><a href="index.html#support">Contact</a></div>
           <div><h4>Company</h4><a href="#">About</a><a href="#">Pro Athletes</a><a href="#">Careers</a><a href="#">Press</a><a href="#">Sustainability</a></div>
         </div>
         <div class="footer-bottom">
-          <span>© ${new Date().getFullYear()} GLAIVE Gaming. A first-principles tribute build. Not affiliated with SteelSeries.</span>
+          <span>© ${new Date().getFullYear()} GLAIVE Gaming. Portfolio design study. Fictional brand and products; nothing is sold.</span>
           <span>Privacy · Terms · Cookies · Accessibility</span>
         </div>
       </div>
@@ -222,7 +222,17 @@
   }
 
   /* ---------- mount shared chrome ---------- */
+
+  // Portfolio notice on every page: fictional brand, nothing is sold.
+  function mountDemoNotice() {
+    if (document.getElementById('demo-notice')) return;
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div id="demo-notice" role="note" style="background:#16161a;color:#e8e8ea;font:500 12.5px/1.4 Inter,system-ui,sans-serif;'
+      + 'text-align:center;padding:7px 16px;letter-spacing:.01em">Portfolio demo · fictional brand and products · nothing is sold or shipped</div>');
+  }
+
   function mountChrome() {
+    mountDemoNotice();
     const nav = $('#nav'); if (nav) nav.innerHTML = navMarkup();
     const foot = $('#footer'); if (foot) foot.innerHTML = footerMarkup();
     document.body.insertAdjacentHTML('beforeend', overlaysMarkup());
@@ -303,7 +313,7 @@
             <div class="price"><span class="now">${money(eff(p))}</span></div>
           </a>`).join('')
           + `<div class="search-empty"><a href="shop.html?q=${encodeURIComponent(input.value)}">See all results for “${input.value}” →</a></div>`
-        : `<div class="search-empty">No matches for “${input.value}”. Try “headset”, “wireless” or “apex”.</div>`;
+        : `<div class="search-empty">No matches for “${input.value}”. Try “headset”, “wireless” or “ostrel”.</div>`;
     };
     input.addEventListener('input', run);
     input.addEventListener('keydown', (e) => {
@@ -623,7 +633,7 @@
           <div class="summary-row"><span>Shipping</span><span>${ship ? money(ship) : 'FREE'}</span></div>
           <div class="summary-row total"><span>Total</span><span>${money(total)}</span></div>
           <button class="btn btn--primary btn--block btn--lg" type="submit" style="margin-top:1rem">Place order — ${money(total)}</button>
-          <div class="secure-note">${ICON.lock} Secure demo checkout</div>
+          <div class="secure-note">${ICON.lock} Demo checkout: no order is sent</div>
         </aside>
       </form>`;
     $('#checkoutForm').addEventListener('submit', (e) => {
@@ -635,8 +645,8 @@
       root.innerHTML = `
         <div class="confirm">
           <div class="ok">${ICON.check}</div>
-          <h1>Order confirmed</h1>
-          <p class="muted">Thanks, ${form.name.value.split(' ')[0] || 'gamer'} — your gear is on the way.</p>
+          <h1>Demo order complete</h1>
+          <p class="muted">Thanks, ${form.name.value.split(' ')[0] || 'gamer'} — this is a portfolio demo: no order was placed, nothing is charged or shipped.</p>
           <p style="margin:1rem 0">Order number<br><span class="ordno">${ordNo}</span></p>
           <p class="muted" style="font-size:.85rem;max-width:42ch;margin:1rem auto">In the real platform this posts to <code>POST /api/v1/orders/create</code> with the cart offers, shipping wilaya and payment method, then reserves stock.</p>
           <a class="btn btn--primary" href="shop.html" style="margin-top:1rem">Continue shopping</a>
