@@ -1,0 +1,26 @@
+# Netlify serves ONE thing from this repo: the GLAIVE portfolio preview in
+# gaming-store/ (static HTML/CSS/JS, fictional brand, nothing is sold).
+# The shop's own stack deploys elsewhere (vercel.json); this file does not
+# affect it.
+#
+# Why `base`: without it Netlify builds from the repo root, finds the Python
+# backend's requirements.txt and tries to install it. Every build failed that
+# way from June 2026 ("missing Rust/Cargo" for pydantic-core), so the live
+# preview stayed on the 5 June version. With base = gaming-store, Netlify only
+# ever sees the preview folder, and paths below are relative to it.
+[build]
+  base    = "gaming-store"
+  publish = "."
+  # No build command: the files are served as they are.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # The preview is a portfolio piece, not a shop: keep it out of search
+    # results (each page also carries <meta name="robots" content="noindex">).
+    X-Robots-Tag           = "noindex"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    # No X-Frame-Options: the portfolio may show this preview in an iframe.
+    # No long-lived cache on /assets/*: file names aren't versioned, so a
+    # year-long cache would hide every future update from returning visitors.
