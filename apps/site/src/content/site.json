@@ -62,5 +62,27 @@
       "q": "Comment entretenir mon vêtement imprimé ?",
       "a": "Lave-le à l'envers à 30 °C, sans sèche-linge, et ne repasse pas directement sur l'impression."
     }
-  ]
+  ],
+  "dojo": {
+    "enabled": true,
+    "rewards": [
+      {
+        "rank": 2,
+        "text": "Sticker SHINOBI offert avec ta commande"
+      },
+      {
+        "rank": 3,
+        "text": "Emballage collector"
+      },
+      {
+        "rank": 4,
+        "text": "Accès en avant-première aux prochains drops"
+      }
+    ]
+  },
+  "drop": {
+    "title": "",
+    "date": "",
+    "href": "/galerie/"
+  }
 }

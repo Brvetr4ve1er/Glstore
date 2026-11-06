@@ -17,9 +17,10 @@ import {
   type OrderDetails, type SideInfo, type NamedBlob, type Channel, type Customer, type OrderResult,
 } from '../lib/order';
 import { SIZE_GUIDES } from '../lib/size-guide';
+import { complete, see, recordOrder, isUnlocked, loyaltySummary, RANKS } from '../lib/dojo';
 
 interface Base { id: string; name: string; price: number; doubleSideAllowed: boolean; extraDoubleSide: number; icon: string; order: number; }
-interface Design { id: string; name: string; anime: string; image?: string; emoji?: string; }
+interface Design { id: string; name: string; anime: string; image?: string; emoji?: string; unlockRank: number; rarity: string; }
 interface Catalog {
   bases: Base[]; designs: Design[];
   contact: { whatsappNumber: string; instagram: string };
@@ -239,12 +240,22 @@ export function initBuilder() {
     x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(emoji, 256, 286);
     return c;
   }
-  async function setFromGallery(d: Design) {
+  /** Secret designs stay locked until the customer reaches the rank. */
+  function lockedMessage(d: Design): boolean {
+    if (isUnlocked(d.unlockRank)) return false;
+    const r = RANKS[d.unlockRank];
+    showToast(`🔒 Design secret — atteins le rang ${r.name} ${r.kanji} au Dojo pour le débloquer.`);
+    const el = document.querySelector<HTMLElement>(`[data-design="${d.id}"]`);
+    if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+    return true;
+  }
+  async function setFromGallery(d: Design): Promise<boolean> {
+    if (lockedMessage(d)) return false;
     let canvas: HTMLCanvasElement;
     if (d.image) {
       showProcessing(true, 'Chargement du design…');
       try { canvas = await imageToCanvas(d.image); }
-      catch { showToast("Ce design n'a pas pu être chargé."); return; }
+      catch { showToast("Ce design n'a pas pu être chargé."); return false; }
       finally { showProcessing(false); }
     } else {
       canvas = emojiToCanvas(d.emoji || '🥷');
@@ -254,7 +265,10 @@ export function initBuilder() {
     s.galleryId = d.id; s.label = `${d.name} (${d.anime})`;
     s.placement = { ...DEFAULT_PLACEMENT };
     $('#upload-tools').style.display = 'none';
+    $$('[data-design]').forEach(x => x.classList.toggle('on', x.getAttribute('data-design') === d.id));
     commitDesignDisplay(); afterDesignChange();
+    see(d.id); complete('premier-sceau');
+    return true;
   }
   async function setFromUpload(file: File) {
     showProcessing(true, "Lecture de l'image…");
@@ -268,6 +282,7 @@ export function initBuilder() {
       ($('#scale') as HTMLInputElement).value = '85'; ($('#rot') as HTMLInputElement).value = '0';
       $('#upload-tools').style.display = 'block';
       commitDesignDisplay(); afterDesignChange();
+      complete('art-perso');
     } catch (e) { alert((e as Error).message || 'Image illisible'); }
     finally { showProcessing(false); }
   }
@@ -285,6 +300,7 @@ export function initBuilder() {
   }
   function afterDesignChange() {
     renderSideSwitch(); updateOrderEnabled(); updatePrice();
+    if (mk().twoSided && state.sides.verso.design) complete('double-lame');
   }
 
   // ── Background-removal tools (active side, upload only) ────
@@ -553,12 +569,14 @@ export function initBuilder() {
       pickupPlace: cat.delivery.pickupPlace,
       customer: { ...c, phone: normalisePhone(c.phone) ?? c.phone.trim() },
       note: state.note,
+      loyalty: loyaltySummary(),
       total: total(),
     };
   }
 
   const appName = (ch: Channel) => (ch === 'whatsapp' ? 'WhatsApp' : 'Instagram');
   function reportResult(ch: Channel, res: OrderResult) {
+    if (res.status === 'shared' || res.status === 'downloaded') recordOrder();
     if (res.status === 'shared') showToast('Commande envoyée 🎉 On te répond vite !');
     else if (res.status === 'cancelled') showToast('Envoi annulé — tu peux réessayer.');
     else if (res.status === 'downloaded') showToast(ch === 'whatsapp'
@@ -678,7 +696,6 @@ export function initBuilder() {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-design]');
       if (!b) return;
       const d = cat.designs.find(x => x.id === b.getAttribute('data-design')); if (!d) return;
-      $$('[data-design]').forEach(x => x.classList.remove('on')); b.classList.add('on');
       setFromGallery(d);
     });
   }
@@ -696,9 +713,8 @@ export function initBuilder() {
       if (!id) return;
       const d = cat.designs.find(x => x.id === id);
       if (!d) return;
-      // Highlight + select as if the user clicked it
-      $$('[data-design]').forEach(x => x.classList.toggle('on', x.getAttribute('data-design') === id));
-      setFromGallery(d);
+      setFromGallery(d); // highlights it, or explains the lock
+
     } catch { /* SSR or non-browser env */ }
   }
 
@@ -734,6 +750,7 @@ export function initBuilder() {
       // print area = centred 55% × 55% of the photo's drawn rect
       const pa: Rect = { x: dx + dw * 0.225, y: dy + dh * 0.20, w: dw * 0.55, h: dh * 0.55 };
       state.customerPhoto = { url: sq.toDataURL('image/jpeg', 0.92), vb: VB, pa };
+      complete('miroir');
       cur().placement = { ...DEFAULT_PLACEMENT };
       ($('#scale') as HTMLInputElement).value = '85'; ($('#rot') as HTMLInputElement).value = '0';
       drawMockup();
@@ -801,6 +818,7 @@ export function initBuilder() {
       recOut.innerHTML = `Pour <b>${h} cm</b> · <b>${w} kg</b> → on recommande la taille <b>${size}</b>.`;
       paint(size);
       recommendedSize = size;
+      complete('mesure');
       applyBtn.textContent = `Choisir la taille ${size} →`;
       applyBtn.style.display = '';
     }

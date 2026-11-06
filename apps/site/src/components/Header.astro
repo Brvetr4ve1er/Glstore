@@ -1,5 +1,6 @@
 ---
 import site from '~/content/site.json';
+import DojoChip from '~/components/DojoChip.astro';
 // Normalise: Astro yields '/galerie/' while hrefs are '/galerie' — strip
 // the trailing slash so the active-nav comparison actually matches.
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -17,6 +18,8 @@ const links = [
       <img src="/assets/mascot.svg" alt="" width="40" height="40" />
       <span class="word">{site.brand.name}<span class="kanji-small">{site.brand.kanji}</span></span>
     </a>
+    <div class="right">
+    <DojoChip />
     <nav>
       {links.map(l => (
         <a href={l.href} class={path === l.href ? 'on' : ''}>
@@ -25,6 +28,7 @@ const links = [
         </a>
       ))}
     </nav>
+    </div>
   </div>
 </header>
 
@@ -66,6 +70,7 @@ const links = [
     margin-left: 4px;
     vertical-align: top;
   }
+  .right { display: flex; align-items: center; gap: 10px; min-width: 0; }
   nav { display: flex; gap: 4px; }
   nav a {
     font-family: var(--f-body);
@@ -95,6 +100,7 @@ const links = [
     .nav .brand img { width: 28px; height: 28px; }
     .word { font-size: 15px; letter-spacing: 0.04em; }
     nav { gap: 1px; }
+    .right { gap: 4px; }
     nav a { padding: 5px 6px; font-size: 10px; letter-spacing: 0.03em; }
     nav a.on { padding: 5px 8px; }
     .nav-long { display: none; }

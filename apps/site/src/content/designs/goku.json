@@ -1,1 +1,1 @@
-{ "id": "goku",    "name": "Goku",         "anime": "Dragon Ball Z",  "emoji": "⚡", "tagColor": "dbz",      "featured": true,  "order": 4 }
+{"id": "goku", "name": "Goku", "anime": "Dragon Ball Z", "emoji": "⚡", "tagColor": "dbz", "featured": true, "order": 4, "rarity": "legendaire"}

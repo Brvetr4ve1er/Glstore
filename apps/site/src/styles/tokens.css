@@ -195,3 +195,21 @@ button { font-family: inherit; }
 .mt-4 { margin-top: var(--s-4); }
 .mt-6 { margin-top: var(--s-6); }
 .mt-7 { margin-top: var(--s-7); }
+
+/* ── Dojo: secret designs + rarity badges (shared by every gallery) ── */
+.is-locked .dt-img, .is-locked .dt-emoji { filter: brightness(0) opacity(0.78); }
+.is-locked { cursor: pointer; }
+.lock-badge {
+  display: none; position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  white-space: nowrap; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--sumi); color: #fff; padding: 3px 8px; border-radius: var(--r-pill);
+}
+.is-secret .lock-badge { display: inline-block; }
+.is-secret:not(.is-locked) .lock-badge { background: var(--gold); color: var(--sumi); }
+.rarity {
+  position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 3px 7px; border-radius: var(--r-pill); pointer-events: none;
+}
+.rarity-rare { background: #1F4FA8; color: #fff; }
+.rarity-legendaire { background: linear-gradient(135deg, #D7A33A, #F4D27A); color: var(--sumi); }
+.is-locked .rarity { display: none; }

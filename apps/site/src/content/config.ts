@@ -49,6 +49,10 @@ const designs = defineCollection({
       ]).default('original'),
       featured: z.boolean().default(false),    // appears on home page
       order: z.number().default(0),
+      // Dojo: rarity drives the daily invocation odds; unlockRank > 0
+      // makes it a secret design (silhouette until that rank).
+      rarity: z.enum(['commun', 'rare', 'legendaire']).default('commun'),
+      unlockRank: z.coerce.number().int().min(0).max(4).default(0),
     }).refine((d) => d.image || d.emoji, { message: 'Ajoute une image ou un emoji au design' }),
   ),
 });

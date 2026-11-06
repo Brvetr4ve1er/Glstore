@@ -1,0 +1,90 @@
+---
+/* Site-wide Dojo layer: config for the client, toast, level-up screen. */
+import site from '~/content/site.json';
+import { getCollection } from 'astro:content';
+
+const designs = await getCollection('designs');
+const config = {
+  rewards: (site.dojo?.rewards ?? []).map(r => ({ rank: Number(r.rank), text: r.text })),
+  secrets: designs.filter(d => d.data.unlockRank > 0)
+    .map(d => ({ id: d.data.id, name: d.data.name, rank: d.data.unlockRank })),
+};
+---
+<script type="application/json" id="dojo-config" set:html={JSON.stringify(config)}></script>
+
+<div id="dojo-toast" class="dojo-toast" role="status" aria-live="polite" hidden></div>
+
+<div id="dojo-levelup" class="dojo-lu" role="dialog" aria-modal="true" aria-labelledby="lu-title" hidden>
+  <div class="lu-back" data-lu-close></div>
+  <div class="lu-card">
+    <div class="lu-stamp" aria-hidden="true"><span class="lu-ring"></span><span class="lu-kanji">下忍</span></div>
+    <p class="lu-eyebrow">Nouveau rang</p>
+    <h2 id="lu-title" class="lu-name">Genin</h2>
+    <p class="lu-motto"></p>
+    <ul class="lu-gifts" hidden></ul>
+    <div class="lu-actions">
+      <button type="button" class="btn btn-torii lu-ok" data-lu-close>Continuer</button>
+      <a href="/dojo/" class="btn btn-ghost">Voir le dojo</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { initDojoUI } from '../scripts/dojo-ui';
+  initDojoUI();
+</script>
+
+<style>
+  .dojo-toast {
+    position: fixed; top: 84px; right: 16px; z-index: 9998;
+    max-width: min(340px, calc(100vw - 32px));
+    background: var(--sumi); color: #fff; border-left: 4px solid var(--torii);
+    border-radius: var(--r-2); padding: 10px 14px; box-shadow: var(--e-3);
+    font-size: 14px; line-height: 1.35;
+    opacity: 0; transform: translateX(16px); transition: all 0.25s var(--ease-shuriken);
+  }
+  .dojo-toast:global(.show) { opacity: 1; transform: translateX(0); }
+  .dojo-toast :global(b) { font-family: var(--f-display); font-size: 18px; letter-spacing: 0.04em; color: #FF5A5A; font-weight: 400; }
+  .dojo-toast :global(.dt-k) { font-family: var(--f-kanji); color: var(--gold); }
+  .dojo-toast :global(small) { display: block; color: var(--w50); font-size: 12px; margin-top: 2px; }
+
+  .dojo-lu { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .dojo-lu[hidden] { display: none; }
+  .lu-back { position: absolute; inset: 0; background: rgba(14,14,14,0.78); backdrop-filter: blur(4px); }
+  .lu-card {
+    position: relative; width: 100%; max-width: 420px; text-align: center;
+    background: var(--indigo) url('/assets/seigaiha-dark.svg'); background-size: 96px 48px;
+    color: #fff; border-radius: var(--r-4); padding: 40px 28px 28px; box-shadow: var(--e-3);
+    border: 1px solid rgba(215,163,58,0.35);
+  }
+  .lu-stamp { position: relative; width: 132px; height: 132px; margin: 0 auto 18px; display: grid; place-items: center; }
+  .lu-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 4px solid var(--torii); outline: 2px dashed rgba(215,163,58,0.7); outline-offset: 6px;
+    background: radial-gradient(circle, #E00000 0%, #A30000 70%);
+    box-shadow: 0 0 40px rgba(224,0,0,0.55);
+  }
+  .lu-kanji { position: relative; font-family: var(--f-kanji); font-weight: 700; font-size: 46px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+  .lu-eyebrow { font-family: var(--f-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-size: 14px; }
+  .lu-name { font-family: var(--f-display); font-size: 52px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1; margin-top: 4px; }
+  .lu-motto { color: var(--w70); margin-top: 8px; font-size: 14px; }
+  .lu-gifts { list-style: none; margin-top: 18px; display: grid; gap: 8px; text-align: left; }
+  .lu-gifts :global(li) { background: rgba(255,255,255,0.07); border: 1px solid var(--w20); border-radius: var(--r-2); padding: 10px 12px; font-size: 14px; }
+  .lu-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+  .lu-actions .btn { justify-content: center; }
+
+  .dojo-lu:global(.play) .lu-card { animation: luCard 0.45s var(--ease-shuriken); }
+  .dojo-lu:global(.play) .lu-ring { animation: luStamp 0.6s var(--ease-koi) 0.1s both; }
+  .dojo-lu:global(.play) .lu-kanji { animation: luStamp 0.6s var(--ease-koi) 0.18s both; }
+  @keyframes luCard { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes luStamp { from { opacity: 0; transform: scale(2.2) rotate(-18deg); } to { opacity: 1; transform: none; } }
+
+  .lu-stamp :global(.dojo-shard) {
+    position: absolute; left: 50%; top: 50%; color: var(--gold); font-size: 18px; pointer-events: none;
+    animation: shard 1s var(--ease-shuriken) forwards;
+  }
+  @keyframes shard {
+    from { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+    to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)); opacity: 0; }
+  }
+</style>

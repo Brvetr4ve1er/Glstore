@@ -47,6 +47,8 @@ export interface OrderDetails {
   pickupPlace: string;     // shown for "retrait"
   customer: Customer;
   note: string;            // free-text customer instructions
+  /** Dojo rank + perks earned on this device (checked by the shop). */
+  loyalty?: { rank: string; chakra: number; rewards: string[] } | null;
   total: number;
 }
 
@@ -90,6 +92,10 @@ export function orderText(o: OrderDetails): string {
     L.push(`🚚 Livraison : ${where}`);
   } else {
     L.push(`🏪 Retrait en boutique : ${o.pickupPlace}`);
+  }
+  if (o.loyalty) {
+    L.push(`🥋 Dojo : ${o.loyalty.rank} · ${o.loyalty.chakra} chakra`);
+    for (const r of o.loyalty.rewards) L.push(`🎁 ${r} (récompense dojo, à confirmer)`);
   }
   L.push(``);
   const sub = o.unitPrice * o.quantity;

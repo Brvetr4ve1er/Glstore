@@ -1,0 +1,46 @@
+---
+/* "Prochain drop" countdown. Shown only when the owner sets a date in /admin/. */
+import site from '~/content/site.json';
+const drop = site.drop ?? { title: '', date: '', href: '/galerie/' };
+const when = drop.date ? new Date(drop.date) : null;
+const valid = when && !Number.isNaN(when.getTime());
+---
+{valid && (
+  <a class="drop" href={drop.href || '/galerie/'} data-drop={when!.toISOString()}>
+    <span class="drop-dot" aria-hidden="true"></span>
+    <span class="drop-label">{drop.title ? `Drop « ${drop.title} »` : 'Prochain drop'}</span>
+    <span class="drop-time" data-drop-time>bientôt</span>
+  </a>
+)}
+
+<script>
+  const el = document.querySelector<HTMLElement>('[data-drop]');
+  if (el) {
+    const at = new Date(el.dataset.drop!).getTime();
+    const out = el.querySelector<HTMLElement>('[data-drop-time]')!;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const tick = () => {
+      const ms = at - Date.now();
+      if (ms <= 0) { out.textContent = 'en ligne maintenant 🔥'; el.classList.add('live'); return false; }
+      const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1000) % 60;
+      out.textContent = `${d ? d + 'j ' : ''}${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+      return true;
+    };
+    if (tick()) { const t = setInterval(() => { if (!tick()) clearInterval(t); }, 1000); }
+  }
+</script>
+
+<style>
+  .drop {
+    display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: var(--s-6); padding: 10px 16px; border-radius: var(--r-pill);
+    background: var(--sumi); color: #fff; text-decoration: none; font-size: 14px;
+    box-shadow: var(--e-2);
+  }
+  .drop:hover { color: #fff; box-shadow: var(--e-torii); }
+  .drop-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--torii); box-shadow: 0 0 0 0 rgba(224,0,0,0.6); animation: ping 1.6s infinite; }
+  @keyframes ping { 70% { box-shadow: 0 0 0 10px rgba(224,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(224,0,0,0); } }
+  .drop-label { font-weight: 600; }
+  .drop-time { font-family: var(--f-display); font-size: 18px; letter-spacing: 0.06em; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .drop:global(.live) .drop-time { color: #FF6B6B; }
+</style>

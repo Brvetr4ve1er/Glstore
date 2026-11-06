@@ -57,6 +57,50 @@ aucun serveur, aucune API payante.
 Le code du designer vit dans `src/lib/` (logique pure, testable) et
 `src/scripts/builder.ts` (le contrôleur DOM).
 
+## Le Dojo — programme de fidélité (page `/dojo`)
+
+Un jeu léger qui donne envie de revenir et de commander, sans compte ni
+serveur :
+
+- **Chakra 気** gagné en utilisant le site : ouvrir le designer (+10),
+  premier design (+20), essayer 5 designs (+30), importer son image
+  (+40), ajouter un verso (+30), essayer sur sa photo (+40), guide des
+  tailles (+20), page Infos (+10), partager le site (+30), première
+  commande (+100), chaque commande suivante (+50), invocation du jour
+  (+15).
+- **5 rangs** : Minarai 見習 (0) → Genin 下忍 (50) → Chūnin 中忍 (150) →
+  Jōnin 上忍 (300) → Shinobi 忍者 (500). Un écran « Nouveau rang »
+  s'affiche à chaque passage. Le rang est visible dans l'en-tête.
+- **Designs secrets** : un design peut être réservé à un rang. Il
+  apparaît en silhouette 🔒 dans les galeries jusqu'à ce rang.
+  *(Admin → Designs → « Design secret ? »)*. Trois designs originaux
+  sont fournis en exemple : Oni Masqué, Dragon d'Encre, Kitsune Blanc.
+- **Invocation du jour** : une fois par jour, un design tiré au sort
+  (commun 70 %, rare 25 %, légendaire 5 % — *Admin → Designs →
+  Rareté*), à créer directement dans le designer.
+- **Cadeaux par rang** *(Admin → Paramètres du site → Le Dojo)* : par
+  défaut sticker offert (Chūnin), emballage collector (Jōnin), accès en
+  avant-première aux drops (Shinobi). **À adapter à ce que la boutique
+  veut vraiment offrir.** Le rang et les cadeaux sont ajoutés au
+  message de commande :
+
+```
+🥋 Dojo : Chūnin 中忍 · 225 chakra
+🎁 Sticker SHINOBI offert avec ta commande (récompense dojo, à confirmer)
+```
+
+> La progression est stockée **sur le téléphone du client** (pas de
+> compte, pas de suivi). Elle peut donc être trichée : les cadeaux sont
+> présentés « à confirmer » et c'est la boutique qui décide. Garde des
+> cadeaux symboliques (stickers, emballage, avant-premières) plutôt que
+> des remises importantes. Le Dojo se désactive d'un clic dans l'admin.
+
+### Compte à rebours de drop
+
+*Admin → Paramètres du site → Prochain drop* : un nom + une date
+affichent un compte à rebours sur l'accueil (« Drop « Collection
+Hiver » 14j 01h 59m »). Laisse la date vide pour le cacher.
+
 ## Ce qu'il y a dans la boîte
 
 ```
@@ -71,7 +115,8 @@ apps/site/
 │  │  ├─ compositor.ts  #   placement + rendu canvas + export PNG
 │  │  ├─ order.ts       #   message + envoi WhatsApp / Instagram
 │  │  ├─ size-guide.ts  #   mensurations + recommandation de taille
-│  │  └─ wilayas.ts     #   les 58 wilayas (formulaire de commande)
+│  │  ├─ wilayas.ts     #   les 58 wilayas (formulaire de commande)
+│  │  └─ dojo.ts        #   Dojo : chakra, rangs, missions, invocation
 │  ├─ scripts/
 │  │  └─ builder.ts     #   contrôleur DOM du designer
 │  ├─ content/          # Données éditables par l'admin (JSON)
@@ -108,6 +153,7 @@ Pages disponibles :
 - `/custom` — le builder
 - `/galerie` — tous les designs, groupés par anime
 - `/infos` — délai, livraison, paiement, retours, prix, FAQ
+- `/dojo` — programme de fidélité : rang, missions, invocation du jour
 - `/boutique` — infos boutique + LocalBusiness JSON-LD
 - `/admin/` — panneau d'admin (besoin de Netlify Identity en prod)
 
@@ -255,7 +301,7 @@ tailles (`src/lib/size-guide.ts`), image de partage
 ## Points techniques
 
 - **Astro 5** rend tout en HTML statique au build → site très rapide.
-  Seul le designer charge du JavaScript (~40 Ko, ~13 Ko gzip), en
+  Le designer charge ~46 Ko de JavaScript (~16 Ko gzip) ; les autres pages ~8 Ko (~4 Ko gzip) pour le Dojo, en
   TypeScript sans framework.
 - Le designer lit son catalogue depuis un `<script type="application/json">`
   embarqué dans la page. La logique pure vit dans `src/lib/`, le

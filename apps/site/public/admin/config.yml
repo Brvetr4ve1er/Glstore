@@ -77,6 +77,22 @@ collections:
           default: original
         }
       - { name: featured, label: "Mettre en avant sur la page d'accueil ?", widget: boolean, default: false }
+      - {
+          name: rarity,
+          label: "Rareté (invocation du Dojo)",
+          widget: select,
+          default: commun,
+          options: [{ label: "Commun", value: commun }, { label: "Rare", value: rare }, { label: "Légendaire", value: legendaire }],
+          hint: "Un design légendaire sort rarement à l'invocation quotidienne."
+        }
+      - {
+          name: unlockRank,
+          label: "Design secret ?",
+          widget: select,
+          default: "0",
+          options: [{ label: "Non — visible par tous", value: "0" }, { label: "Genin 下忍 (50 chakra)", value: "1" }, { label: "Chūnin 中忍 (150 chakra)", value: "2" }, { label: "Jōnin 上忍 (300 chakra)", value: "3" }, { label: "Shinobi 忍者 (500 chakra)", value: "4" }],
+          hint: "Un design secret apparaît en silhouette 🔒 jusqu'à ce que le client atteigne ce rang au Dojo."
+        }
       - { name: order, label: "Ordre", widget: number, value_type: int, default: 1 }
 
   # ── 3. Site settings (singleton) ────────────────────────────
@@ -146,6 +162,30 @@ collections:
               - { name: deliveryPriceDZD, label: "Prix livraison (DA)", widget: number, value_type: int, min: 0 }
               - { name: pickupPriceDZD, label: "Prix retrait en boutique (DA)", widget: number, value_type: int, default: 0 }
               - { name: returnDays, label: "Délai de retour (jours)", widget: number, value_type: int, default: 14 }
+
+          - label: "Le Dojo (programme de fidélité)"
+            name: dojo
+            widget: object
+            fields:
+              - { name: enabled, label: "Activer le Dojo", widget: boolean, default: true }
+              - name: rewards
+                label: "Cadeaux par rang"
+                label_singular: "Cadeau"
+                widget: list
+                required: false
+                summary: "Rang {{fields.rank}} — {{fields.text}}"
+                hint: "Ajoutés au message de commande du client. C'est la boutique qui les confirme."
+                fields:
+                  - { name: rank, label: "Rang", widget: select, options: [{ label: "Genin 下忍 (50 chakra)", value: "1" }, { label: "Chūnin 中忍 (150 chakra)", value: "2" }, { label: "Jōnin 上忍 (300 chakra)", value: "3" }, { label: "Shinobi 忍者 (500 chakra)", value: "4" }] }
+                  - { name: text, label: "Cadeau", widget: string }
+
+          - label: "Prochain drop (compte à rebours sur l'accueil)"
+            name: drop
+            widget: object
+            fields:
+              - { name: title, label: "Nom du drop", widget: string, required: false, hint: "ex: Collection Hiver" }
+              - { name: date, label: "Date et heure", widget: datetime, required: false, hint: "Laisse vide pour cacher le compte à rebours." }
+              - { name: href, label: "Lien du bouton", widget: string, default: "/galerie/" }
 
           - label: "Questions fréquentes (page Infos)"
             name: faq

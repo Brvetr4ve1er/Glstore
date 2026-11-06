@@ -2,6 +2,7 @@
 import '~/styles/tokens.css';
 import Header from '~/components/Header.astro';
 import Footer from '~/components/Footer.astro';
+import DojoLayer from '~/components/DojoLayer.astro';
 import site from '~/content/site.json';
 
 interface Props { title: string; description?: string; noindex?: boolean; }
@@ -15,7 +16,7 @@ const ogImg = new URL('/assets/og.png', Astro.site).toString();
 const waMissing = site.contact.whatsappNumber === '213555000000';
 ---
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-dojo={site.dojo?.enabled === false ? 'off' : 'on'}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -79,6 +80,7 @@ const waMissing = site.contact.whatsappNumber === '213555000000';
     <slot />
   </main>
   <Footer />
+  <DojoLayer />
 
   <style>
     .skip-link {

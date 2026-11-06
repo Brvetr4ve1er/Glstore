@@ -43,8 +43,12 @@ for (const d of designs) {
         </div>
         <div class="gallery-grid">
           {items.map(d => (
-            <a class="g-card" href={`/custom/?design=${d.data.id}`}>
-              <div class="g-thumb"><DesignThumb image={d.data.image} emoji={d.data.emoji} name={d.data.name} size={64} /></div>
+            <a class:list={['g-card', d.data.unlockRank > 0 && 'is-locked is-secret']} href={`/custom/?design=${d.data.id}`} data-unlock-rank={d.data.unlockRank}>
+              <div class="g-thumb">
+                <DesignThumb image={d.data.image} emoji={d.data.emoji} name={d.data.name} size={64} />
+                {d.data.rarity !== 'commun' && <span class:list={['rarity', `rarity-${d.data.rarity}`]}>{d.data.rarity === 'rare' ? 'Rare' : 'Légendaire'}</span>}
+                {d.data.unlockRank > 0 && <span class="lock-badge" data-lock-label>🔒 Secret</span>}
+              </div>
               <div class="g-meta">
                 <div class="g-name">{d.data.name}</div>
                 <div class="g-anime">{d.data.anime}</div>
@@ -104,6 +108,7 @@ for (const d of designs) {
     transform: translateY(-3px);
   }
   .g-thumb {
+    position: relative;
     aspect-ratio: 1 / 1;
     background: var(--washi-2);
     display: flex;
