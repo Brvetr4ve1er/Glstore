@@ -1,0 +1,151 @@
+---
+import Base from '~/layouts/Base.astro';
+import site from '~/content/site.json';
+import { getCollection } from 'astro:content';
+
+const bases = (await getCollection('bases')).sort((a, b) => a.data.order - b.data.order);
+const fmt = (n: number) => n.toLocaleString('fr-FR').replace(/[\s ,]/g, ' ') + ' DA';
+const p = site.policies;
+const faq = site.faq ?? [];
+const waLink = `https://wa.me/${site.contact.whatsappNumber}?text=${encodeURIComponent(
+  `Salut ${site.brand.name} 👋\nJ’ai une question :`
+)}`;
+
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
+---
+<Base title="Infos & livraison" description={`Prix, délais, livraison dans les 58 wilayas, paiement à la livraison et retours — tout ce qu'il faut savoir avant de commander chez ${site.brand.name}.`}>
+
+  <section class="band-light" style="padding: var(--s-9) 0;">
+    <div class="wrap text-center">
+      <span class="eyebrow">Avant de commander</span>
+      <h1 class="display" style="font-size: clamp(36px, 6vw, 64px); margin-top: var(--s-3);">
+        Infos & livraison <span class="kanji">{site.brand.kanji}</span>
+      </h1>
+      <p class="muted" style="max-width: 56ch; margin: var(--s-4) auto 0;">
+        Prix, délais, livraison, paiement et retours. Une autre question ? Écris-nous, on répond vite.
+      </p>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="wrap facts">
+      <article class="card fact">
+        <div class="f-icon" aria-hidden="true">⏱️</div>
+        <h2>Délai</h2>
+        <p>Imprimé en boutique en <b>{site.boutique.leadTimeDays} jours</b> après confirmation de ta commande.</p>
+      </article>
+      <article class="card fact">
+        <div class="f-icon" aria-hidden="true">🚚</div>
+        <h2>Livraison</h2>
+        <p>{p.delivery}</p>
+        <p class="muted small">Tarif indicatif : <b>{fmt(p.deliveryPriceDZD)}</b>, confirmé selon ta wilaya.</p>
+      </article>
+      <article class="card fact">
+        <div class="f-icon" aria-hidden="true">🏪</div>
+        <h2>Retrait</h2>
+        <p>{p.pickupPriceDZD ? fmt(p.pickupPriceDZD) : 'Gratuit'} au {site.boutique.name}.</p>
+        <p class="muted small">{site.boutique.hours.map(h => `${h.day} : ${h.open}`).join(' · ')}</p>
+      </article>
+      <article class="card fact">
+        <div class="f-icon" aria-hidden="true">💵</div>
+        <h2>Paiement</h2>
+        <p>En espèces, à la livraison ou au retrait. Rien à payer en ligne.</p>
+      </article>
+      <article class="card fact">
+        <div class="f-icon" aria-hidden="true">↩️</div>
+        <h2>Retours</h2>
+        <p>Un souci avec ta commande ? Signale-le-nous sous <b>{p.returnDays} jours</b> sur WhatsApp, avec une photo.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="wrap narrow">
+      <span class="eyebrow">Prix</span>
+      <h2 class="display h2">Nos produits</h2>
+      <table class="prices">
+        <thead><tr><th scope="col">Produit</th><th scope="col">Prix</th><th scope="col">+ Verso</th></tr></thead>
+        <tbody>
+          {bases.map(b => (
+            <tr>
+              <td><span aria-hidden="true">{b.data.icon}</span> {b.data.name}</td>
+              <td>{fmt(b.data.price)}</td>
+              <td>{b.data.doubleSideAllowed && b.data.extraDoubleSide ? `+${fmt(b.data.extraDoubleSide)}` : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="muted small" style="margin-top: var(--s-3);">Prix par pièce, impression comprise. Livraison en plus.</p>
+    </div>
+  </section>
+
+  {faq.length > 0 && (
+    <section class="section-sm">
+      <div class="wrap narrow">
+        <span class="eyebrow">FAQ</span>
+        <h2 class="display h2">Questions fréquentes</h2>
+        <div class="faq">
+          {faq.map((f, i) => (
+            <details open={i === 0}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="band-red section">
+    <div class="wrap text-center">
+      <h2 class="display" style="color: var(--white); font-size: clamp(28px, 4vw, 44px);">Prêt ?</h2>
+      <div class="cta" style="margin-top: var(--s-6);">
+        <a href="/custom/" class="btn btn-sumi">Créer mon design →</a>
+        <a href={waLink} target="_blank" rel="noreferrer" class="btn btn-wa">💬 Poser une question</a>
+      </div>
+    </div>
+  </section>
+
+  {faq.length > 0 && <Fragment set:html={`<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`} />}
+</Base>
+
+<style>
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--s-4); }
+  .fact h2 {
+    font-family: var(--f-display); font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase;
+    margin: var(--s-3) 0 var(--s-2);
+  }
+  .fact p { font-size: 14px; line-height: 1.6; }
+  .fact p + p { margin-top: 6px; }
+  .f-icon { font-size: 28px; }
+  .small { font-size: 13px; }
+  .narrow { max-width: 760px; }
+  .h2 { font-size: clamp(26px, 4vw, 38px); margin: var(--s-3) 0 var(--s-6); }
+  .prices { width: 100%; border-collapse: collapse; background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); overflow: hidden; }
+  .prices th {
+    text-align: left; font-family: var(--f-display); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--sumi-3); padding: 12px 16px; border-bottom: 1px solid var(--sumi-4); background: var(--washi-2);
+  }
+  .prices td { padding: 12px 16px; border-bottom: 1px solid var(--sumi-5); font-size: 15px; }
+  .prices td:nth-child(n+2) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .prices tr:last-child td { border-bottom: none; }
+  @media (max-width: 480px) { .prices td, .prices th { padding: 10px; font-size: 14px; } }
+  .faq { display: grid; gap: var(--s-3); }
+  .faq details { background: var(--washi); border: 1px solid var(--sumi-4); border-radius: var(--r-3); }
+  .faq summary {
+    cursor: pointer; list-style: none; padding: var(--s-4) var(--s-6) var(--s-4) var(--s-4);
+    font-weight: 600; position: relative;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: '+'; position: absolute; right: var(--s-4); top: 50%; transform: translateY(-50%);
+    font-size: 20px; color: var(--torii); transition: transform 0.2s var(--ease-shuriken);
+  }
+  .faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+  .faq details p { padding: 0 var(--s-4) var(--s-4); color: var(--sumi-2); line-height: 1.65; font-size: 15px; }
+  .cta { display: flex; gap: var(--s-3); justify-content: center; flex-wrap: wrap; }
+</style>

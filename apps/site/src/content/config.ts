@@ -21,20 +21,36 @@ const bases = defineCollection({
   }),
 });
 
+/* A design shows its uploaded image when there is one, otherwise its
+ * emoji placeholder. Old entries ({ image: "🥷", isEmoji: true }) are
+ * still accepted and converted, so nothing breaks after an upgrade. */
 const designs = defineCollection({
   type: 'data',
-  schema: z.object({
-    id: z.string(),                          // "gojo"
-    name: z.string(),                        // "Gojo Satoru"
-    anime: z.string(),                       // "Jujutsu Kaisen"
-    image: z.string(),                       // "/images/designs/gojo.png" (or emoji)
-    isEmoji: z.boolean().default(false),     // true if `image` is an emoji
-    tagColor: z.enum([
-      'naruto','jjk','onepiece','dbz','bleach','aot','deathnote','bluelock','original'
-    ]).default('original'),
-    featured: z.boolean().default(false),    // appears on home page
-    order: z.number().default(0),
-  }),
+  schema: z.preprocess(
+    (raw) => {
+      const d = { ...(raw as Record<string, unknown>) };
+      if (d.isEmoji === true && typeof d.image === 'string' && !d.emoji) {
+        d.emoji = d.image;
+        delete d.image;
+      }
+      delete d.isEmoji;
+      if (d.image === '' || d.image === null) delete d.image;
+      if (d.emoji === '' || d.emoji === null) delete d.emoji;
+      return d;
+    },
+    z.object({
+      id: z.string().regex(/^[a-z0-9-]+$/, 'Identifiant : minuscules, chiffres et tirets uniquement'),
+      name: z.string(),                        // "Gojo Satoru"
+      anime: z.string(),                       // "Jujutsu Kaisen"
+      image: z.string().optional(),            // "/images/designs/gojo.png" (uploaded in /admin/)
+      emoji: z.string().optional(),            // "🥷" placeholder until there's an image
+      tagColor: z.enum([
+        'naruto','jjk','onepiece','dbz','bleach','aot','deathnote','bluelock','original'
+      ]).default('original'),
+      featured: z.boolean().default(false),    // appears on home page
+      order: z.number().default(0),
+    }).refine((d) => d.image || d.emoji, { message: 'Ajoute une image ou un emoji au design' }),
+  ),
 });
 
 export const collections = { bases, designs };

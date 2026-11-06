@@ -2,6 +2,7 @@
 import Base from '~/layouts/Base.astro';
 import site from '~/content/site.json';
 import { getCollection } from 'astro:content';
+import DesignThumb from '~/components/DesignThumb.astro';
 
 const designs = (await getCollection('designs'))
   .filter(d => d.data.featured)
@@ -74,12 +75,12 @@ const waLink = `https://wa.me/${site.contact.whatsappNumber}?text=${encodeURICom
             Choisis ton perso
           </h2>
         </div>
-        <a href="/custom" class="btn btn-ghost">Voir tout →</a>
+        <a href="/galerie/" class="btn btn-ghost">Voir tous les designs →</a>
       </div>
       <div class="design-grid">
         {designs.map(d => (
-          <a href="/custom" class="d-card" data-tag={d.data.tagColor}>
-            <div class="d-thumb">{d.data.image}</div>
+          <a href={`/custom/?design=${d.data.id}`} class="d-card" data-tag={d.data.tagColor}>
+            <div class="d-thumb"><DesignThumb image={d.data.image} emoji={d.data.emoji} name={d.data.name} size={56} /></div>
             <div class="d-meta">
               <div class="d-name">{d.data.name}</div>
               <div class="d-anime">{d.data.anime}</div>

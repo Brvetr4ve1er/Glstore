@@ -4,12 +4,13 @@ import Header from '~/components/Header.astro';
 import Footer from '~/components/Footer.astro';
 import site from '~/content/site.json';
 
-interface Props { title: string; description?: string; }
-const { title, description } = Astro.props;
+interface Props { title: string; description?: string; noindex?: boolean; }
+const { title, description, noindex = false } = Astro.props;
 const fullTitle = `${title} · ${site.brand.name}`;
 const desc = description ?? site.hero.subtitle;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://shinobishop.dz').toString();
-const ogImg = new URL('/assets/og.svg', Astro.site ?? 'https://shinobishop.dz').toString();
+// Astro.site comes from astro.config.mjs (Netlify's URL env var at build time).
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const ogImg = new URL('/assets/og.png', Astro.site).toString();
 // Owner-visible warning when the shop hasn't replaced the WhatsApp placeholder.
 const waMissing = site.contact.whatsappNumber === '213555000000';
 ---
@@ -22,21 +23,39 @@ const waMissing = site.contact.whatsappNumber === '213555000000';
   <meta name="color-scheme" content="light" />
   <title>{fullTitle}</title>
   <meta name="description" content={desc} />
-  <link rel="canonical" href={canonical} />
+  {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
   <meta property="og:site_name" content={site.brand.name} />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={desc} />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonical} />
   <meta property="og:image" content={ogImg} />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content={`${site.brand.name} — ${site.brand.tagline}`} />
   <meta property="og:locale" content="fr_DZ" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={fullTitle} />
   <meta name="twitter:description" content={desc} />
   <meta name="twitter:image" content={ogImg} />
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
-  <link rel="apple-touch-icon" href="/assets/mascot.svg" />
-  <link rel="mask-icon" href="/assets/mascot.svg" color="#CC0000" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <!-- Netlify Identity: the owner's invite / password-reset email links
+       land on the home page with a #…_token. Load the widget only then,
+       so it can finish the sign-up and send the owner to /admin/. -->
+  <script is:inline>
+    if (/(invite|recovery|confirmation|email_change)_token=/.test(location.hash)) {
+      var s = document.createElement('script');
+      s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
+      s.onload = function () {
+        window.netlifyIdentity.on('login', function () { location.href = '/admin/'; });
+      };
+      document.head.appendChild(s);
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link

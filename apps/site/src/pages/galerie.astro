@@ -2,6 +2,7 @@
 import Base from '~/layouts/Base.astro';
 import site from '~/content/site.json';
 import { getCollection } from 'astro:content';
+import DesignThumb from '~/components/DesignThumb.astro';
 
 const designs = (await getCollection('designs')).sort((a, b) => a.data.order - b.data.order);
 
@@ -43,7 +44,7 @@ for (const d of designs) {
         <div class="gallery-grid">
           {items.map(d => (
             <a class="g-card" href={`/custom/?design=${d.data.id}`}>
-              <div class="g-thumb">{d.data.image}</div>
+              <div class="g-thumb"><DesignThumb image={d.data.image} emoji={d.data.emoji} name={d.data.name} size={64} /></div>
               <div class="g-meta">
                 <div class="g-name">{d.data.name}</div>
                 <div class="g-anime">{d.data.anime}</div>

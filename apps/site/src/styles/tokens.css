@@ -26,6 +26,7 @@
 
   /* Inks on dark */
   --white: #FFFFFF;
+  --black: #000000;
   --w70:   rgba(255, 255, 255, 0.70);
   --w50:   rgba(255, 255, 255, 0.50);
   --w20:   rgba(255, 255, 255, 0.20);
@@ -34,9 +35,10 @@
   /* Accents */
   --gold:   #D7A33A;
   --jade:   #2E8B57;
+  --err:    #C0273B;
 
   /* Spacing (4 px) */
-  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-6: 24px;
+  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
   --s-7: 32px; --s-9: 48px; --s-10: 64px; --s-12: 96px;
 
   /* Radii */
@@ -45,6 +47,7 @@
   /* Shadows */
   --e-1: 0 1px 2px rgba(14, 14, 14, 0.06);
   --e-2: 0 4px 12px rgba(14, 14, 14, 0.10);
+  --e-3: 0 20px 48px rgba(14, 14, 14, 0.22);
   --e-torii: 0 0 24px var(--torii-glow);
 
   /* Motion */
@@ -55,6 +58,7 @@
   --f-display: "Bebas Neue", "Anton", Impact, system-ui, sans-serif;
   --f-body:    "Inter", system-ui, sans-serif;
   --f-kanji:   "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+  --f-mono:    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Base */

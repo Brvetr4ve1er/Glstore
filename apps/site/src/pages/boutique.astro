@@ -12,7 +12,9 @@ const ld = {
   '@type': 'ClothingStore',
   name: `${site.brand.name} — ${site.brand.tagline}`,
   description: site.hero.subtitle,
-  url: 'https://shinobishop.dz/boutique',
+  url: new URL('/boutique/', Astro.site).toString(),
+  image: new URL('/assets/og.png', Astro.site).toString(),
+  email: site.contact.email,
   address: {
     '@type': 'PostalAddress',
     streetAddress: site.boutique.name,

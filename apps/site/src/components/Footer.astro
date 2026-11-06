@@ -33,6 +33,12 @@ const igLink = `https://www.instagram.com/${site.contact.instagram}/`;
         <p class="muted small" style="margin-top: var(--s-4);">{site.policies.delivery}</p>
       </div>
     </div>
+    <nav class="links" aria-label="Pied de page">
+      <a href="/custom/">Designer</a>
+      <a href="/galerie/">Galerie</a>
+      <a href="/infos/">Infos & livraison</a>
+      <a href="/boutique/">Notre boutique</a>
+    </nav>
     <div class="legal">
       © {new Date().getFullYear()} {site.brand.name} · {site.brand.tagline} · Alger
     </div>
@@ -77,10 +83,16 @@ const igLink = `https://www.instagram.com/${site.contact.instagram}/`;
   .small { font-size: 13px; margin-bottom: 4px; }
   .muted { color: var(--w70); }
   .btn { display: inline-flex; }
+  .links {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2) var(--s-6);
+    margin-top: var(--s-9); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+  }
+  .links a { color: var(--w70); padding: 6px 0; }
+  .links a:hover { color: var(--white); }
   .legal {
     border-top: 1px solid var(--w10);
     padding-top: var(--s-4);
-    margin-top: var(--s-7);
+    margin-top: var(--s-4);
     font-size: 11px;
     color: var(--w50);
     letter-spacing: 0.08em;

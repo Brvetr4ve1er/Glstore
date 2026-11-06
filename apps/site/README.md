@@ -45,11 +45,8 @@ aucun serveur, aucune API payante.
 5d. **Galerie de designs** (`/galerie`) : tous les designs groupés par
    anime, avec deep-link vers le designer (`/custom/?design=<id>`).
    Clique un design → il s'ouvre directement dans le studio.
-6. **Commande.** Sur **mobile**, chaque visuel + fichier d'impression
-   (recto et verso) part directement dans WhatsApp via le partage
-   natif (`navigator.share` avec fichiers). Sur **ordinateur**, ils se
-   téléchargent et WhatsApp s'ouvre pré-rempli — il suffit de les
-   joindre au message.
+6. **Commande** sur WhatsApp ou Instagram, avec quantité, coordonnées
+   et livraison / retrait — voir « Comment ça marche, côté commande ».
 
 > **Mockups photo réels** : par défaut les mockups sont des dessins
 > vectoriels recolorables. Pour utiliser de vraies photos produit,
@@ -65,14 +62,16 @@ Le code du designer vit dans `src/lib/` (logique pure, testable) et
 ```
 apps/site/
 ├─ src/
-│  ├─ pages/            # Accueil · Designer (/custom) · Boutique
-│  ├─ components/       # Header · Footer
+│  ├─ pages/            # Accueil · Designer · Galerie · Infos · Boutique · 404
+│  ├─ components/       # Header · Footer · DesignThumb
 │  ├─ layouts/Base.astro
 │  ├─ lib/              # ◆ le moteur du designer (pur, sans DOM)
 │  │  ├─ mockups.ts     #   mockups SVG produits + zones d'impression
 │  │  ├─ bg-remove.ts   #   découpe de fond (chroma + IA)
 │  │  ├─ compositor.ts  #   placement + rendu canvas + export PNG
-│  │  └─ order.ts       #   partage WhatsApp (Web Share API + repli)
+│  │  ├─ order.ts       #   message + envoi WhatsApp / Instagram
+│  │  ├─ size-guide.ts  #   mensurations + recommandation de taille
+│  │  └─ wilayas.ts     #   les 58 wilayas (formulaire de commande)
 │  ├─ scripts/
 │  │  └─ builder.ts     #   contrôleur DOM du designer
 │  ├─ content/          # Données éditables par l'admin (JSON)
@@ -85,7 +84,8 @@ apps/site/
 │  │  ├─ index.html
 │  │  └─ config.yml
 │  ├─ images/designs/   # Images des designs (uploadées depuis l'admin)
-│  └─ assets/           # Mascotte + motifs seigaiha
+│  ├─ assets/           # Mascotte, motifs seigaiha, icônes, og.png
+│  └─ manifest.webmanifest
 ├─ netlify.toml         # Config de déploiement
 └─ package.json
 ```
@@ -106,6 +106,8 @@ npm run dev          # → http://localhost:4321
 Pages disponibles :
 - `/` — accueil
 - `/custom` — le builder
+- `/galerie` — tous les designs, groupés par anime
+- `/infos` — délai, livraison, paiement, retours, prix, FAQ
 - `/boutique` — infos boutique + LocalBusiness JSON-LD
 - `/admin/` — panneau d'admin (besoin de Netlify Identity en prod)
 
@@ -125,39 +127,78 @@ statique (Netlify, Vercel, Cloudflare Pages, GitHub Pages, OVH).
 Netlify est gratuit, héberge le site + le panneau d'admin + gère les
 logins de l'owner avec un email/mot de passe.
 
-1. Pousser le repo sur GitHub.
-2. Sur netlify.com → **Add new site → Import an existing project**.
-3. Choisir le repo. Netlify lit `apps/site/netlify.toml` et configure
-   tout seul (build = `npm run build`, publish = `dist`).
-4. Une fois déployé, dans le dashboard Netlify :
-   - **Site settings → Identity → Enable Identity**
+1. Sur netlify.com → **Add new site → Import an existing project** →
+   choisir le repo GitHub. Le `netlify.toml` configure le build tout
+   seul (`base = apps/site`, `publish = dist`).
+2. **Site configuration → Build & deploy → Branches** : la
+   *production branch* doit être la branche qui contient le site
+   (aujourd'hui `claude/shinobi-shop-rebuild`, plus tard `main` dans
+   son propre repo). C'est aussi la branche écrite dans
+   `public/admin/config.yml` → `backend.branch` : les deux doivent
+   être identiques, sinon l'admin enregistre au mauvais endroit.
+3. Dans le dashboard Netlify :
+   - **Identity → Enable Identity**
    - **Identity → Registration → Invite only**
    - **Identity → Services → Git Gateway → Enable**
-5. Inviter l'owner par email depuis Netlify (Identity → Invite users).
-6. L'owner reçoit l'email, crée un mot de passe, et peut se connecter
-   sur `https://[le-site].netlify.app/admin/`.
+4. **Identity → Invite users** : inviter l'email de l'owner.
+5. L'owner clique le lien de l'email : il arrive sur le site, choisit
+   un mot de passe, et est envoyé directement sur `/admin/`.
+6. (Optionnel) **Domain management** pour brancher un vrai domaine.
+   Les liens de partage et le sitemap suivent automatiquement (Netlify
+   fournit l'adresse au moment du build).
 
-C'est tout. À partir de là, l'owner ajoute / retire des designs,
-change les prix, et met à jour le numéro WhatsApp depuis une UI
-visuelle.
+### Avant la mise en ligne — checklist
+
+- [ ] **Mettre le vrai numéro WhatsApp** : `/admin/` → Paramètres du
+      site → Contact → WhatsApp (format `2135XXXXXXXX`, sans le `+`).
+      Tant que c'est le numéro de démo, un bandeau jaune s'affiche en
+      haut de chaque page.
+- [ ] Vérifier le pseudo Instagram, le téléphone, les horaires.
+- [ ] Remplacer les emojis des designs par les vraies images (PNG à
+      fond transparent) : `/admin/` → Designs → un design → Image.
+- [ ] Passer une commande test depuis un téléphone (WhatsApp **et**
+      Instagram) et vérifier que le message + les images arrivent.
+
 
 ## Comment ça marche, côté commande
 
-1. Le visiteur ouvre `/custom`.
-2. Il choisit base → design → côté(s) → taille → couleur.
-3. Le prix se calcule en temps réel à partir des fichiers
-   `src/content/bases/*.json`.
-4. Le bouton **"Commander sur WhatsApp"** ouvre
-   `wa.me/{numéro}?text=...` avec la commande pré-remplie dans le
-   champ de message.
-5. Le visiteur ajoute son prénom / wilaya / téléphone et envoie.
-6. L'owner reçoit le message dans WhatsApp et gère la suite comme
-   d'habitude.
+1. Le visiteur ouvre `/custom`, choisit produit → couleur → design →
+   taille, place son design (recto et/ou verso).
+2. Dans **Ta commande**, il indique la **quantité**, son **prénom**, son
+   **téléphone** et choisit **Livraison** (wilaya + commune) ou
+   **Retrait en boutique**. Le total se met à jour en direct :
+   `(prix + verso) × quantité + livraison`.
+   Ses infos sont mémorisées sur son téléphone pour la prochaine fois.
+3. Deux boutons :
+   - **Commander sur WhatsApp** — sur téléphone, le message + les
+     visuels partent directement dans WhatsApp (partage natif). Sur
+     ordinateur, les visuels se téléchargent et WhatsApp Web s'ouvre
+     avec le message pré-rempli.
+   - **Commander sur Instagram** — Instagram ne permet pas de
+     pré-remplir un message : le texte de la commande est **copié**
+     automatiquement, les visuels sont partagés (téléphone) ou
+     téléchargés (ordinateur), et la conversation avec
+     `@shinobishopdz` s'ouvre. Le client colle le message.
+4. Si le navigateur bloque le partage (certains iPhone), une fenêtre
+   « Ta commande est prête » propose d'envoyer d'un tap.
+5. La boutique reçoit un message complet :
 
-Pour Instagram, le bouton **"Copier la commande"** met le texte dans
-le presse-papier ; le visiteur ouvre la DM et colle. (Instagram n'a
-pas d'API pour pré-remplir les messages — on contourne avec un
-copier/coller en un clic.)
+```
+• Produit : T-shirt oversize — 2 200 DA
+• Couleur : Noir · Taille : XL · Quantité : 2
+🎨 Recto : Gojo Satoru (Jujutsu Kaisen) · 85% · centré
+👤 Prénom : Amine
+📞 Téléphone : 0555 12 34 56
+🚚 Livraison : 16 · Alger — Bab Ezzouar
+Sous-total : 4 400 DA (2 × 2 200 DA)
+Livraison : 690 DA (à confirmer selon la wilaya)
+Total : 5 090 DA — paiement à la livraison / au retrait
+```
+
+   + `shinobi-recto-apercu.png` (le mockup) et
+   `shinobi-recto-impression.png` (le fichier à imprimer, fond
+   transparent) — et la même chose pour le verso s'il y en a un.
+
 
 ## Éditer le contenu sans code
 
@@ -187,31 +228,53 @@ Netlify re-construit et redéploie automatiquement. **Pas de code.**
 
 ## Personnaliser
 
-| Pour changer… | Édite… |
-|---|---|
-| Le numéro WhatsApp | `src/content/site.json` → `contact.whatsappNumber` |
-| Les prix de base | `src/content/bases/*.json` → `price` |
-| Le supplément recto+verso | `src/content/bases/*.json` → `extraDoubleSide` |
-| Ajouter un design | nouveau fichier dans `src/content/designs/` |
-| Les horaires | `src/content/site.json` → `boutique.hours` |
-| La phrase d'accroche | `src/content/site.json` → `hero.title` |
-| Les couleurs / fontes | `src/styles/tokens.css` |
+Tout ce qui suit se fait depuis **`/admin/`** (ou en éditant le JSON) :
+
+| Pour changer… | Dans l'admin | Fichier |
+|---|---|---|
+| Le numéro WhatsApp, Instagram, téléphone | Paramètres du site → Contact | `src/content/site.json` |
+| Les prix, le supplément verso | Bases | `src/content/bases/*.json` |
+| Ajouter un design (avec son image) | Designs → Nouveau | `src/content/designs/*.json` + `public/images/designs/` |
+| Les designs de la page d'accueil | Designs → « Mettre en avant » | idem |
+| Les horaires, l'adresse, le délai | Paramètres du site → Boutique | `src/content/site.json` |
+| Le prix de livraison, la politique de retour | Paramètres du site → Livraison | `src/content/site.json` |
+| Les questions de la page Infos | Paramètres du site → Questions fréquentes | `src/content/site.json` → `faq` |
+| La phrase d'accroche | Paramètres du site → Hero | `src/content/site.json` |
+
+Réservé au développeur : couleurs / fontes (`src/styles/tokens.css`),
+mockups et zones d'impression (`src/lib/mockups.ts`), guide des
+tailles (`src/lib/size-guide.ts`), image de partage
+(`public/assets/og.png`, 1200×630).
+
+> Un design a soit une **image** (imprimée telle quelle — PNG à fond
+> transparent, 1500 px ou plus), soit un **emoji** de remplacement. Le
+> build refuse un design qui n'a ni l'un ni l'autre, donc une erreur
+> de saisie ne peut pas casser le site en ligne.
+
 
 ## Points techniques
 
-- **Astro 5** rend tout en HTML statique au build → site très rapide,
-  zéro JavaScript côté client sauf le builder.
-- Le builder est **JavaScript vanilla** (~150 lignes), pas de
-  framework, lit son catalogue depuis un `<script type="application/json">`
-  embarqué dans la page.
-- **Decap CMS 3** est un éditeur visuel pour Git — il commit des
-  changements dans le repo, ce qui déclenche un rebuild Netlify.
-- **WhatsApp Click-to-Chat** (`wa.me/...?text=...`) est officiel et
-  pré-remplit le message dans le champ. Le visiteur peut éditer
-  avant d'envoyer.
-- **Schema.org `ClothingStore`** sur `/boutique` pour Google Maps /
-  Knowledge Panel.
+- **Astro 5** rend tout en HTML statique au build → site très rapide.
+  Seul le designer charge du JavaScript (~40 Ko, ~13 Ko gzip), en
+  TypeScript sans framework.
+- Le designer lit son catalogue depuis un `<script type="application/json">`
+  embarqué dans la page. La logique pure vit dans `src/lib/`, le
+  contrôleur DOM dans `src/scripts/builder.ts`.
+- **Decap CMS 3** (version figée dans `public/admin/index.html`) est un
+  éditeur visuel pour Git : il commit dans le repo, Netlify reconstruit.
+  Publication directe (pas de brouillons à valider).
+- **WhatsApp Click-to-Chat** (`wa.me/...?text=...`) et **Web Share API**
+  (partage des images sur téléphone). Instagram : lien `ig.me/m/<pseudo>`
+  + texte copié.
+- **SEO / partage** : image de partage PNG (WhatsApp/Facebook
+  n'affichent pas les SVG), URL canonique, sitemap, `robots.txt`
+  générés à partir de l'adresse réelle du site ; `ClothingStore` sur
+  `/boutique`, `FAQPage` sur `/infos`. Icônes PNG + manifeste pour
+  « Ajouter à l'écran d'accueil ».
+- En-têtes de sécurité et cache longue durée des fichiers `/_astro/*`
+  dans `netlify.toml`.
 - **Pas de tracking par défaut** — ajoute Plausible si besoin.
+
 
 ## Coût d'exploitation : 0 €
 

@@ -12,12 +12,20 @@ import {
   DEFAULT_PLACEMENT, designBox, renderPreview, renderPrintFile, canvasToBlob,
   clampPlacement, svgDataUrl, loadImage, type Placement,
 } from '../lib/compositor';
-import { sendOrder, type OrderDetails, type SideInfo, type NamedBlob } from '../lib/order';
+import {
+  sendOrder, copyText, prepareWindow, orderText, normalisePhone, fmtDA,
+  type OrderDetails, type SideInfo, type NamedBlob, type Channel, type Customer, type OrderResult,
+} from '../lib/order';
 import { SIZE_GUIDES } from '../lib/size-guide';
 
 interface Base { id: string; name: string; price: number; doubleSideAllowed: boolean; extraDoubleSide: number; icon: string; order: number; }
-interface Design { id: string; name: string; anime: string; image: string; isEmoji: boolean; }
-interface Catalog { bases: Base[]; designs: Design[]; contact: { whatsappNumber: string; instagram: string }; brand: { name: string }; }
+interface Design { id: string; name: string; anime: string; image?: string; emoji?: string; }
+interface Catalog {
+  bases: Base[]; designs: Design[];
+  contact: { whatsappNumber: string; instagram: string };
+  brand: { name: string };
+  delivery: { fee: number; pickupFee: number; pickupPlace: string };
+}
 
 interface SideState {
   design: HTMLCanvasElement | null;
@@ -35,8 +43,21 @@ const freshSide = (): SideState => ({
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector<T>(s)!;
 const $$ = (s: string) => Array.from(document.querySelectorAll<HTMLElement>(s));
-const fmtDA = (n: number) => n.toLocaleString('fr-FR').replace(/,/g, ' ') + ' DA';
 const NO_SIZE: MockupKind[] = ['mug', 'tote'];
+const MAX_QTY = 20;
+const CUSTOMER_KEY = 'shinobi.customer';
+
+/** Remembered on this device only, so a returning customer doesn't retype. */
+function loadCustomer(): Customer {
+  const empty: Customer = { name: '', phone: '', mode: 'livraison', wilaya: '', commune: '' };
+  try {
+    const raw = localStorage.getItem(CUSTOMER_KEY);
+    return raw ? { ...empty, ...JSON.parse(raw) } : empty;
+  } catch { return empty; }
+}
+function saveCustomer(c: Customer) {
+  try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify(c)); } catch { /* private mode: ignore */ }
+}
 
 export function initBuilder() {
   const cat: Catalog = JSON.parse($('#catalog').textContent || '{}');
@@ -48,6 +69,8 @@ export function initBuilder() {
     garmentName: 'Noir',
     size: 'M' as string,
     note: '' as string,
+    qty: 1,
+    customer: loadCustomer(),
     activeSide: 'recto' as Side,
     sides: { recto: freshSide(), verso: freshSide() } as Record<Side, SideState>,
     eyedropper: false,
@@ -217,7 +240,15 @@ export function initBuilder() {
     return c;
   }
   async function setFromGallery(d: Design) {
-    const canvas = d.isEmoji ? emojiToCanvas(d.image) : await imageToCanvas(d.image);
+    let canvas: HTMLCanvasElement;
+    if (d.image) {
+      showProcessing(true, 'Chargement du design…');
+      try { canvas = await imageToCanvas(d.image); }
+      catch { showToast("Ce design n'a pas pu être chargé."); return; }
+      finally { showProcessing(false); }
+    } else {
+      canvas = emojiToCanvas(d.emoji || '🥷');
+    }
     const s = cur();
     s.design = canvas; s.source = canvas; s.fromUpload = false;
     s.galleryId = d.id; s.label = `${d.name} (${d.anime})`;
@@ -349,17 +380,92 @@ export function initBuilder() {
       if (!b) return;
       $$('[data-size]').forEach(x => x.classList.remove('on'));
       b.classList.add('on'); state.size = b.getAttribute('data-size')!;
+      updatePrice();
     });
     ($('#note') as HTMLTextAreaElement).oninput = (e) => { state.note = (e.target as HTMLTextAreaElement).value; };
+  }
+
+  // ── Customer details ──────────────────────────────────────
+  let showErrors = false; // stays quiet until the first order attempt
+  const nameIn = $<HTMLInputElement>('#c-name');
+  const phoneIn = $<HTMLInputElement>('#c-phone');
+  const wilayaIn = $<HTMLSelectElement>('#c-wilaya');
+  const communeIn = $<HTMLInputElement>('#c-commune');
+
+  function setFieldError(el: HTMLElement, msg: string) {
+    const err = document.getElementById(`${el.id}-err`);
+    if (msg) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', `${el.id}-err`); }
+    else { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); }
+    if (err) err.textContent = msg;
+  }
+  /** Returns the first invalid field (and marks every invalid one), or null. */
+  function validateCustomer(): HTMLElement | null {
+    const c = state.customer;
+    const bad: HTMLElement[] = [];
+    const nameMsg = c.name.trim().length < 2 ? 'Indique ton prénom.' : '';
+    setFieldError(nameIn, nameMsg); if (nameMsg) bad.push(nameIn);
+    const phoneMsg = !c.phone.trim() ? 'Indique ton numéro.'
+      : !normalisePhone(c.phone) ? 'Numéro invalide (ex. 05 55 12 34 56).' : '';
+    setFieldError(phoneIn, phoneMsg); if (phoneMsg) bad.push(phoneIn);
+    const wilayaMsg = c.mode === 'livraison' && !c.wilaya ? 'Choisis ta wilaya.' : '';
+    setFieldError(wilayaIn, wilayaMsg); if (wilayaMsg) bad.push(wilayaIn);
+    return bad[0] ?? null;
+  }
+  function reflectMode() {
+    const livraison = state.customer.mode === 'livraison';
+    $('#delivery-fields').style.display = livraison ? '' : 'none';
+    if (!livraison) setFieldError(wilayaIn, '');
+    document.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach(r => { r.checked = r.value === state.customer.mode; });
+  }
+  function wireCustomer() {
+    const c = state.customer;
+    nameIn.value = c.name; phoneIn.value = c.phone; wilayaIn.value = c.wilaya; communeIn.value = c.commune;
+    const onEdit = () => {
+      c.name = nameIn.value; c.phone = phoneIn.value; c.wilaya = wilayaIn.value; c.commune = communeIn.value;
+      saveCustomer(c);
+      // once errors have been shown, re-check live so they clear as soon as they're fixed
+      if (showErrors) validateCustomer();
+    };
+    [nameIn, phoneIn, communeIn].forEach(el => el.addEventListener('input', onEdit));
+    wilayaIn.addEventListener('change', onEdit);
+    phoneIn.addEventListener('blur', () => {
+      const n = normalisePhone(phoneIn.value);
+      if (n) { phoneIn.value = n; onEdit(); }
+    });
+    document.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach(r =>
+      r.addEventListener('change', () => {
+        c.mode = r.value as Customer['mode']; saveCustomer(c); reflectMode(); updatePrice();
+      }));
+    $('#qty-minus').addEventListener('click', () => setQty(state.qty - 1));
+    $('#qty-plus').addEventListener('click', () => setQty(state.qty + 1));
+    reflectMode(); setQty(1);
+  }
+  function setQty(n: number) {
+    state.qty = Math.max(1, Math.min(MAX_QTY, n));
+    $('#qty').textContent = String(state.qty);
+    ($('#qty-minus') as HTMLButtonElement).disabled = state.qty <= 1;
+    ($('#qty-plus') as HTMLButtonElement).disabled = state.qty >= MAX_QTY;
+    updatePrice();
   }
 
   // ── Pricing ───────────────────────────────────────────────
   function versoSurcharge(): number {
     return mk().twoSided && state.sides.verso.design ? state.base.extraDoubleSide : 0;
   }
-  function price(): number { return state.base.price + versoSurcharge(); }
+  function unitPrice(): number { return state.base.price + versoSurcharge(); }
+  function deliveryFee(): number {
+    return state.customer.mode === 'livraison' ? cat.delivery.fee : cat.delivery.pickupFee;
+  }
+  function total(): number { return unitPrice() * state.qty + deliveryFee(); }
   function updatePrice() {
-    $('#total').textContent = fmtDA(price());
+    $('#total').textContent = fmtDA(total());
+    $('#mb-total').textContent = fmtDA(total());
+    const sub = unitPrice() * state.qty;
+    $('#l-sub-label').textContent = state.qty > 1 ? `Sous-total (${state.qty} × ${fmtDA(unitPrice())})` : 'Sous-total';
+    $('#l-sub').textContent = fmtDA(sub);
+    const livraison = state.customer.mode === 'livraison';
+    $('#l-del-row').style.display = livraison ? '' : 'none';
+    $('#l-del').textContent = fmtDA(cat.delivery.fee);
     const sides = [
       state.sides.recto.design ? 'recto' : null,
       state.sides.verso.design ? 'verso' : null,
@@ -373,8 +479,8 @@ export function initBuilder() {
   }
   function updateOrderEnabled() {
     const ok = !!state.sides.recto.design;
-    ($('#btn-order') as HTMLButtonElement).disabled = !ok;
-    ($('#btn-download') as HTMLButtonElement).disabled = !ok;
+    ['#btn-order', '#btn-order-ig', '#btn-download'].forEach(id => (($(id) as HTMLButtonElement).disabled = !ok));
+    $('#order-hint').textContent = ok ? '' : 'Choisis ou importe un design pour pouvoir commander.';
   }
 
   // ── Processing + toast ────────────────────────────────────
@@ -424,47 +530,125 @@ export function initBuilder() {
     const c = await renderPreview(img, state.customerPhoto.vb, state.customerPhoto.pa, s.design, s.placement, 1200);
     return { name: 'shinobi-essai-photo.png', blob: await canvasToBlob(c) };
   }
-  async function buildOrder(): Promise<{ details: OrderDetails; files: NamedBlob[] } | null> {
-    if (!state.sides.recto.design) return null;
+  async function buildFiles(): Promise<NamedBlob[]> {
     const files = [...await buildSideFiles('recto'), ...await buildSideFiles('verso')];
     const tryon = await buildPhotoPreviewFile();
     if (tryon) files.push(tryon);
-    const details: OrderDetails = {
-      brand: cat.brand.name, whatsappNumber: cat.contact.whatsappNumber,
+    return files;
+  }
+  /** Synchronous, so it can run inside the click (clipboard needs that). */
+  function buildDetails(): OrderDetails {
+    const c = state.customer;
+    return {
+      brand: cat.brand.name, whatsappNumber: cat.contact.whatsappNumber, instagram: cat.contact.instagram,
       product: state.base.name, basePrice: state.base.price,
       colour: state.garmentName,
       size: NO_SIZE.includes(state.mockupKind) ? null : state.size,
-      total: price(),
+      quantity: state.qty,
+      unitPrice: unitPrice(),
       recto: sideInfo('recto', 'Recto'),
       verso: state.sides.verso.design ? sideInfo('verso', 'Verso') : null,
       versoSurcharge: versoSurcharge(),
+      deliveryFee: deliveryFee(),
+      pickupPlace: cat.delivery.pickupPlace,
+      customer: { ...c, phone: normalisePhone(c.phone) ?? c.phone.trim() },
       note: state.note,
+      total: total(),
     };
-    return { details, files };
   }
+
+  const appName = (ch: Channel) => (ch === 'whatsapp' ? 'WhatsApp' : 'Instagram');
+  function reportResult(ch: Channel, res: OrderResult) {
+    if (res.status === 'shared') showToast('Commande envoyée 🎉 On te répond vite !');
+    else if (res.status === 'cancelled') showToast('Envoi annulé — tu peux réessayer.');
+    else if (res.status === 'downloaded') showToast(ch === 'whatsapp'
+      ? 'Visuels téléchargés + WhatsApp ouvert — joins-les au message.'
+      : 'Message copié ✅ Visuels téléchargés — colle le message dans Instagram et joins-les.');
+    else openShareReady(ch, res.retry);
+  }
+
+  const shareReady = $('#share-ready');
+  let pendingRetry: (() => Promise<OrderResult>) | null = null;
+  let pendingChannel: Channel = 'whatsapp';
+  function openShareReady(ch: Channel, retry: () => Promise<OrderResult>) {
+    pendingRetry = retry; pendingChannel = ch;
+    const btn = $('#sr-send');
+    btn.textContent = `Envoyer sur ${appName(ch)}`;
+    btn.className = `btn ${ch === 'whatsapp' ? 'btn-wa' : 'btn-ig'} sr-send`;
+    shareReady.style.display = 'flex';
+    btn.focus();
+  }
+  function closeShareReady() { shareReady.style.display = 'none'; pendingRetry = null; }
+
+  async function placeOrder(ch: Channel) {
+    if (!state.sides.recto.design) return;
+    showErrors = true;
+    const bad = validateCustomer();
+    if (bad) {
+      $('#order-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      bad.focus({ preventScroll: true });
+      showToast('Complète tes infos pour envoyer la commande.');
+      return;
+    }
+    // click-time work: copy the text (Instagram can't pre-fill it) and,
+    // on computers, open the chat tab before pop-up blockers kick in
+    const details = buildDetails();
+    if (ch === 'instagram') await copyText(orderText(details));
+    const win = prepareWindow();
+    showProcessing(true, 'Préparation de la commande…');
+    try {
+      const files = await buildFiles();
+      reportResult(ch, await sendOrder(ch, details, files, win));
+    } catch (e) {
+      win?.close();
+      showToast((e as Error).message || "Erreur pendant la préparation — réessaie.");
+    } finally { showProcessing(false); }
+  }
+
   function wireOrder() {
-    $('#btn-order').addEventListener('click', async () => {
-      showProcessing(true, 'Préparation de la commande…');
-      try {
-        const o = await buildOrder(); if (!o) return;
-        const res = await sendOrder(o.details, o.files);
-        showToast(res === 'shared' ? 'Commande partagée 🎉'
-          : 'Images téléchargées + WhatsApp ouvert — joins-les au message.');
-      } catch (e) { alert((e as Error).message || 'Erreur'); }
-      finally { showProcessing(false); }
+    $('#btn-order').addEventListener('click', () => placeOrder('whatsapp'));
+    $('#btn-order-ig').addEventListener('click', () => placeOrder('instagram'));
+    $('#sr-send').addEventListener('click', async () => {
+      const retry = pendingRetry, ch = pendingChannel;
+      closeShareReady();
+      if (retry) reportResult(ch, await retry());
+    });
+    shareReady.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).hasAttribute('data-close')) closeShareReady();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && shareReady.style.display === 'flex') closeShareReady();
     });
     $('#btn-download').addEventListener('click', async () => {
+      if (!state.sides.recto.design) return;
       showProcessing(true, 'Génération des visuels…');
       try {
-        const o = await buildOrder(); if (!o) return;
-        for (const f of o.files.filter(f => f.name.includes('apercu'))) {
+        const files = await buildFiles();
+        for (const f of files.filter(f => !f.name.includes('impression'))) {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(f.blob); a.download = f.name; a.click();
           setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         }
         showToast('Visuel(s) téléchargé(s).');
+      } catch (e) {
+        showToast((e as Error).message || 'Erreur pendant la génération.');
       } finally { showProcessing(false); }
     });
+  }
+
+  // ── Phone order bar ───────────────────────────────────────
+  function wireMobileBar() {
+    const bar = $('#mobile-bar');
+    const card = $('#order-card');
+    $('#mb-go').addEventListener('click', () => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const firstEmpty = [nameIn, phoneIn].find(el => !el.value.trim());
+      if (firstEmpty) setTimeout(() => firstEmpty.focus({ preventScroll: true }), 400);
+    });
+    if (!('IntersectionObserver' in window)) return;
+    // hide the bar while the order card itself is on screen
+    new IntersectionObserver(([entry]) => { bar.hidden = entry.isIntersecting; }, { threshold: 0.05 })
+      .observe(card);
   }
 
   // ── Tabs (gallery / upload) ───────────────────────────────
@@ -661,7 +845,7 @@ export function initBuilder() {
   updateConditionalSteps(); updatePrice(); updateOrderEnabled();
   wireBases(); wireSides(); wireSourceTabs(); wireGallery();
   wireUploadTools(); wireInteraction(); wireOptions(); wireOrder(); wireSizeGuide();
-  wireStageMode();
+  wireStageMode(); wireCustomer(); wireMobileBar();
   applyDeepLinkDesign();
   mockupImg.addEventListener('load', layoutPrintBox);
   window.addEventListener('resize', layoutPrintBox);

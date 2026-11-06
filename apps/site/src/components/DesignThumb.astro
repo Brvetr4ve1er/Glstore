@@ -1,0 +1,13 @@
+---
+/* Renders a design's uploaded image, or its emoji placeholder. */
+interface Props { image?: string; emoji?: string; name: string; size?: number; }
+const { image, emoji, name, size = 64 } = Astro.props;
+---
+{image
+  ? <img class="dt-img" src={image} alt={name} loading="lazy" decoding="async" style={`width:${size * 1.6}px;height:${size * 1.6}px;`} />
+  : <span class="dt-emoji" role="img" aria-label={name} style={`font-size:${size}px;`}>{emoji}</span>}
+
+<style>
+  .dt-img { object-fit: contain; max-width: 90%; max-height: 90%; }
+  .dt-emoji { line-height: 1; }
+</style>

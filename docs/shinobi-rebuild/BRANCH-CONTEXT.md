@@ -157,14 +157,13 @@ Removing the branch removes only those two folders.
 
 ---
 
-## 3. The two commits on this branch
+## 3. What's on this branch
 
-```
-98c1fe3  feat(shinobi): build the real Astro site
-fb2dbc5  docs(shinobi): full rebuild plan + live HTML preview
-```
-
-Both are additive. Neither edits existing Glstore files.
+`git log --oneline -- apps/site docs/shinobi-rebuild` lists every
+commit. All of them only touch `apps/site/`, `docs/shinobi-rebuild/`,
+`SHINOBI.md` and the root `netlify.toml` / `runtime.txt` (the last two
+were added by Netlify's bot so the site builds from the repo root).
+No existing Glstore file is changed.
 
 ---
 
@@ -239,7 +238,27 @@ git push -u origin main --force
 ```
 
 > Recommendation: **Option A** unless you specifically need the
-> 2-commit history. It's the least error-prone.
+> commit history. It's the least error-prone.
+
+### After any option — fix the admin paths (required)
+
+Inside Glstore the site lives in `apps/site/`; in its own repo it's
+at the root. The admin panel writes files by repo path, so edit
+`public/admin/config.yml` in the new repo:
+
+1. `backend.branch:` → `main` (or whatever branch Netlify deploys).
+2. Remove the `apps/site/` prefix everywhere — `media_folder`, every
+   collection `folder:`, and the `file:` of the site settings:
+
+```bash
+sed -i 's#apps/site/##g' public/admin/config.yml
+```
+
+3. In Netlify, the base directory becomes empty (repo root) — the
+   `netlify.toml` inside the folder already says `publish = "dist"`.
+
+Then log into `/admin/` and save a small change to confirm it commits
+to the right place.
 
 ---
 

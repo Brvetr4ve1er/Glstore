@@ -6,11 +6,17 @@
 
 backend:
   name: git-gateway
-  branch: main             # or whatever branch hosts production
-  # For local development, override at the bottom with `local_backend: true`.
+  # MUST be the branch Netlify deploys to production. The site currently
+  # lives on this branch of the Glstore repo. When apps/site/ moves to
+  # its own repo, change this to `main` AND drop the `apps/site/`
+  # prefix from every path below (see docs BRANCH-CONTEXT.md §4).
+  branch: claude/shinobi-shop-rebuild
 
 # Owners log in with email through Netlify Identity (free tier).
-publish_mode: editorial_workflow
+# No editorial workflow: "Publier" goes live directly (~1 min rebuild).
+# Schemas are validated at build time, so a bad edit can't break the site.
+locale: fr
+logo_url: /assets/mascot.svg
 media_folder: "apps/site/public/images/designs"
 public_folder: "/images/designs"
 
@@ -45,16 +51,24 @@ collections:
     identifier_field: id
     summary: "{{name}} — {{anime}}"
     fields:
-      - { name: id, label: "Identifiant (sans espace)", widget: string, hint: "ex: gojo, sukuna" }
+      - { name: id, label: "Identifiant", widget: string, pattern: ['^[a-z0-9-]+$', 'Minuscules, chiffres et tirets uniquement (ex: gojo-satoru)'], hint: "Utilisé dans le lien du design. ex: gojo, sukuna-2" }
       - { name: name, label: "Nom du design", widget: string }
       - { name: anime, label: "Anime / franchise", widget: string }
       - {
           name: image,
-          label: "Image (URL ou emoji)",
-          widget: string,
-          hint: "Pour une image, mets /images/designs/gojo.png. Pour un emoji, mets 🥷 et coche 'C'est un emoji' ci-dessous."
+          label: "Image du design",
+          widget: image,
+          required: false,
+          choose_url: false,
+          hint: "PNG à fond transparent, idéalement 1500 px ou plus. C'est cette image qui sera imprimée."
         }
-      - { name: isEmoji, label: "C'est un emoji", widget: boolean, default: true }
+      - {
+          name: emoji,
+          label: "…ou un emoji en attendant l'image",
+          widget: string,
+          required: false,
+          hint: "Utilisé seulement s'il n'y a pas d'image. ex: 🥷"
+        }
       - {
           name: tagColor,
           label: "Couleur du tag",
@@ -132,6 +146,15 @@ collections:
               - { name: deliveryPriceDZD, label: "Prix livraison (DA)", widget: number, value_type: int, min: 0 }
               - { name: pickupPriceDZD, label: "Prix retrait en boutique (DA)", widget: number, value_type: int, default: 0 }
               - { name: returnDays, label: "Délai de retour (jours)", widget: number, value_type: int, default: 14 }
+
+          - label: "Questions fréquentes (page Infos)"
+            name: faq
+            widget: list
+            required: false
+            summary: "{{fields.q}}"
+            fields:
+              - { name: q, label: "Question", widget: string }
+              - { name: a, label: "Réponse", widget: text }
 
 # Set this to `true` when running Decap locally with `npx decap-server`.
 # In production, leave it commented out.
